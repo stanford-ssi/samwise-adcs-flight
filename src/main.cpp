@@ -8,7 +8,6 @@ using namespace linalg::aliases;
 
 int main()
 {
-
     float3 x = {1.3423, 8, 3.12387213786};
     float3 y = {4, 5.12387128376, 6};
 

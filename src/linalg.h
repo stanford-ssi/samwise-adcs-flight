@@ -1,3 +1,10 @@
+// ---------------------------------------------
+// DO NOT MODIFY!!!!
+//
+// See https://github.com/sgorsten/linalg
+//
+// ---------------------------------------------
+
 // linalg.h - 2.2 - Single-header public domain linear algebra library
 //
 // The intent of this library is to provide the bulk of the functionality
