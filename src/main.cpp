@@ -9,7 +9,7 @@ using namespace linalg::aliases;
 int main()
 {
 
-    float3 x = {1.3423, 2, 3.12387213786};
+    float3 x = {1.3423, 7, 3.12387213786};
     float3 y = {4, 5.12387128376, 6};
 
     stdio_init_all();
