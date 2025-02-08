@@ -34,9 +34,13 @@ project(samwise-adcs C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-add_executable(samwise-adcs src/main.cpp)
+file(GLOB top CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB gnc CONFIGURE_DEPENDS "src/gnc/*.cpp")
+file(GLOB drivers CONFIGURE_DEPENDS "src/drivers/*.cpp")
 
-pico_set_program_name(samwise-adcs "onboarding")
+add_executable(samwise-adcs ${top} ${gnc} ${drivers})
+
+pico_set_program_name(samwise-adcs "samwise_adcs")
 pico_set_program_version(samwise-adcs "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
@@ -52,5 +56,7 @@ target_include_directories(samwise-adcs PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts or any other standard includes, if required
 )
+
+target_include_directories(samwise-adcs PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
 pico_add_extra_outputs(samwise-adcs)

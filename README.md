@@ -27,8 +27,27 @@ Make the project:
 make -j8
 ```
 
+**Only on Mac:**
+```
+cp samwise-adcs.uf2 /Volumes/RP2350 
+```
+
 Follow instructions [here](https://www.raspberrypi.com/documentation/microcontrollers/c_sdk.html#blink-an-led) for how to drag the `.uf2` file onto your device.
 
 ### Useful Links
 * [Picubed flight software repo](https://github.com/stanford-ssi/samwise-flight-software)
 * [ADCS sims repo](https://github.com/stanford-ssi/samwise-adcs-sims)
+
+
+## Things to implement
+* Bdot for detumbling
+* Attitude determination
+    * Determine triad from magnetic field and sun vector
+        * Magnetic field model
+        * Sun vector
+    * Propagator
+    * Kalman filter
+* Control
+    * Total torque control
+    * Allocation of control to wheels/magnetorquers
+* Deasturation of reaction wheels
