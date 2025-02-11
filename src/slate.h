@@ -19,11 +19,15 @@ using namespace linalg::aliases;
 
 typedef struct samwise_slate
 {
-    float3 b_field_local;
-    float3 b_field_local_prev;
+    float3 b_field_local;      // [T]
+    float3 b_field_local_prev; // [T]
 
     absolute_time_t bdot_last_ran_time;
 
-    float3 bdot_mu_requested;
+    float3 bdot_mu_requested; // [A * m^2]
+
+    // Attitude
+    quaternion q;
+    float3 w; // [rad s^-1] in principal axes frame
 
 } slate_t;
