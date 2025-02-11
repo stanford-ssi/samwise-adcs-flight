@@ -70,4 +70,59 @@ float3 compute_B(slate_t *slate)
     float3 B = {.x = Br, .y = Btheta, .z = Bphi } return B;
 }
 
-// TODO! Define legendre and d_legendre!!
+static float legendre(int n, int m, float x)
+{
+    float pmm = 1.0;
+
+    if (m > 0)
+    {
+        float somx2 = sqrt((1.0 - x) * (1.0 + x));
+        float fact = 1.0;
+        for (int i = 1; i <= m; i++)
+        {
+            pmm *= -fact * somx2;
+            fact += 2.0;
+        }
+    }
+
+    if (n == m)
+    {
+        return pmm;
+    }
+
+    float pmmp1 = x * (2.0 * m + 1.0) * pmm;
+    if (n == m + 1)
+    {
+        return pmmp1;
+    }
+
+    float pnm = 0.0;
+    for (int k = m + 2; k <= n; k++)
+    {
+        pnm = (x * (2.0 * k - 1.0) * pmmp1 - (k + m - 1.0) * pmm) / (k - m);
+        pmm = pmmp1;
+        pmmp1 = pnm;
+    }
+
+    return pnm;
+}
+
+static float d_legendre(int n, int m, float x)
+{
+    // Special case for x = ±1
+    if (fabs(x) == 1.0)
+    {
+        return 0.0;
+    }
+
+    // Compute derivative using relationship with polynomials of adjacent degree
+    float factor = sqrt(1.0 - x * x);
+
+    if (n == m)
+    {
+        return n * x * legendre(n, m, x) / factor;
+    }
+
+    return (n * x * legendre(n, m, x) - (n + m) * legendre(n - 1, m, x)) /
+           factor;
+}
