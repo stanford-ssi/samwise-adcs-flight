@@ -26,4 +26,7 @@ typedef struct samwise_slate
 
     float3 bdot_mu_requested;
 
+    float3 r_ecef;
+    float3 r_eci;
+    float3 geodetic;
 } slate_t;
