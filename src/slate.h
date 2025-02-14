@@ -22,6 +22,8 @@ typedef struct samwise_slate
     float3 b_field_local;
     float3 b_field_local_prev;
 
+    float3 B_est;
+
     absolute_time_t bdot_last_ran_time;
 
     float3 bdot_mu_requested;
@@ -29,4 +31,5 @@ typedef struct samwise_slate
     float3 r_ecef;
     float3 r_eci;
     float3 geodetic;
+
 } slate_t;

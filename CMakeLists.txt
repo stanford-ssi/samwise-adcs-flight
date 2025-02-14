@@ -36,6 +36,7 @@ pico_sdk_init()
 
 file(GLOB top CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB gnc CONFIGURE_DEPENDS "src/gnc/*.cpp")
+file(GLOB gnc CONFIGURE_DEPENDS "src/gnc/world/*.cpp")
 file(GLOB drivers CONFIGURE_DEPENDS "src/drivers/*.cpp")
 
 add_executable(samwise-adcs ${top} ${gnc} ${drivers})

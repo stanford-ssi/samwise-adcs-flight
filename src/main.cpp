@@ -2,6 +2,7 @@
 #include "pico/stdlib.h"
 
 #include "gnc/bdot.h"
+#include "gnc/world/b_field.h"
 
 #include "linalg.h"
 
@@ -26,7 +27,8 @@ int main()
 #ifdef TEST
     while (1)
     {
-        test_bdot_control(&slate);
+        // test_bdot_control(&slate);
+        test_compute_B(&slate);
 
         sleep_ms(5000);
     }
