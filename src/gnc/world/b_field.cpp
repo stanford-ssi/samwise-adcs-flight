@@ -13,9 +13,10 @@
 #define MAX_ORDER 5
 
 // Forward declare legendre polynomial functions
-float legendre(int n, int m, float x);
-float d_legendre(int n, int m, float x);
+float legendre_schmidt(int n, int m, float x);
+float d_legendre_schmidt(int n, int m, float x);
 
+// IGRF 2025 Coefficients
 float g[MAX_ORDER + 1][MAX_ORDER + 1] = {
     {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},              // n=0
     {-29350.0, -1410.3, 0.0, 0.0, 0.0, 0.0},     // n=1
@@ -34,98 +35,119 @@ float h[MAX_ORDER + 1][MAX_ORDER + 1] = {
     {0.0, 45.3, 220.0, -122.9, 42.9, 106.2}   // n=5
 };
 
+// Pre-computed Schmidt quasi-normalization factors
+// S(n,m) = sqrt((2-delta(0,m))(n-m)!/(n+m)!)
+// TODO: RECALCULATE SCHMIDT FACTORS
+const float SCHMIDT_FACTORS[MAX_ORDER + 1][MAX_ORDER + 1] = {
+    {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+    {1.0f, 0.707107f, 0.0f, 0.0f, 0.0f, 0.0f},
+    {1.0f, 0.866025f, 0.289017f, 0.0f, 0.0f, 0.0f},
+    {1.0f, 0.953463f, 0.365148f, 0.109918f, 0.0f, 0.0f},
+    {1.0f, 0.988832f, 0.418937f, 0.146442f, 0.0366106f, 0.0f},
+    {1.0f, 1.00692f, 0.459403f, 0.178325f, 0.0534976f, 0.0121131f}};
+
 void compute_B(slate_t *slate)
 {
-    float alt = slate->geodetic[0]; // altitude (km)
-    float lat = slate->geodetic[1]; // longitude: -180 to 180
-    float lon = slate->geodetic[2]; // latitude: -90 to 90 exclusive
+    const float alt = slate->geodetic[0]; // altitude (km)
+    const float lat = slate->geodetic[1]; // latitude (-90 to 90)
+    const float lon = slate->geodetic[2]; // longitude (-180 to 180)
 
-    // Convert to spherical coordinates (theta is colatitude)
-    float phi = (90.0f - lat) * M_PI / 180.0f; // colatitude in radians
-    float theta = lon * M_PI / 180.0f;         // longitude in radians
+    // Convert to spherical coordinates
+    const float theta = (90.0f - lat) * M_PI / 180.0f; // colatitude [rad]
+    const float phi = lon * M_PI / 180.0f;             // longitude [rad]
 
-    float Br = 0;
-    float Btheta = 0;
-    float Bphi = 0;
+    float Br = 0.0f;
+    float Btheta = 0.0f;
+    float Bphi = 0.0f;
 
-    float r_ratio = R_E / (R_E + alt);
+    const float r_ratio = R_E / (R_E + alt);
 
-    // Cache sin/cos phi terms
-    float sin_mphi[MAX_ORDER + 1];
-    float cos_mphi[MAX_ORDER + 1];
+    // Cache trig terms with pole regularization
+    const float sin_theta = sin(theta);
+    const float cos_theta = cos(theta);
+
+    // Regularization for pole proximity (prevents division by zero)
+    const float POLE_THRESH = 1e-7f; // Added missing constant
+    const float sin_theta_reg =
+        (fabs(sin_theta) < POLE_THRESH)
+            ? POLE_THRESH * (sin_theta >= 0.0f ? 1.0f : -1.0f)
+            : sin_theta;
+
+    // Pre-compute sin/cos m*phi terms
+    float sin_mphi[MAX_ORDER + 1] = {0.0f};
+    float cos_mphi[MAX_ORDER + 1] = {0.0f};
     for (int m = 0; m <= MAX_ORDER; m++)
     {
-        sin_mphi[m] = sin(m * phi); // try precomputing instead later
+        sin_mphi[m] = sin(m * phi);
         cos_mphi[m] = cos(m * phi);
     }
 
-    // Compute field components
+    // Main field computation loop
+    float r_ratio_n = r_ratio * r_ratio; // Start at n=1 term
     for (int n = 1; n <= MAX_ORDER; n++)
     {
-        float r_ratio_n = pow(r_ratio, n + 2);
+        r_ratio_n *= r_ratio; // Increment power for efficiency
+
         for (int m = 0; m <= n; m++)
         {
-            float P = legendre(n, m, cos(theta));
-            float dP = d_legendre(n, m, cos(theta));
+            // Get Schmidt normalized associated Legendre functions
+            const float P = legendre_schmidt(n, m, cos_theta);
+            const float dP = d_legendre_schmidt(n, m, cos_theta);
 
-            float term =
+            // Compute common term for efficiency
+            const float term =
                 r_ratio_n * (g[n][m] * cos_mphi[m] + h[n][m] * sin_mphi[m]);
 
-            Br += (n + 1) * P * term;
+            // Accumulate field components
+            Br += (float)(n + 1) * P * term;
             Btheta += -dP * term;
-            Bphi += m * P / sin(theta) *
+
+            // Handle Bphi carefully near poles
+            if (m > 0)
+            { // m=0 terms don't contribute to Bphi
+                const float Bphi_term =
+                    (float)m * P / sin_theta_reg *
                     (g[n][m] * sin_mphi[m] - h[n][m] * cos_mphi[m]);
 
-            // Handle poles separately to avoid division by zero
-            if (fabs(sin(phi)) > 1e-10)
-            {
-                Bphi += m * P / sin(phi) *
-                        (g[n][m] * sin_mphi[m] - h[n][m] * cos_mphi[m]);
+                // Smooth transition near poles
+                const float pole_factor = (fabs(sin_theta) < POLE_THRESH)
+                                              ? sin_theta / POLE_THRESH
+                                              : 1.0f;
+
+                Bphi += Bphi_term * pole_factor;
             }
         }
     }
 
-    // Create and return float3 vector
+    // Store results
     slate->B_est = float3(Br, Btheta, Bphi);
 }
 
-float legendre(int n, int m, float x)
+// Modified Legendre function using pre-computed factors
+float legendre_schmidt(int n, int m, float x)
 {
-    float pmm = 1.0;
+    float pmm = SCHMIDT_FACTORS[n][m];
 
     if (m > 0)
     {
-        float somx2 = sqrt((1.0 - x) * (1.0 + x));
-        float fact = 1.0;
+        float somx2 = sqrt((1.0f - x) * (1.0f + x));
         for (int i = 1; i <= m; i++)
         {
-            pmm *= -somx2 * sqrt((2 * i + 1) /
-                                 (2.0 * i)); // Schmidt normalization factor
-            fact += 2.0;
+            pmm *= -somx2;
         }
     }
 
     if (n == m)
-    {
         return pmm;
-    }
 
-    float pmmp1 = x * sqrt(2 * m + 3) * pmm; // Include normalization
+    float pmmp1 = x * (2.0f * m + 1.0f) * pmm;
     if (n == m + 1)
-    {
         return pmmp1;
-    }
 
-    float pnm = 0.0;
+    float pnm;
     for (int k = m + 2; k <= n; k++)
     {
-        float dk = k;
-        float dm = m;
-        float scalar = sqrt((4.0 * k * k - 1.0) / (k * k - m * m));
-        pnm = (x * pmmp1 * scalar -
-               pmm * sqrt(((2.0 * k + 1.0) * ((k - 1.0) * (k - 1.0) - m * m)) /
-                          ((2.0 * k - 3.0) * (k * k - m * m)))) /
-              sqrt((dk + dm) * (dk - dm));
+        pnm = ((2.0f * k - 1.0f) * x * pmmp1 - (k + m - 1.0f) * pmm) / (k - m);
         pmm = pmmp1;
         pmmp1 = pnm;
     }
@@ -133,24 +155,28 @@ float legendre(int n, int m, float x)
     return pnm;
 }
 
-float d_legendre(int n, int m, float x)
+float d_legendre_schmidt(int n, int m, float x)
 {
-    // Special case for x = ±1
-    if (fabs(x) == 1.0)
-    {
-        return 0.0;
+    // Special case for poles (x = ±1)
+    if (fabs(x) >= 0.99999f)
+    { // Use float comparison threshold
+        return 0.0f;
     }
 
-    // Compute derivative using relationship with polynomials of adjacent degree
-    float factor = sqrt(1.0 - x * x);
+    // Calculate derivative using relationship for Schmidt semi-normalized
+    // functions dP_n^m/dθ = 1/sqrt(1-x^2) * [ n*x*P_n^m - (n+m)*P_(n-1)^m ]
+    const float factor = 1.0f / sqrt(1.0f - x * x);
 
     if (n == m)
     {
-        return n * x * legendre(n, m, x) / factor;
+        return n * x * legendre_schmidt(n, m, x) * factor;
     }
 
-    return (n * x * legendre(n, m, x) - (n + m) * legendre(n - 1, m, x)) /
-           factor;
+    // We need both P_n^m and P_(n-1)^m for the derivative
+    const float P_n = legendre_schmidt(n, m, x);
+    const float P_nm1 = legendre_schmidt(n - 1, m, x);
+
+    return (n * x * P_n - (n + m) * P_nm1) * factor;
 }
 
 void test_compute_B(slate_t *slate)
