@@ -10,41 +10,47 @@
 // #include "constants.h"
 
 #define R_E 6378.0f
-#define MAX_ORDER 5
+#define MAX_ORDER 6
 
 // Forward declare legendre polynomial functions
 float legendre_schmidt(int n, int m, float x);
 float d_legendre_schmidt(int n, int m, float x);
 
-// IGRF 2025 Coefficients
+// IGRF 2025 Coefficients (up to n=6)
 float g[MAX_ORDER + 1][MAX_ORDER + 1] = {
-    {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},              // n=0
-    {-29350.0, -1410.3, 0.0, 0.0, 0.0, 0.0},     // n=1
-    {-2556.2, 2950.9, 1648.7, 0.0, 0.0, 0.0},    // n=2
-    {1360.9, -2404.2, 1243.8, 453.4, 0.0, 0.0},  // n=3
-    {894.7, 799.6, 55.8, -281.1, 12.0, 0.0},     // n=4
-    {-232.9, 369.0, 187.2, -138.7, -141.9, 20.9} // n=5
+    {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},               // n=0
+    {-29350.0, -1410.3, 0.0, 0.0, 0.0, 0.0, 0.0},      // n=1
+    {-2556.2, 2950.9, 1648.7, 0.0, 0.0, 0.0, 0.0},     // n=2
+    {1360.9, -2404.2, 1243.8, 453.4, 0.0, 0.0, 0.0},   // n=3
+    {894.7, 799.6, 55.8, -281.1, 12.0, 0.0, 0.0},      // n=4
+    {-232.9, 369.0, 187.2, -138.7, -141.9, 20.9, 0.0}, // n=5
+    {66.0, 65.5, 72.9, -121.5, -36.2, 13.9, -64.7}     // n=6
 };
 
 float h[MAX_ORDER + 1][MAX_ORDER + 1] = {
-    {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},           // n=0
-    {0.0, 4545.5, 0.0, 0.0, 0.0, 0.0},        // n=1
-    {0.0, -3133.6, -814.2, 0.0, 0.0, 0.0},    // n=2
-    {0.0, -56.9, 237.6, -549.6, 0.0, 0.0},    // n=3
-    {0.0, 278.6, -134.0, 212.0, -375.4, 0.0}, // n=4
-    {0.0, 45.3, 220.0, -122.9, 42.9, 106.2}   // n=5
+    {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},           // n=0
+    {0.0, 4545.5, 0.0, 0.0, 0.0, 0.0, 0.0},        // n=1
+    {0.0, -3133.6, -814.2, 0.0, 0.0, 0.0, 0.0},    // n=2
+    {0.0, -56.9, 237.6, -549.6, 0.0, 0.0, 0.0},    // n=3
+    {0.0, 278.6, -134.0, 212.0, -375.4, 0.0, 0.0}, // n=4
+    {0.0, 45.3, 220.0, -122.9, 42.9, 106.2, 0.0},  // n=5
+    {0.0, -24.5, -27.7, -79.3, 2.2, 16.9, -50.2}   // n=6
 };
 
 // Pre-computed Schmidt quasi-normalization factors
 // S(n,m) = sqrt((2-delta(0,m))(n-m)!/(n+m)!)
 // TODO: RECALCULATE SCHMIDT FACTORS
 const float SCHMIDT_FACTORS[MAX_ORDER + 1][MAX_ORDER + 1] = {
-    {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-    {1.0f, 0.707107f, 0.0f, 0.0f, 0.0f, 0.0f},
-    {1.0f, 0.866025f, 0.289017f, 0.0f, 0.0f, 0.0f},
-    {1.0f, 0.953463f, 0.365148f, 0.109918f, 0.0f, 0.0f},
-    {1.0f, 0.988832f, 0.418937f, 0.146442f, 0.0366106f, 0.0f},
-    {1.0f, 1.00692f, 0.459403f, 0.178325f, 0.0534976f, 0.0121131f}};
+    {1.000000f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},                     // n=0
+    {1.000000f, 1.000000f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},                // n=1
+    {1.000000f, 0.577350f, 0.288675f, 0.0f, 0.0f, 0.0f, 0.0f},           // n=2
+    {1.000000f, 0.408248f, 0.129099f, 0.052705f, 0.0f, 0.0f, 0.0f},      // n=3
+    {1.000000f, 0.316228f, 0.074536f, 0.019920f, 0.007043f, 0.0f, 0.0f}, // n=4
+    {1.000000f, 0.258199f, 0.048795f, 0.009960f, 0.002348f, 0.000742f,
+     0.0f}, // n=5
+    {1.000000f, 0.218218f, 0.034993f, 0.005968f, 0.001104f, 0.000246f,
+     0.000071f} // n=6
+};
 
 void compute_B(slate_t *slate)
 {
@@ -52,9 +58,10 @@ void compute_B(slate_t *slate)
     const float lat = slate->geodetic[1]; // latitude (-90 to 90)
     const float lon = slate->geodetic[2]; // longitude (-180 to 180)
 
-    // Convert to spherical coordinates
-    const float theta = (90.0f - lat) * M_PI / 180.0f; // colatitude [rad]
-    const float phi = lon * M_PI / 180.0f;             // longitude [rad]
+    // Convert to spherical coordinates (use physicist spherical coordinate
+    // conventions!)
+    const float phi = (90.0f - lat) * M_PI / 180.0f; // colatitude [0 to π]
+    const float theta = lon * M_PI / 180.0f;         // azimuth [-π to π]
 
     float Br = 0.0f;
     float Btheta = 0.0f;
@@ -63,15 +70,15 @@ void compute_B(slate_t *slate)
     const float r_ratio = R_E / (R_E + alt);
 
     // Cache trig terms with pole regularization
-    const float sin_theta = sin(theta);
-    const float cos_theta = cos(theta);
+    const float sin_phi = sin(phi); // for pole regularization
+    const float cos_phi = cos(phi); // for Legendre polynomials
 
     // Regularization for pole proximity (prevents division by zero)
     const float POLE_THRESH = 1e-7f; // Added missing constant
-    const float sin_theta_reg =
-        (fabs(sin_theta) < POLE_THRESH)
-            ? POLE_THRESH * (sin_theta >= 0.0f ? 1.0f : -1.0f)
-            : sin_theta;
+    const float sin_phi_reg =
+        (fabs(sin_phi) < POLE_THRESH)
+            ? POLE_THRESH * (sin_phi >= 0.0f ? 1.0f : -1.0f)
+            : sin_phi;
 
     // Pre-compute sin/cos m*phi terms
     float sin_mphi[MAX_ORDER + 1] = {0.0f};
@@ -91,8 +98,8 @@ void compute_B(slate_t *slate)
         for (int m = 0; m <= n; m++)
         {
             // Get Schmidt normalized associated Legendre functions
-            const float P = legendre_schmidt(n, m, cos_theta);
-            const float dP = d_legendre_schmidt(n, m, cos_theta);
+            const float P = legendre_schmidt(n, m, cos_phi);
+            const float dP = d_legendre_schmidt(n, m, cos_phi);
 
             // Compute common term for efficiency
             const float term =
@@ -106,12 +113,12 @@ void compute_B(slate_t *slate)
             if (m > 0)
             { // m=0 terms don't contribute to Bphi
                 const float Bphi_term =
-                    (float)m * P / sin_theta_reg *
+                    (float)m * P / sin_phi_reg *
                     (g[n][m] * sin_mphi[m] - h[n][m] * cos_mphi[m]);
 
                 // Smooth transition near poles
-                const float pole_factor = (fabs(sin_theta) < POLE_THRESH)
-                                              ? sin_theta / POLE_THRESH
+                const float pole_factor = (fabs(sin_phi) < POLE_THRESH)
+                                              ? sin_phi / POLE_THRESH
                                               : 1.0f;
 
                 Bphi += Bphi_term * pole_factor;
