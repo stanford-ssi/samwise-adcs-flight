@@ -58,8 +58,8 @@ void compute_B(slate_t *slate)
     const float lat = slate->geodetic[1]; // latitude (-90 to 90)
     const float lon = slate->geodetic[2]; // longitude (-180 to 180)
 
-    // Convert to spherical coordinates (use physicist spherical coordinate
-    // conventions!)
+    // Convert to spherical coordinates using physics/math spherical coordinate
+    // conventions
     const float phi = (90.0f - lat) * M_PI / 180.0f; // colatitude [0 to π]
     const float theta = lon * M_PI / 180.0f;         // azimuth [-π to π]
 
@@ -73,7 +73,7 @@ void compute_B(slate_t *slate)
     const float sin_phi = sin(phi); // for pole regularization
     const float cos_phi = cos(phi); // for Legendre polynomials
 
-    // Regularization for pole proximity (prevents division by zero)
+    // // Regularization for pole proximity (prevents division by zero)
     const float POLE_THRESH = 1e-7f; // Added missing constant
     const float sin_phi_reg =
         (fabs(sin_phi) < POLE_THRESH)
@@ -81,20 +81,18 @@ void compute_B(slate_t *slate)
             : sin_phi;
 
     // Pre-compute sin/cos m*phi terms
-    float sin_mphi[MAX_ORDER + 1] = {0.0f};
-    float cos_mphi[MAX_ORDER + 1] = {0.0f};
+    float sin_mtheta[MAX_ORDER + 1] = {0.0f};
+    float cos_mtheta[MAX_ORDER + 1] = {0.0f};
     for (int m = 0; m <= MAX_ORDER; m++)
     {
-        sin_mphi[m] = sin(m * phi);
-        cos_mphi[m] = cos(m * phi);
+        sin_mtheta[m] = sin(m * theta);
+        cos_mtheta[m] = cos(m * theta);
     }
 
     // Main field computation loop
-    float r_ratio_n = r_ratio * r_ratio; // Start at n=1 term
+    float r_ratio_n = r_ratio * r_ratio; // Start at n=1 term T
     for (int n = 1; n <= MAX_ORDER; n++)
     {
-        r_ratio_n *= r_ratio; // Increment power for efficiency
-
         for (int m = 0; m <= n; m++)
         {
             // Get Schmidt normalized associated Legendre functions
@@ -103,27 +101,30 @@ void compute_B(slate_t *slate)
 
             // Compute common term for efficiency
             const float term =
-                r_ratio_n * (g[n][m] * cos_mphi[m] + h[n][m] * sin_mphi[m]);
+                r_ratio_n * (g[n][m] * cos_mtheta[m] + h[n][m] * sin_mtheta[m]);
 
             // Accumulate field components
-            Br += (float)(n + 1) * P * term;
-            Btheta += -dP * term;
+            Br -= (float)(n + 1) * P * term * r_ratio;
+            Btheta -= dP * term;
 
             // Handle Bphi carefully near poles
             if (m > 0)
             { // m=0 terms don't contribute to Bphi
                 const float Bphi_term =
-                    (float)m * P / sin_phi_reg *
-                    (g[n][m] * sin_mphi[m] - h[n][m] * cos_mphi[m]);
+                    (-g[n][m] * sin_mtheta[m] + h[n][m] * cos_mtheta[m]) * P *
+                    r_ratio_n / sin_phi_reg;
+                // (float)m * P / sin_phi_reg *
 
                 // Smooth transition near poles
                 const float pole_factor = (fabs(sin_phi) < POLE_THRESH)
                                               ? sin_phi / POLE_THRESH
                                               : 1.0f;
 
-                Bphi += Bphi_term * pole_factor;
+                Bphi -= Bphi_term * pole_factor;
             }
         }
+
+        r_ratio_n *= r_ratio;
     }
 
     // Store results
