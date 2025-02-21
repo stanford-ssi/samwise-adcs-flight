@@ -134,28 +134,44 @@ void compute_B(slate_t *slate)
 // Modified Legendre function using pre-computed factors
 float legendre_schmidt(int n, int m, float x)
 {
-    float pmm = SCHMIDT_FACTORS[n][m];
+    // First compute P_m^m
+    float pmm = 1.0f;
 
     if (m > 0)
     {
         float somx2 = sqrt((1.0f - x) * (1.0f + x));
+        float fact = 1.0f;
         for (int i = 1; i <= m; i++)
         {
-            pmm *= -somx2;
+            pmm *= -somx2 * fact;
+            fact += 2.0f;
         }
     }
+
+    // Apply Schmidt normalization
+    pmm *= sqrt((2.0f * m + 1.0f) / (4.0f * M_PI));
 
     if (n == m)
         return pmm;
 
-    float pmmp1 = x * (2.0f * m + 1.0f) * pmm;
-    if (n == m + 1)
+    // Compute P_(m+1)^m
+    float pmmp1 = x * sqrt(2.0f * m + 3.0f) * pmm;
+
+    if (n == (m + 1))
         return pmmp1;
 
+    // Use recurrence to get P_n^m
     float pnm;
     for (int k = m + 2; k <= n; k++)
     {
-        pnm = ((2.0f * k - 1.0f) * x * pmmp1 - (k + m - 1.0f) * pmm) / (k - m);
+        float kf = (float)k;
+        float kmf = (float)(k + m);
+        float km1f = (float)(k - 1.0f + m);
+        pnm = (x * sqrt((2.0f * kf + 1.0f) * (2.0f * kf - 1.0f)) * pmmp1 -
+               sqrt((kmf - 1.0f) * (2.0f * kf + 1.0f) /
+                    ((2.0f * kf - 3.0f) * (kf - m))) *
+                   pmm) /
+              sqrt(kmf * (kf - m));
         pmm = pmmp1;
         pmmp1 = pnm;
     }
@@ -239,4 +255,121 @@ void test_compute_B(slate_t *slate)
     }
 
     LOG_INFO("\nB field testing complete");
+}
+
+void test_legendre_polynomials()
+{
+    LOG_INFO("Testing Legendre and associated Legendre functions...");
+
+    const float EPSILON = 1e-4f; // Tolerance for float comparisons
+
+    struct TestCase
+    {
+        int n;             // Degree
+        int m;             // Order
+        float x;           // Input value
+        float expected_p;  // Expected P_n^m value
+        float expected_dp; // Expected derivative value
+        const char *desc;  // Test description
+    };
+
+    TestCase test_cases[] = {
+        // Test P_0^0 (should be 1.0 everywhere)
+        {0, 0, 0.0f, 1.0f, 0.0f, "P_0^0 at x=0"},
+        {0, 0, 0.5f, 1.0f, 0.0f, "P_0^0 at x=0.5"},
+        {0, 0, -0.5f, 1.0f, 0.0f, "P_0^0 at x=-0.5"},
+
+        // Test P_1^0 (should be x)
+        {1, 0, 0.0f, 0.0f, 1.0f, "P_1^0 at x=0"},
+        {1, 0, 0.5f, 0.5f, 1.0f, "P_1^0 at x=0.5"},
+        {1, 0, -0.5f, -0.5f, 1.0f, "P_1^0 at x=-0.5"},
+
+        // Test P_1^1 (associated Legendre)
+        {1, 1, 0.0f, 1.0f, 0.0f, "P_1^1 at x=0"},
+        {1, 1, 0.5f, 0.8660f, -0.5774f, "P_1^1 at x=0.5"},
+        {1, 1, -0.5f, 0.8660f, 0.5774f, "P_1^1 at x=-0.5"},
+
+        // Test P_2^0
+        {2, 0, 0.0f, -0.5f, 0.0f, "P_2^0 at x=0"},
+        {2, 0, 0.5f, -0.125f, 1.5f, "P_2^0 at x=0.5"},
+        {2, 0, -0.5f, -0.125f, -1.5f, "P_2^0 at x=-0.5"},
+
+        // Test P_2^1
+        {2, 1, 0.0f, 0.0f, 3.0f, "P_2^1 at x=0"},
+        {2, 1, 0.5f, -1.299f, 2.598f, "P_2^1 at x=0.5"},
+        {2, 1, -0.5f, 1.299f, 2.598f, "P_2^1 at x=-0.5"},
+
+        // Test P_2^2
+        {2, 2, 0.0f, 3.0f, 0.0f, "P_2^2 at x=0"},
+        {2, 2, 0.5f, 2.598f, -3.897f, "P_2^2 at x=0.5"},
+        {2, 2, -0.5f, 2.598f, 3.897f, "P_2^2 at x=-0.5"},
+
+        // Test near poles (x ≈ ±1)
+        {1, 0, 0.9999f, 0.9999f, 1.0f, "P_1^0 near north pole"},
+        {1, 0, -0.9999f, -0.9999f, 1.0f, "P_1^0 near south pole"},
+
+        // Test higher degrees
+        {3, 0, 0.5f, 0.4375f, 2.344f, "P_3^0 at x=0.5"},
+        {4, 0, 0.5f, 0.2734f, 2.459f, "P_4^0 at x=0.5"}};
+
+    const int num_tests = sizeof(test_cases) / sizeof(TestCase);
+    int passed = 0;
+    int failed = 0;
+
+    for (int i = 0; i < num_tests; i++)
+    {
+        TestCase *tc = &test_cases[i];
+
+        // Test Legendre function
+        float p = legendre_schmidt(tc->n, tc->m, tc->x);
+        bool p_pass = fabs(p - tc->expected_p) < EPSILON;
+
+        // Test derivative
+        float dp = d_legendre_schmidt(tc->n, tc->m, tc->x);
+        bool dp_pass = fabs(dp - tc->expected_dp) < EPSILON;
+
+        // Log results
+        LOG_INFO("\nTest %d: %s", i + 1, tc->desc);
+        LOG_INFO("P_%d^%d(%.4f):", tc->n, tc->m, tc->x);
+        LOG_INFO("  Expected P: %.4f, Got: %.4f %s", tc->expected_p, p,
+                 p_pass ? "✓" : "✗");
+        LOG_INFO("  Expected dP: %.4f, Got: %.4f %s", tc->expected_dp, dp,
+                 dp_pass ? "✓" : "✗");
+
+        if (p_pass && dp_pass)
+        {
+            passed++;
+        }
+        else
+        {
+            failed++;
+            LOG_ERROR("Test %d failed!", i + 1);
+        }
+
+        // Add delay between tests for serial output
+        sleep_ms(100);
+    }
+
+    // Final summary
+    LOG_INFO("\nLegendre testing complete:");
+    LOG_INFO("  Passed: %d", passed);
+    LOG_INFO("  Failed: %d", failed);
+    LOG_INFO("  Total:  %d", num_tests);
+
+    // Additional verification tests
+    LOG_INFO("\nRunning additional verification tests...");
+
+    // Test symmetry properties
+    for (float x = -0.9f; x <= 0.9f; x += 0.3f)
+    {
+        // P_n^m(-x) = (-1)^(n+m) P_n^m(x)
+        float p1 = legendre_schmidt(2, 1, x);
+        float p2 = legendre_schmidt(2, 1, -x);
+        assert(fabs(p1 + p2) < EPSILON && "Symmetry test failed");
+    }
+
+    // Test orthogonality
+    // Could add Gauss-Legendre quadrature tests here
+
+    LOG_INFO("Verification tests complete");
 }

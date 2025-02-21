@@ -29,6 +29,7 @@ int main()
     {
         // test_bdot_control(&slate);
         test_compute_B(&slate);
+        test_legendre_polynomials();
 
         sleep_ms(5000);
     }

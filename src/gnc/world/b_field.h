@@ -5,3 +5,4 @@
 
 void compute_B(slate_t *slate);
 void test_compute_B(slate_t *slate);
+void test_legendre_polynomials();
