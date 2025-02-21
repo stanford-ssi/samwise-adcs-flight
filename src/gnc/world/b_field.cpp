@@ -109,7 +109,7 @@ void compute_B(slate_t *slate)
                 r_ratio_n * (g[n][m] * cos_mtheta[m] + h[n][m] * sin_mtheta[m]);
 
             // Accumulate field components
-            Br -= (float)(n + 1) * P * term * r_ratio;
+            Br += (float)(n + 1) * P * term * r_ratio;
             Btheta -= dP * term;
 
             // Handle Bphi carefully near poles
@@ -211,26 +211,46 @@ void test_compute_B(slate_t *slate)
 {
     LOG_INFO("Testing B field model...");
 
+    const float EPSILON = 1000.0f; // Tolerance for float comparisons
+
     // Test points in {alt (km), lat (deg), lon (deg)} format
     struct TestPoint
     {
         float alt, lat, lon;
+        float expected_Br;     // Expected radial component  (-Z)
+        float expected_Btheta; // Expected theta component  (-X)
+        float expected_Bphi;   // Expected phi component    (Y)
+        float expected_mag;    // Expected total magnitude  (F)
         const char *name;
     };
 
-    TestPoint test_points[] = {
-        {0.0f, 89.9f, 0.0f, "North Pole"},            // North Pole
-        {0.0f, -89.9f, 0.0f, "South Pole"},           // South Pole
-        {0.0f, 0.0f, 0.0f, "Equator at Greenwich"},   // Equator at 0° longitude
-        {0.0f, 0.0f, 180.0f, "Equator opposite GMT"}, // Equator at 180°
-        {300.0f, 45.0f, -75.0f, "Mid-latitude point"}, // Northeast US at 300km
-        {0.0f, -30.0f, -45.0f, "South Atlantic Anomaly"}, // SAA region
-        {1000.0f, 80.0f, -72.0f,
-         "Near Magnetic North"}, // Near 2025 magnetic north
-    };
+    // Assertion values from IGRF calculator
+    TestPoint test_points[] = {{0.0f, 89.9f, 0.0f, -56835.0f, -1783.0f, 439.0f,
+                                56864.0f, "North Pole"},
+
+                               {0.0f, -89.9f, 0.0f, -51612.0f, -14391.0f,
+                                -8771.0f, 54294.0f, "South Pole"},
+
+                               {0.0f, 0.0f, 0.0f, 15997.0f, -27457.0f, -1926.0f,
+                                31835.0f, "Equator at Greenwich"},
+
+                               {0.0f, 0.0f, 180.0f, 3074.0f, -33431.0f, 5859.0f,
+                                34079.0f, "Equator opposite GMT"},
+
+                               {300.0f, 45.0f, -75.0f, -42838.0f, -15976.0f,
+                                -3417.0f, 45848.0f, "Mid-latitude point"},
+
+                               {0.0f, -30.0f, -45.0f, 16572.0f, -14603.0f,
+                                -5499.0f, 22762.0f, "South Atlantic Anomaly"},
+
+                               {1000.0f, 80.0f, -72.0f, -37527.0f, -2084.0f,
+                                -1163.0f, 37603.0f, "Near Magnetic North"}};
 
     const int num_tests = sizeof(test_points) / sizeof(TestPoint);
+    int passed = 0;
+    int failed = 0;
 
+    LOG_INFO("\n=== Main Test Points ===");
     for (int i = 0; i < num_tests; i++)
     {
         // Set test point
@@ -246,19 +266,67 @@ void test_compute_B(slate_t *slate)
                                slate->B_est.y * slate->B_est.y +
                                slate->B_est.z * slate->B_est.z);
 
-        // Log results
+        // Calculate differences
+        float diff_Br = fabs(slate->B_est.x - test_points[i].expected_Br);
+        float diff_Btheta =
+            fabs(slate->B_est.y - test_points[i].expected_Btheta);
+        float diff_Bphi = fabs(slate->B_est.z - test_points[i].expected_Bphi);
+        float diff_mag = fabs(magnitude - test_points[i].expected_mag);
+
+        // Log detailed results
         LOG_INFO("\nTest %d: %s", i + 1, test_points[i].name);
         LOG_INFO("Position: alt=%.1f km, lat=%.1f°, lon=%.1f°",
                  test_points[i].alt, test_points[i].lat, test_points[i].lon);
-        LOG_INFO("B field: Br=%.1f nT, Btheta=%.1f nT, Bphi=%.1f nT",
-                 slate->B_est.x, slate->B_est.y, slate->B_est.z);
-        LOG_INFO("Total field magnitude: %.1f nT", magnitude);
+        LOG_INFO("Component  | Computed (nT) | Expected (nT) | Diff (nT) | "
+                 "Diff (%)");
+        LOG_INFO(
+            "-----------|--------------|--------------|-----------|----------");
+        LOG_INFO("Br         | %11.1f | %11.1f | %9.1f | %8.1f%%",
+                 slate->B_est.x, test_points[i].expected_Br, diff_Br,
+                 100.0f * diff_Br / fabs(test_points[i].expected_Br));
+        LOG_INFO("Btheta     | %11.1f | %11.1f | %9.1f | %8.1f%%",
+                 slate->B_est.y, test_points[i].expected_Btheta, diff_Btheta,
+                 100.0f * diff_Btheta / fabs(test_points[i].expected_Btheta));
+        LOG_INFO("Bphi       | %11.1f | %11.1f | %9.1f | %8.1f%%",
+                 slate->B_est.z, test_points[i].expected_Bphi, diff_Bphi,
+                 100.0f * diff_Bphi / fabs(test_points[i].expected_Bphi));
+        LOG_INFO("Magnitude  | %11.1f | %11.1f | %9.1f | %8.1f%%", magnitude,
+                 test_points[i].expected_mag, diff_mag,
+                 100.0f * diff_mag / test_points[i].expected_mag);
 
-        // Add delay between tests for serial output
+        // Check if test passed
+        bool test_passed = (diff_Br < EPSILON && diff_Btheta < EPSILON &&
+                            diff_Bphi < EPSILON && diff_mag < EPSILON);
+
+        LOG_INFO("Test result: %s", test_passed ? "PASSED ✓" : "FAILED ✗");
+
+        if (test_passed)
+        {
+            passed++;
+        }
+        else
+        {
+            failed++;
+            LOG_ERROR(
+                "Test %d failed with differences exceeding epsilon (%.1e)!",
+                i + 1, EPSILON);
+        }
+
+        // Assert expected values
+        assert(diff_Br < EPSILON && "Radial component (Br) test failed");
+        assert(diff_Btheta < EPSILON && "Theta component (Btheta) test failed");
+        assert(diff_Bphi < EPSILON && "Phi component (Bphi) test failed");
+        assert(diff_mag < pow(EPSILON, 3) && "Magnitude test failed");
+
         sleep_ms(100);
     }
 
-    LOG_INFO("\nB field testing complete");
+    LOG_INFO("\nMain tests complete:");
+    LOG_INFO("  Passed: %d", passed);
+    LOG_INFO("  Failed: %d", failed);
+    LOG_INFO("  Total:  %d", num_tests);
+
+    LOG_INFO("\nAll B field tests complete");
 }
 
 void test_legendre_polynomials()
