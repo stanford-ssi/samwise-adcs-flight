@@ -150,7 +150,7 @@ float legendre_schmidt(int n, int m, float x)
         float somx2 = sqrt((1.0f - x) * (1.0f + x));
         for (int i = 1; i <= m; i++)
         {
-            pmm *= -somx2;
+            pmm *= somx2;
         }
     }
 
@@ -278,43 +278,61 @@ void test_legendre_polynomials()
     };
 
     TestCase test_cases[] = {
-        // Test P_0^0 (should be 1.0 everywhere)
-        {0, 0, 0.0f, 1.0f, 0.0f, "P_0^0 at x=0"},
-        {0, 0, 0.5f, 1.0f, 0.0f, "P_0^0 at x=0.5"},
-        {0, 0, -0.5f, 1.0f, 0.0f, "P_0^0 at x=-0.5"},
+        // P_0^0 at x=0 - constant function
+        {0, 0, 0.0f, 1.0f, 0.0f, "P_0^0 at x=0 - constant function"},
+        // P_0^0 at x=0.5 - should still be 1
+        {0, 0, 0.5f, 1.0f, 0.0f, "P_0^0 at x=0.5 - should still be 1"},
+        // P_0^0 at x=-0.5 - verifies symmetry
+        {0, 0, -0.5f, 1.0f, 0.0f, "P_0^0 at x=-0.5 - verifies symmetry"},
+        // P_1^0 at x=0 - should be zero at origin
+        {1, 0, 0.0f, 0.0f, 1.0f, "P_1^0 at x=0 - should be zero at origin"},
+        // P_1^0 at x=0.5 - tests linear behavior
+        {1, 0, 0.5f, 0.5f, 1.0f, "P_1^0 at x=0.5 - tests linear behavior"},
+        // P_1^0 at x=-0.5 - verifies odd symmetry
+        {1, 0, -0.5f, -0.5f, 1.0f, "P_1^0 at x=-0.5 - verifies odd symmetry"},
+        // P_1^1 at x=0 - maximum at equator
+        {1, 1, 0.0f, 1.0f, 0.0f, "P_1^1 at x=0 - maximum at equator"},
+        // P_1^1 at x=0.5 - tests sqrt(1-x^2)
+        {1, 1, 0.5f, 0.866f, -0.5774f, "P_1^1 at x=0.5 - tests sqrt(1-x^2)"},
+        // P_1^1 at x=-0.5 - tests symmetry
+        {1, 1, -0.5f, 0.866f, 0.5774f, "P_1^1 at x=-0.5 - tests symmetry"},
+        // P_2^0 at x=0 - local minimum
+        {2, 0, 0.0f, -0.5f, 0.0f, "P_2^0 at x=0 - local minimum"},
+        // P_2^0 at x=0.5 - tests quadratic
+        {2, 0, 0.5f, -0.125f, 1.5f, "P_2^0 at x=0.5 - tests quadratic"},
+        // P_2^0 at x=-0.5 - even symmetry
+        {2, 0, -0.5f, -0.125f, -1.5f, "P_2^0 at x=-0.5 - even symmetry"},
+        // P_2^1 at x=0 - zero crossing
+        {2, 1, 0.0f, 0.0f, 3.0f, "P_2^1 at x=0 - zero crossing"},
+        // P_2^1 at x=0.5 - tests derivative
+        {2, 1, 0.5f, -1.299f, 2.598f, "P_2^1 at x=0.5 - tests derivative"},
+        // P_2^1 at x=-0.5 - odd symmetry
+        {2, 1, -0.5f, 1.299f, 2.598f, "P_2^1 at x=-0.5 - odd symmetry"},
+        // P_2^2 at x=0 - maximum at equator
+        {2, 2, 0.0f, 3.0f, 0.0f, "P_2^2 at x=0 - maximum at equator"},
+        // P_2^2 at x=0.5 - high precision test
+        {2, 2, 0.5f, 2.598f, -3.897f, "P_2^2 at x=0.5 - high precision test"},
+        // P_2^2 at x=-0.5 - even symmetry
+        {2, 2, -0.5f, 2.598f, 3.897f, "P_2^2 at x=-0.5 - even symmetry"},
+        // P_1^0 near north pole - tests pole handling
+        {1, 0, 0.9999f, 0.9999f, 1.0f,
+         "P_1^0 near north pole - tests pole handling"},
+        // P_1^0 near south pole - tests pole handling
+        {1, 0, -0.9999f, -0.9999f, 1.0f,
+         "P_1^0 near south pole - tests pole handling"},
+        // P_3^0 at x=0.5 - tests cubic terms
+        {3, 0, 0.5f, 0.4375f, 2.344f, "P_3^0 at x=0.5 - tests cubic terms"},
+        // P_4^0 at x=0.5 - tests quartic terms
+        {4, 0, 0.5f, 0.2734f, 2.459f, "P_4^0 at x=0.5 - tests quartic terms"},
+    };
 
-        // Test P_1^0 (should be x)
-        {1, 0, 0.0f, 0.0f, 1.0f, "P_1^0 at x=0"},
-        {1, 0, 0.5f, 0.5f, 1.0f, "P_1^0 at x=0.5"},
-        {1, 0, -0.5f, -0.5f, 1.0f, "P_1^0 at x=-0.5"},
-
-        // Test P_1^1 (associated Legendre)
-        {1, 1, 0.0f, 1.0f, 0.0f, "P_1^1 at x=0"},
-        {1, 1, 0.5f, 0.8660f, -0.5774f, "P_1^1 at x=0.5"},
-        {1, 1, -0.5f, 0.8660f, 0.5774f, "P_1^1 at x=-0.5"},
-
-        // Test P_2^0
-        {2, 0, 0.0f, -0.5f, 0.0f, "P_2^0 at x=0"},
-        {2, 0, 0.5f, -0.125f, 1.5f, "P_2^0 at x=0.5"},
-        {2, 0, -0.5f, -0.125f, -1.5f, "P_2^0 at x=-0.5"},
-
-        // Test P_2^1
-        {2, 1, 0.0f, 0.0f, 3.0f, "P_2^1 at x=0"},
-        {2, 1, 0.5f, -1.299f, 2.598f, "P_2^1 at x=0.5"},
-        {2, 1, -0.5f, 1.299f, 2.598f, "P_2^1 at x=-0.5"},
-
-        // Test P_2^2
-        {2, 2, 0.0f, 3.0f, 0.0f, "P_2^2 at x=0"},
-        {2, 2, 0.5f, 2.598f, -3.897f, "P_2^2 at x=0.5"},
-        {2, 2, -0.5f, 2.598f, 3.897f, "P_2^2 at x=-0.5"},
-
-        // Test near poles (x ≈ ±1)
-        {1, 0, 0.9999f, 0.9999f, 1.0f, "P_1^0 near north pole"},
-        {1, 0, -0.9999f, -0.9999f, 1.0f, "P_1^0 near south pole"},
-
-        // Test higher degrees
-        {3, 0, 0.5f, 0.4375f, 2.344f, "P_3^0 at x=0.5"},
-        {4, 0, 0.5f, 0.2734f, 2.459f, "P_4^0 at x=0.5"}};
+    // Diagnostic guide:
+    // 1. If P_0^0 tests fail: Check initialization and base cases
+    // 2. If P_1^0 tests fail but P_0^0 passes: Check recursion start
+    // 3. If P_n^0 tests fail for n>1: Check main recursion formula
+    // 4. If P_n^m tests fail for m>0: Check associated Legendre implementation
+    // 5. If only derivatives fail: Check derivative formula implementation
+    // 6. If pole tests fail: Check handling of x near ±1
 
     const int num_tests = sizeof(test_cases) / sizeof(TestCase);
     int passed = 0;
