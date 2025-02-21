@@ -41,15 +41,20 @@ float h[MAX_ORDER + 1][MAX_ORDER + 1] = {
 // S(n,m) = sqrt((2-delta(0,m))(n-m)!/(n+m)!)
 // TODO: RECALCULATE SCHMIDT FACTORS
 const float SCHMIDT_FACTORS[MAX_ORDER + 1][MAX_ORDER + 1] = {
-    {1.000000f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},                     // n=0
-    {1.000000f, 1.000000f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},                // n=1
-    {1.000000f, 0.577350f, 0.288675f, 0.0f, 0.0f, 0.0f, 0.0f},           // n=2
-    {1.000000f, 0.408248f, 0.129099f, 0.052705f, 0.0f, 0.0f, 0.0f},      // n=3
-    {1.000000f, 0.316228f, 0.074536f, 0.019920f, 0.007043f, 0.0f, 0.0f}, // n=4
-    {1.000000f, 0.258199f, 0.048795f, 0.009960f, 0.002348f, 0.000742f,
-     0.0f}, // n=5
-    {1.000000f, 0.218218f, 0.034993f, 0.005968f, 0.001104f, 0.000246f,
-     0.000071f} // n=6
+    {1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
+     0.000000}, // n=0
+    {1.000000, 1.000000, 0.000000, 0.000000, 0.000000, 0.000000,
+     0.000000}, // n=1
+    {1.000000, 0.577350, 0.288675, 0.000000, 0.000000, 0.000000,
+     0.000000}, // n=2
+    {1.000000, 0.408248, 0.129099, 0.052705, 0.000000, 0.000000,
+     0.000000}, // n=3
+    {1.000000, 0.316228, 0.074536, 0.019920, 0.007043, 0.000000,
+     0.000000}, // n=4
+    {1.000000, 0.258199, 0.048795, 0.009960, 0.002348, 0.000742,
+     0.000000}, // n=5
+    {1.000000, 0.218218, 0.034503, 0.005751, 0.001050, 0.000224,
+     0.000065}, // n=6
 };
 
 void compute_B(slate_t *slate)
@@ -134,28 +139,32 @@ void compute_B(slate_t *slate)
 // Modified Legendre function using pre-computed factors
 float legendre_schmidt(int n, int m, float x)
 {
+    if (n > MAX_ORDER || m > n)
+        return 0;
+
     // First compute P_m^m
     float pmm = 1.0f;
 
     if (m > 0)
     {
         float somx2 = sqrt((1.0f - x) * (1.0f + x));
-        float fact = 1.0f;
         for (int i = 1; i <= m; i++)
         {
-            pmm *= -somx2 * fact;
-            fact += 2.0f;
+            pmm *= -somx2;
         }
     }
 
-    // Apply Schmidt normalization
-    pmm *= sqrt((2.0f * m + 1.0f) / (4.0f * M_PI));
+    // Apply Schmidt factor from table
+    pmm *= SCHMIDT_FACTORS[m][m];
 
     if (n == m)
         return pmm;
 
     // Compute P_(m+1)^m
-    float pmmp1 = x * sqrt(2.0f * m + 3.0f) * pmm;
+    float pmmp1 = x * (2.0f * m + 1.0f) * pmm;
+
+    // Apply Schmidt factor for m+1
+    pmmp1 *= SCHMIDT_FACTORS[m + 1][m] / SCHMIDT_FACTORS[m][m];
 
     if (n == (m + 1))
         return pmmp1;
@@ -164,14 +173,9 @@ float legendre_schmidt(int n, int m, float x)
     float pnm;
     for (int k = m + 2; k <= n; k++)
     {
-        float kf = (float)k;
-        float kmf = (float)(k + m);
-        float km1f = (float)(k - 1.0f + m);
-        pnm = (x * sqrt((2.0f * kf + 1.0f) * (2.0f * kf - 1.0f)) * pmmp1 -
-               sqrt((kmf - 1.0f) * (2.0f * kf + 1.0f) /
-                    ((2.0f * kf - 3.0f) * (kf - m))) *
-                   pmm) /
-              sqrt(kmf * (kf - m));
+        pnm = ((2.0f * k - 1.0f) * x * pmmp1 - (k + m - 1.0f) * pmm) / (k - m);
+        // Apply Schmidt factor ratio for this k
+        pnm *= SCHMIDT_FACTORS[k][m] / SCHMIDT_FACTORS[k - 1][m];
         pmm = pmmp1;
         pmmp1 = pnm;
     }
