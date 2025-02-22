@@ -19,4 +19,3 @@ linalg::vec<float, 4> allocate_reaction_wheels(
 
 
 void test_reaction_wheel_allocation();
-`
