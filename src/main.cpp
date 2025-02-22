@@ -2,6 +2,7 @@
 #include "pico/stdlib.h"
 
 #include "gnc/bdot.h"
+#include "gnc/reaction_wheel_allocation.h"
 
 #include "linalg.h"
 
@@ -26,7 +27,11 @@ int main()
 #ifdef TEST
     while (1)
     {
+        // Test bdot control
         test_bdot_control(&slate);
+
+        // Test reaction wheel allocation
+        //test_reaction_wheel_allocation();
 
         sleep_ms(5000);
     }
