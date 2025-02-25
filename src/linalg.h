@@ -2513,6 +2513,7 @@ typedef vec<double, 3> double3;
 typedef vec<int, 4> int4;
 typedef vec<unsigned, 4> uint4;
 typedef vec<float, 4> float4;
+typedef float4 quaternion;
 typedef vec<double, 4> double4;
 typedef mat<bool, 1, 1> bool1x1;
 typedef mat<int, 1, 1> int1x1;
