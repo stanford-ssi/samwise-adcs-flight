@@ -4,60 +4,64 @@
  */
 
 #include "attitude_dynamics.h"
+#include "macros.h"
 
 // TODO: Move to constants file
 constexpr float3 SATELLITE_INERTIA = {0.01461922201, 0.0412768466,
                                       0.03235309961}; // [kg m^2]
 
-struct q_and_omega
+// static mat<float, 7, 7> af_jacobian(quaternion q, float3 w, float dt, float3
+// I) {
+//     // Return attitude filter jacobian for given parameters
+//     return {
+//         {0, 0, 0, 0, 0, 0, 0},
+//         {0, 0, 0, 0, 0, 0, 0},
+//         {0, 0, 0, 0, 0, 0, 0},
+//         {0, 0, 0, 0, 0, 0, 0},
+//         {0, 0, 0, 0, 0, 0, 0},
+//         {0, 0, 0, 0, 0, 0, 0},
+//         {0, 0, 0, 0, 0, 0, 0},
+//     };
+// }
+
+void propagate_attitude(slate_t *slate)
 {
-    quaternion q;
-    float3 w;
-};
+    constexpr float dt = 0.1;
 
-static q_and_omega attitude_dynamics(quaternion q, float3 w, float3 I,
-                                     float3 tau)
-{
-    // Compute dynamics matrix for the current rotation
-    // NOTE: linalg.h matrix literals are column major, so transposed
-    // compared to sims
-    float4x4 stm = {{0, w[0], w[1], w[2]},
-                    {-w[0], 0, -w[2], w[1]},
-                    {-w[1], w[2], 0, -w[0]},
-                    {-w[2], -w[1], w[0], 0}};
+    const float3 w = slate->w;
+    const float3 w_hat = normalize(w);
+    const float d_theta = dt * length(w);
 
-    float4 q_dot = 0.5f * mul(stm, q);
+    // Quaternion update
+    const float3 q_vec_part = w_hat * sin(d_theta / 2);
+    quaternion dq = {q_vec_part[0], q_vec_part[1], q_vec_part[2],
+                     cos(d_theta / 2)};
 
+    // Euler equations for omega
+    const float3 I = SATELLITE_INERTIA;
+    const float3 tau = slate->tau;
     float3 w_dot = {(I[1] - I[2]) * w[1] * w[2] + tau[0] / I[0],
                     (I[2] - I[0]) * w[0] * w[2] + tau[1] / I[1],
                     (I[0] - I[1]) * w[0] * w[1] + tau[2] / I[2]};
 
-    return q_and_omega{.q = q_dot, .w = w_dot};
-}
+    // Calculate attitude jacobian
+    // slate->attitude_covar = jacobian(q, w, dt, I);
 
-void propagate_attitude(slate_t *slate)
-{
-    // Perform RK4 integration
-    constexpr float3 tau = {0, 0, 0};
-    constexpr dt = 0.1;
-
-    q_and_omega x_dot;
-
-    q_and_omega k1 =
-        attitude_dynamics(slate->q, slate->w_principal, SATELLITE_INERTIA, tau);
-    quaternion q1 = normalize(slate->q + dt / 2.0f * k1.q);
-    float3 w1 = slate->w + dt / 2.0f * k1->w;
-
-    q_and_omega k2 = attitude_dynamics(q1, w1, SATELLITE_INERTIA, tau);
-    quaternion q2 = normalize(slate->q + dt / 2.0f * k2->q);
-    float3 w2 = slate->w + dt / 2.0f * k2->w;
-
-    q_and_omega k3 = attitude_dynamics(q2, w2, SATELLITE_INERTIA, tau);
-    quaternion q3 = normalize(slate->q + dt * k3->q);
-    float3 w3 = slate->w + dt / 2.0f * k3->w;
+    // Perform simple dynamics update
+    slate->q = qmul(slate->q, dq);
+    slate->w += w_dot * dt;
 }
 
 void test_propagate_attitude(slate_t *slate)
 {
-    // TODO
+    // Start at identity rotation
+    slate->q = {1, 0, 0, 0};
+    slate->w = {1, 0.2, 0};
+
+    for (int i = 0; i < 1000; i++)
+    {
+        propagate_attitude(slate);
+        LOG_INFO("q: %f %f %f %f", slate->q[0], slate->q[1], slate->q[2],
+                 slate->q[3]);
+    }
 }

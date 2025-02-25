@@ -6,3 +6,6 @@
 #pragma once
 
 #include "slate.h"
+
+void propagate_attitude(slate_t *slate);
+void test_propagate_attitude(slate_t *slate);

@@ -1,6 +1,7 @@
 #include "pico/printf.h"
 #include "pico/stdlib.h"
 
+#include "gnc/attitude_dynamics.h"
 #include "gnc/bdot.h"
 
 #include "linalg.h"
@@ -26,7 +27,7 @@ int main()
 #ifdef TEST
     while (1)
     {
-        test_bdot_control(&slate);
+        test_propagate_attitude(&slate);
 
         sleep_ms(5000);
     }

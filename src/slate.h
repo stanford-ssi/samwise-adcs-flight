@@ -14,8 +14,8 @@
 #include "linalg.h"
 #include "pico/types.h"
 
-using namespace linalg;
 using namespace linalg::aliases;
+using namespace linalg;
 
 typedef struct samwise_slate
 {
@@ -28,6 +28,9 @@ typedef struct samwise_slate
 
     // Attitude
     quaternion q;
-    float3 w; // [rad s^-1] in principal axes frame
+    float3 w;   // [rad s^-1] in principal axes frame
+    float3 tau; // [Nm] in principal axes frame
+
+    // TODO mat<float, 3, 3> attitude_covar;  // Covariance matrix
 
 } slate_t;
