@@ -31,7 +31,7 @@ int main()
         test_bdot_control(&slate);
 
         // Test reaction wheel allocation
-        //test_reaction_wheel_allocation();
+        // test_reaction_wheel_allocation();
 
         sleep_ms(5000);
     }
