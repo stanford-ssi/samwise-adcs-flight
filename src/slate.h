@@ -23,7 +23,9 @@ typedef struct samwise_slate
     float3 b_field_local_prev;
 
     absolute_time_t bdot_last_ran_time;
+    float MJD;
 
     float3 bdot_mu_requested;
+    float3 sun_vector_eci;
 
 } slate_t;

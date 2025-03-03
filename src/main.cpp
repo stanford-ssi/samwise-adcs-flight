@@ -2,6 +2,7 @@
 #include "pico/stdlib.h"
 
 #include "gnc/bdot.h"
+#include "gnc/sun_vector.h"
 
 #include "linalg.h"
 
@@ -27,7 +28,7 @@ int main()
     while (1)
     {
         test_bdot_control(&slate);
-
+        test_sun_vector_eci(&slate);
         sleep_ms(5000);
     }
 #else
