@@ -28,4 +28,7 @@ typedef struct samwise_slate
     float3 bdot_mu_requested;
     float3 sun_vector_eci;
 
+    float3 control_torque;
+    float3 reaction_wheel_speeds;
+
 } slate_t;
