@@ -23,6 +23,7 @@ typedef struct samwise_slate
     float3 b_field_local_prev; // [T]
 
     absolute_time_t bdot_last_ran_time;
+    float MJD;
 
     float3 bdot_mu_requested; // [A * m^2]
 
@@ -32,5 +33,10 @@ typedef struct samwise_slate
     float3 tau; // [Nm] in principal axes frame
 
     // TODO mat<float, 3, 3> attitude_covar;  // Covariance matrix
+    float3 bdot_mu_requested;
+    float3 sun_vector_eci;
+
+    float3 control_torque;
+    float3 reaction_wheel_speeds;
 
 } slate_t;
