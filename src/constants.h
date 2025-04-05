@@ -4,6 +4,9 @@
  * Definition of all constants used in GNC
  */
 
+#include "linalg.h"
+using namespace linalg::aliases;
+
 #pragma once
 
 // #### REACTION WHEEL SPECS ####
@@ -19,6 +22,18 @@ constexpr float MAX_REACTION_WHEEL_ANGULAR_MOMENTUM =
 constexpr float REACTION_WHEEL_SATURATION_UPPER_LIMIT = 0.9;
 // Reaction wheel lower proportional limit:
 constexpr float REACTION_WHEEL_SATURATION_LOWER_LIMIT = 0.1;
+
+// #### SATELLITE INERTIA ###
+// !!!!!!!!!!!!!!!! TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// These are calculated from a really hacky estimate
+// made back in fall quarter. We should replace these with
+// something much more accurate, ideally measured with the actual
+// flight model before launch
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+constexpr float3 SATELLITE_INERTIA = {0.01461922201, 0.0412768466,
+                                      0.03235309961}; // Principle axes [kg m^2]
+
+// TODO: Add principal axes to body rotation
 
 // #### DESATURATION GAINS ####
 // Desaturation gains for each reaction wheel

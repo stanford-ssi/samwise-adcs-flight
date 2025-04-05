@@ -3,6 +3,7 @@
 
 #include "gnc/attitude_dynamics.h"
 #include "gnc/bdot.h"
+#include "gnc/matrix_utils.h"
 #include "gnc/reaction_wheel_allocation.h"
 #include "gnc/sun_vector.h"
 
@@ -29,19 +30,19 @@ int main()
 #ifdef TEST
     while (1)
     {
-        // Test bdot control
-        test_bdot_control(&slate);
+        // // Test bdot control
+        // test_bdot_control(&slate);
 
-        // Test attitude propagation
-        test_propagate_attitude(&slate);
+        // // Test attitude propagation
+        // test_propagate_attitude(&slate);
 
-        // Test sun vector
-        test_sun_vector_eci(&slate);
+        // // Test sun vector
+        // test_sun_vector_eci(&slate);
 
-        // Test reaction wheel allocation
-        test_reaction_wheel_allocation();
-
-        sleep_ms(5000);
+        // // Test reaction wheel allocation
+        // test_reaction_wheel_allocation();
+        test_matrix_utils();
+        sleep_ms(1000);
     }
 #else
 #endif
