@@ -9,6 +9,8 @@
 #include "macros.h"
 #include "pico/printf.h"
 
+#define IDX(row, col, ncols) (((row) * ncols) + col)
+
 /**
  * Multiply to NxN matrices, storing the result in out. Assumes
  * matrices are in row major order.
