@@ -32,8 +32,8 @@ int main()
     while (1)
     {
         // test_bdot_control(&slate);
-        test_compute_B(&slate);
-        // test_legendre_polynomials();
+        // test_compute_B(&slate);
+        test_legendre_polynomials();
         // // Test bdot control
         // test_bdot_control(&slate);
 
@@ -45,7 +45,7 @@ int main()
 
         // // Test reaction wheel allocation
         // test_reaction_wheel_allocation();
-        test_matrix_utils();
+        // test_matrix_utils();
         sleep_ms(1000);
     }
 #else

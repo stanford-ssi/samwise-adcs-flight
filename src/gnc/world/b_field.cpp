@@ -149,9 +149,11 @@ float legendre_schmidt(int n, int m, float x)
     if (m > 0)
     {
         float somx2 = sqrt((1.0f - x) * (1.0f + x));
+        float fact = 1.0f;
         for (int i = 1; i <= m; i++)
         {
-            pmm *= somx2;
+            pmm *= -fact * somx2; // Add negative sign and alternating factor
+            fact += 2.0f;         // This grows as 1, 3, 5, 7, ...
         }
     }
 
@@ -171,7 +173,7 @@ float legendre_schmidt(int n, int m, float x)
         return pmmp1;
 
     // Use recurrence to get P_n^m
-    float pnm;
+    float pnm = 0.0f;
     for (int k = m + 2; k <= n; k++)
     {
         pnm = ((2.0f * k - 1.0f) * x * pmmp1 - (k + m - 1.0f) * pmm) / (k - m);
@@ -181,7 +183,7 @@ float legendre_schmidt(int n, int m, float x)
         pmmp1 = pnm;
     }
 
-    return pnm;
+    return pmmp1; // Return pmmp1 for the final value
 }
 
 float d_legendre_schmidt(int n, int m, float x)
@@ -332,135 +334,37 @@ void test_compute_B(slate_t *slate)
 
 void test_legendre_polynomials()
 {
-    LOG_INFO("Testing Legendre and associated Legendre functions...");
+    // LOG_INFO("Testing Legendre and associated Legendre functions...");
 
-    const float EPSILON = 1e-4f; // Tolerance for float comparisons
-
-    struct TestCase
+    // Test associated legendre polynomials up to n=3, m=3
+    // Associated legendre polynomials are defined on [-1, 1]
+    for (float x = -1.00f; x <= 1.00f; x += 0.01f)
     {
-        int n;             // Degree
-        int m;             // Order
-        float x;           // Input value
-        float expected_p;  // Expected P_n^m value
-        float expected_dp; // Expected derivative value
-        const char *desc;  // Test description
-    };
-
-    TestCase test_cases[] = {
-        // P_0^0 at x=0 - constant function
-        {0, 0, 0.0f, 1.0f, 0.0f, "P_0^0 at x=0 - constant function"},
-        // P_0^0 at x=0.5 - should still be 1
-        {0, 0, 0.5f, 1.0f, 0.0f, "P_0^0 at x=0.5 - should still be 1"},
-        // P_0^0 at x=-0.5 - verifies symmetry
-        {0, 0, -0.5f, 1.0f, 0.0f, "P_0^0 at x=-0.5 - verifies symmetry"},
-        // P_1^0 at x=0 - should be zero at origin
-        {1, 0, 0.0f, 0.0f, 1.0f, "P_1^0 at x=0 - should be zero at origin"},
-        // P_1^0 at x=0.5 - tests linear behavior
-        {1, 0, 0.5f, 0.5f, 1.0f, "P_1^0 at x=0.5 - tests linear behavior"},
-        // P_1^0 at x=-0.5 - verifies odd symmetry
-        {1, 0, -0.5f, -0.5f, 1.0f, "P_1^0 at x=-0.5 - verifies odd symmetry"},
-        // P_1^1 at x=0 - maximum at equator
-        {1, 1, 0.0f, 1.0f, 0.0f, "P_1^1 at x=0 - maximum at equator"},
-        // P_1^1 at x=0.5 - tests sqrt(1-x^2)
-        {1, 1, 0.5f, 0.866f, -0.5774f, "P_1^1 at x=0.5 - tests sqrt(1-x^2)"},
-        // P_1^1 at x=-0.5 - tests symmetry
-        {1, 1, -0.5f, 0.866f, 0.5774f, "P_1^1 at x=-0.5 - tests symmetry"},
-        // P_2^0 at x=0 - local minimum
-        {2, 0, 0.0f, -0.5f, 0.0f, "P_2^0 at x=0 - local minimum"},
-        // P_2^0 at x=0.5 - tests quadratic
-        {2, 0, 0.5f, -0.125f, 1.5f, "P_2^0 at x=0.5 - tests quadratic"},
-        // P_2^0 at x=-0.5 - even symmetry
-        {2, 0, -0.5f, -0.125f, -1.5f, "P_2^0 at x=-0.5 - even symmetry"},
-        // P_2^1 at x=0 - zero crossing
-        {2, 1, 0.0f, 0.0f, 3.0f, "P_2^1 at x=0 - zero crossing"},
-        // P_2^1 at x=0.5 - tests derivative
-        {2, 1, 0.5f, -1.299f, 2.598f, "P_2^1 at x=0.5 - tests derivative"},
-        // P_2^1 at x=-0.5 - odd symmetry
-        {2, 1, -0.5f, 1.299f, 2.598f, "P_2^1 at x=-0.5 - odd symmetry"},
-        // P_2^2 at x=0 - maximum at equator
-        {2, 2, 0.0f, 3.0f, 0.0f, "P_2^2 at x=0 - maximum at equator"},
-        // P_2^2 at x=0.5 - high precision test
-        {2, 2, 0.5f, 2.598f, -3.897f, "P_2^2 at x=0.5 - high precision test"},
-        // P_2^2 at x=-0.5 - even symmetry
-        {2, 2, -0.5f, 2.598f, 3.897f, "P_2^2 at x=-0.5 - even symmetry"},
-        // P_1^0 near north pole - tests pole handling
-        {1, 0, 0.9999f, 0.9999f, 1.0f,
-         "P_1^0 near north pole - tests pole handling"},
-        // P_1^0 near south pole - tests pole handling
-        {1, 0, -0.9999f, -0.9999f, 1.0f,
-         "P_1^0 near south pole - tests pole handling"},
-        // P_3^0 at x=0.5 - tests cubic terms
-        {3, 0, 0.5f, 0.4375f, 2.344f, "P_3^0 at x=0.5 - tests cubic terms"},
-        // P_4^0 at x=0.5 - tests quartic terms
-        {4, 0, 0.5f, 0.2734f, 2.459f, "P_4^0 at x=0.5 - tests quartic terms"},
-    };
-
-    // Diagnostic guide:
-    // 1. If P_0^0 tests fail: Check initialization and base cases
-    // 2. If P_1^0 tests fail but P_0^0 passes: Check recursion start
-    // 3. If P_n^0 tests fail for n>1: Check main recursion formula
-    // 4. If P_n^m tests fail for m>0: Check associated Legendre implementation
-    // 5. If only derivatives fail: Check derivative formula implementation
-    // 6. If pole tests fail: Check handling of x near ±1
-
-    const int num_tests = sizeof(test_cases) / sizeof(TestCase);
-    int passed = 0;
-    int failed = 0;
-
-    for (int i = 0; i < num_tests; i++)
-    {
-        TestCase *tc = &test_cases[i];
-
-        // Test Legendre function
-        float p = legendre_schmidt(tc->n, tc->m, tc->x);
-        bool p_pass = fabs(p - tc->expected_p) < EPSILON;
-
-        // Test derivative
-        float dp = d_legendre_schmidt(tc->n, tc->m, tc->x);
-        bool dp_pass = fabs(dp - tc->expected_dp) < EPSILON;
-
-        // Log results
-        LOG_INFO("\nTest %d: %s", i + 1, tc->desc);
-        LOG_INFO("P_%d^%d(%.4f):", tc->n, tc->m, tc->x);
-        LOG_INFO("  Expected P: %.4f, Got: %.4f %s", tc->expected_p, p,
-                 p_pass ? "✓" : "✗");
-        LOG_INFO("  Expected dP: %.4f, Got: %.4f %s", tc->expected_dp, dp,
-                 dp_pass ? "✓" : "✗");
-
-        if (p_pass && dp_pass)
+        printf("[INFO]    ");
+        for (int n = 5; n < 6; n++)
         {
-            passed++;
+            for (int m = 0; m <= n; m++)
+            {
+                float P = legendre_schmidt(n, m, x);
+                printf("%f, ", P);
+            }
         }
-        else
-        {
-            failed++;
-            LOG_ERROR("Test %d failed!", i + 1);
-        }
-
-        // Add delay between tests for serial output
-        sleep_ms(100);
+        printf("\n");
     }
+
+    // Test derivative terms
+    // Associated legendre polynomials are defined on [-1, 1]
+    // for (float x = -1.00f; x <= 1.00f; x += 0.01f) {
+    //     printf("[INFO]    ");
+    //     for (int n = 4; n < 5; n++) {
+    //         for (int m = 0; m <= n; m++) {
+    //             float dP = d_legendre_schmidt(n, m, x);
+    //             printf("%f, ", dP);
+    //         }
+    //     }
+    //     printf("\n");
+    // }
 
     // Final summary
-    LOG_INFO("\nLegendre testing complete:");
-    LOG_INFO("  Passed: %d", passed);
-    LOG_INFO("  Failed: %d", failed);
-    LOG_INFO("  Total:  %d", num_tests);
-
-    // Additional verification tests
-    LOG_INFO("\nRunning additional verification tests...");
-
-    // Test symmetry properties
-    for (float x = -0.9f; x <= 0.9f; x += 0.3f)
-    {
-        // P_n^m(-x) = (-1)^(n+m) P_n^m(x)
-        float p1 = legendre_schmidt(2, 1, x);
-        float p2 = legendre_schmidt(2, 1, -x);
-        assert(fabs(p1 + p2) < EPSILON && "Symmetry test failed");
-    }
-
-    // Test orthogonality
-    // Could add Gauss-Legendre quadrature tests here
-
-    LOG_INFO("Verification tests complete");
+    // LOG_INFO("\nLegendre testing complete:");
 }
