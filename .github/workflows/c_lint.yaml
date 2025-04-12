@@ -19,7 +19,7 @@ jobs:
         with:
           style: 'file'  # Use .clang-format config file
           tidy-checks: '-*' # Disable clang-tidy
-          ignore: 'src/linalg.h'
+          ignore: 'src/linalg.h|src/gnc/matrix_utils.cpp'
           # only 'update' a single comment in a pull request's thread.
           thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
           format-review: true

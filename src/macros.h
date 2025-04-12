@@ -83,6 +83,12 @@
     } while (0)
 
 /**
+ * Assert that two float values are almost equal, within an epsilon.
+ */
+#define ASSERT_ALMOST_EQ(x1, x2, eps)                                          \
+    ASSERT((-(eps) < ((x1) - (x2))) && (((x1) - (x2)) < (eps)))
+
+/**
  * Assert a certain condition only in debug builds.
  */
 #ifdef FLIGHT

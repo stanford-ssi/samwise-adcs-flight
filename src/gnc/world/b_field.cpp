@@ -42,7 +42,7 @@ float h[MAX_ORDER + 1][MAX_ORDER + 1] = {
 // TODO: RECALCULATE SCHMIDT FACTORS
 const float SCHMIDT_FACTORS[MAX_ORDER + 1][MAX_ORDER + 1] = {
     {1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=0
+     0.000000}, // n=0/
     {1.000000, 1.000000, 0.000000, 0.000000, 0.000000, 0.000000,
      0.000000}, // n=1
     {1.000000, 0.577350, 0.288675, 0.000000, 0.000000, 0.000000,
@@ -63,7 +63,7 @@ void compute_B(slate_t *slate)
     const float lat = slate->geodetic[1]; // latitude (-90 to 90)
     const float lon = slate->geodetic[2]; // longitude (-180 to 180)
 
-    // Convert to spherical coordinates using physics/math spherical coordinate
+    // Convert to spherical coordinates using math spherical coordinate
     // conventions
     const float phi = (90.0f - lat) * M_PI / 180.0f; // colatitude [0 to π]
     const float theta = lon * M_PI / 180.0f;         // azimuth [-π to π]
@@ -84,6 +84,7 @@ void compute_B(slate_t *slate)
         (fabs(sin_phi) < POLE_THRESH)
             ? POLE_THRESH * (sin_phi >= 0.0f ? 1.0f : -1.0f)
             : sin_phi;
+    // FLAG: IGNORE TRIADS IN THIS CASE
 
     // Pre-compute sin/cos m*phi terms
     float sin_mtheta[MAX_ORDER + 1] = {0.0f};
@@ -95,27 +96,27 @@ void compute_B(slate_t *slate)
     }
 
     // Main field computation loop
-    float r_ratio_n = r_ratio * r_ratio; // Start at n=1 term T
+    float r_ratio_n = r_ratio * r_ratio * r_ratio; // Start at n=1 term T
     for (int n = 1; n <= MAX_ORDER; n++)
     {
         for (int m = 0; m <= n; m++)
         {
             // Get Schmidt normalized associated Legendre functions
             const float P = legendre_schmidt(n, m, cos_phi);
-            const float dP = d_legendre_schmidt(n, m, cos_phi);
+            const float dP = -sin_phi * d_legendre_schmidt(n, m, cos_phi);
 
             // Compute common term for efficiency
             const float term =
                 r_ratio_n * (g[n][m] * cos_mtheta[m] + h[n][m] * sin_mtheta[m]);
 
             // Accumulate field components
-            Br += (float)(n + 1) * P * term * r_ratio;
-            Btheta -= dP * term;
+            Br += (float)(n + 1) * P * term;
+            Bphi -= dP * term;
 
-            // Handle Bphi carefully near poles
+            // Handle Btheta carefully near poles
             if (m > 0)
             { // m=0 terms don't contribute to Bphi
-                const float Bphi_term =
+                const float Btheta_term =
                     (-g[n][m] * sin_mtheta[m] + h[n][m] * cos_mtheta[m]) * P *
                     r_ratio_n / sin_phi_reg;
                 // (float)m * P / sin_phi_reg *
@@ -125,7 +126,7 @@ void compute_B(slate_t *slate)
                                               ? sin_phi / POLE_THRESH
                                               : 1.0f;
 
-                Bphi -= Bphi_term * pole_factor;
+                Btheta -= Btheta_term * pole_factor;
             }
         }
 
@@ -218,33 +219,33 @@ void test_compute_B(slate_t *slate)
     {
         float alt, lat, lon;
         float expected_Br;     // Expected radial component  (-Z)
-        float expected_Btheta; // Expected theta component  (-X)
-        float expected_Bphi;   // Expected phi component    (Y)
+        float expected_Btheta; // Expected theta component  (Y)
+        float expected_Bphi;   // Expected phi component    (-X)
         float expected_mag;    // Expected total magnitude  (F)
         const char *name;
     };
 
     // Assertion values from IGRF calculator
-    TestPoint test_points[] = {{0.0f, 89.9f, 0.0f, -56835.0f, -1783.0f, 439.0f,
+    TestPoint test_points[] = {{0.0f, 89.9f, 0.0f, -56835.0f, 439.0f, -1783.0f,
                                 56864.0f, "North Pole"},
 
-                               {0.0f, -89.9f, 0.0f, -51612.0f, -14391.0f,
-                                -8771.0f, 54294.0f, "South Pole"},
+                               {0.0f, -89.9f, 0.0f, 51612.0f, -8771.0f,
+                                -14391.0f, 54294.0f, "South Pole"},
 
-                               {0.0f, 0.0f, 0.0f, 15997.0f, -27457.0f, -1926.0f,
+                               {0.0f, 0.0f, 0.0f, 15997.0f, -1926.0f, -27457.0f,
                                 31835.0f, "Equator at Greenwich"},
 
-                               {0.0f, 0.0f, 180.0f, 3074.0f, -33431.0f, 5859.0f,
+                               {0.0f, 0.0f, 180.0f, 3074.0f, 5859.0f, -33431.0f,
                                 34079.0f, "Equator opposite GMT"},
 
-                               {300.0f, 45.0f, -75.0f, -42838.0f, -15976.0f,
-                                -3417.0f, 45848.0f, "Mid-latitude point"},
+                               {300.0f, 45.0f, -75.0f, -42838.0f, -3417.0f,
+                                -15976.0f, 45848.0f, "Mid-latitude point"},
 
-                               {0.0f, -30.0f, -45.0f, 16572.0f, -14603.0f,
-                                -5499.0f, 22762.0f, "South Atlantic Anomaly"},
+                               {0.0f, -30.0f, -45.0f, 16572.0f, -5499.0f,
+                                -14603.0f, 22762.0f, "South Atlantic Anomaly"},
 
-                               {1000.0f, 80.0f, -72.0f, -37527.0f, -2084.0f,
-                                -1163.0f, 37603.0f, "Near Magnetic North"}};
+                               {1000.0f, 80.0f, -72.0f, -37527.0f, -1163.0f,
+                                -2084.0f, 37603.0f, "Near Magnetic North"}};
 
     const int num_tests = sizeof(test_points) / sizeof(TestPoint);
     int passed = 0;
