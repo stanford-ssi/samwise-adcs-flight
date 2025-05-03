@@ -1,7 +1,7 @@
 #include "pico/printf.h"
 #include "pico/stdlib.h"
 
-#include "gnc/attitude_dynamics.h"
+#include "gnc/attitude_filter.h"
 #include "gnc/bdot.h"
 #include "gnc/matrix_utils.h"
 #include "gnc/reaction_wheel_allocation.h"
@@ -28,21 +28,25 @@ int main()
     gpio_put(PICO_DEFAULT_LED_PIN, 0);
 
 #ifdef TEST
+
+    // Test initialization
+    attitude_filter_init(&slate);
+
     while (1)
     {
         // // Test bdot control
         // test_bdot_control(&slate);
 
-        // // Test attitude propagation
-        // test_propagate_attitude(&slate);
+        // Test attitude propagation
+        test_attitude_filter(&slate);
 
         // // Test sun vector
         // test_sun_vector_eci(&slate);
 
         // // Test reaction wheel allocation
         // test_reaction_wheel_allocation();
-        test_matrix_utils();
-        sleep_ms(1000);
+        // test_matrix_utils();
+        // sleep_ms(1000);
     }
 #else
 #endif
