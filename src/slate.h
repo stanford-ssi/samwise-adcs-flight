@@ -35,7 +35,7 @@ typedef struct samwise_slate
     float3 w_principal;   // [rad s^-1] in principal axes frame
     float3 tau_principal; // [Nm] total torque in principal axes frame
 
-    // TODO mat<float, 3, 3> attitude_covar;  // attitude covariance matrix
+    float attitude_covar[7 * 7]; // attitude covariance matrix
 
     // Attituide control
     float3 control_torque;

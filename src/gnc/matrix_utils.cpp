@@ -87,6 +87,26 @@ void mat_transpose(float *A, float *out, int M, int N)
 }
 
 /**
+ * @brief Populate out (row-major) with A + B
+ *
+ * @param A (MxN)
+ * @param B (MxN)
+ * @param out (MxN)
+ * @param M
+ * @param N
+ */
+void mat_add(float *A, float *B, float *out, int M, int N)
+{
+    for (int i = 0; i < M; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            out[IDX(i, j, N)] = A[IDX(i, j, N)] + B[IDX(i, j, N)];
+        }
+    }
+}
+
+/**
  * @brief Populate out (row-major) with the inverse of A. Assumes
  * that A is non-singular (will lead to NaN's otherwise).
  *
