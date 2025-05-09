@@ -1,0 +1,92 @@
+/**
+ * @author Niklas Vainio
+ * @date 2025-05-08
+ *
+ * This file defines pin and basic config for the ADCS board
+ *
+ * IMPORTANT: Keep this up to date with the schematic - defer to Sage Wu for
+ * questions
+ */
+
+#include "hardware/i2c.h"
+#include "hardware/spi.h"
+#include "hardware/uart.h"
+
+#pragma once
+
+#define SAMWISE_ADCS_NEOPIXEL (0)
+#define SAMWISE_ADCS_EN_GPS (1)
+#define SAMWISE_ADCS_TX_TO_GPS (2)
+#define SAMWISE_ADCS_RX_FROM_GPS (3)
+
+#define SAMWISE_ADCS_X_MAGDRV_IN1 (4)
+#define SAMWISE_ADCS_X_MAGDRV_IN2 (5)
+#define SAMWISE_ADCS_Y_MAGDRV_IN1 (6)
+#define SAMWISE_ADCS_Y_MAGDRV_IN2 (7)
+#define SAMWISE_ADCS_Z_MAGDRV_IN1 (8)
+#define SAMWISE_ADCS_Z_MAGDRV_IN2 (9)
+
+#define SAMWISE_ADCS_MAGDRV_FAULT (10)
+#define SAMWISE_ADCS_EN_MAGDRV (11)
+
+#define SAMWISE_ADCS_I2C0_SDA (12)
+#define SAMWISE_ADCS_I2C0_SCL (13)
+
+#define SAMWISE_ADCS_IMU_INT1 (14)
+#define SAMWISE_ADCS_IMU_INT2 (15)
+#define SAMWISE_ADCS_EN_IMU (16)
+
+#define SAMWISE_ADCS_SCLK_MAGMETER (18)
+#define SAMWISE_ADCS_MOSI_MAGMETER (19)
+#define SAMWISE_ADCS_MISO_MAGMETER (20)
+#define SAMWISE_ADCS_SCS_MAGMETER (21)
+#define SAMWISE_ADCS_EN_MAGMETER (22)
+
+#define SAMWISE_ADCS_MOTOR_EN (23)
+#define SAMWISE_ADCS_TX_TO_MOTOR (24)
+#define SAMWISE_ADCS_RX_FROM_MOTOR (25)
+#define SAMWISE_ADCS_MOTOR_PGOOD (26)
+
+#define SAMWISE_ADCS_UART_TO_DEBUG (28)
+#define SAMWISE_ADCS_UART_FROM_DEBUG (29)
+
+#define SAMWISE_ADCS_I2C1_SDA (30)
+#define SAMWISE_ADCS_I2C1_SCL (31)
+
+#define SAMWISE_ADCS_ADCS_PGOOD (35)
+#define SAMWISE_ADCS_TX_TO_PICUBED (36)
+#define SAMWISE_ADCS_RX_FROM_PICUBED (37)
+#define SAMWISE_ADCS_WATCHDOG_FEED (38)
+#define SAMWISE_ADCS_EN_PD (39)
+
+#define SAMWISE_ADCS_PD_YP1 (40)
+#define SAMWISE_ADCS_PD_YP2 (41)
+#define SAMWISE_ADCS_PD_ZP1 (42)
+#define SAMWISE_ADCS_PD_ZP2 (43)
+#define SAMWISE_ADCS_PD_YM1 (44)
+#define SAMWISE_ADCS_PD_YM2 (45)
+#define SAMWISE_ADCS_PD_ZM1 (46)
+#define SAMWISE_ADCS_PD_ZM2 (47)
+
+// Unconnected GPIO pins
+#define SAMWISE_ADCS_GPIO_17 (17)
+#define SAMWISE_ADCS_GPIO_27 (27)
+#define SAMWISE_ADCS_GPIO_32 (32)
+#define SAMWISE_ADCS_GPIO_33 (33)
+#define SAMWISE_ADCS_GPIO_34 (34)
+
+// Device instances
+#define SAMWISE_ADCS_MAGDRV_MONITOR_I2C (i2c0)
+#define SAMWISE_ADCS_IMU_I2C (i2c0)
+#define SAMWISE_ADCS_QWIIC_I2C (i2c0)
+#define SAMWISE_ADCS_PYRAMID_I2C (i2c1)
+#define SAMWISE_ADCS_PWR_I2C (i2c1)
+
+#define SAMWISE_ADCS_I2C0_BAUD (400000)
+#define SAMWISE_ADCS_I2C1_BAUD (400000)
+
+#define SAMWISE_ADCS_MAGMETER_SPI (spi0)
+
+#define SAMWISE_ADCS_GPS_UART (uart0)
+#define SAMWISE_ADCS_MOTOR_UART (uart0)
+#define SAMWISE_ADCS_PICUBED_UART (uart1)

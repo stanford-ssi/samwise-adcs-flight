@@ -30,13 +30,7 @@ void fatal_error()
 #else
     while (1)
     {
-        for (uint32_t i = 0; i < 3; i++)
-        {
-            gpio_put(PICO_DEFAULT_LED_PIN, 1);
-            sleep_ms(100);
-            gpio_put(PICO_DEFAULT_LED_PIN, 0);
-            sleep_ms(100);
-        }
+        printf("AN ERROR OCCURRED!\n");
         sleep_ms(500);
     }
 #endif
