@@ -68,7 +68,7 @@ static void populate_af_jacobian(float *J, quaternion q, quaternion dq,
     };
 
     float d_qnew_d_dq[4*4] = {
-        q.w, -q.z,  q.y,  q.x,
+        q.w,  -q.z,  q.y,  q.x,
         q.z,   q.w, -q.x,  q.y,
         -q.y,  q.x,  q.w,  q.z,
         -q.z, -q.y, -q.z,  q.w 

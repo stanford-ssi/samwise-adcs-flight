@@ -20,14 +20,16 @@ using namespace linalg;
 typedef struct samwise_slate
 {
     // General world state
-    float3 sun_vector_eci;     // (unit vector)
-    float3 b_field_local;      // [T]
-    float3 b_field_local_prev; // [T]
-
+    float3 sun_vector_eci; // (unit vector)
     float MJD;
 
+    // Vector measurements
+    float3 sun_vector_local;
+    float3 b_field_local; // [T]
+
     // Bdot
-    float3 bdot_mu_requested; // [A * m^2]
+    float3 b_field_local_prev; // [T]
+    float3 bdot_mu_requested;  // [A * m^2]
     absolute_time_t bdot_last_ran_time;
 
     // Attitude propagator
