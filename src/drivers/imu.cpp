@@ -452,19 +452,27 @@ static float lsb_to_dps(int16_t val, float dps, uint8_t bit_width)
 }
 
 // *******************************
+
+void imu_power_enable()
+{
+    gpio_put(SAMWISE_ADCS_EN_IMU, 0);
+}
+
+void imu_power_disable()
+{
+    gpio_put(SAMWISE_ADCS_EN_IMU, 1);
+}
+
 // Public functions
 
 void imu_init(slate_t *slate)
 {
-    /* Sensor initialization configuration. */
-    struct bmi2_dev bmi;
-
-    /* Structure to define type of sensor and their respective data. */
-    struct bmi2_sens_data sensor_data = {{0}};
-
     /* Assign gyro sensor to variable. */
     uint8_t sens_list = BMI2_GYRO;
     int8_t result;
+
+    imu_power_enable();
+    sleep_ms(10);
 
     result = bmi2_interface_init(&slate->bmi, BMI2_I2C_INTF);
     bmi2_error_codes_print_result(result);
@@ -474,35 +482,70 @@ void imu_init(slate_t *slate)
     result = bmi270_legacy_init(&slate->bmi);
     bmi2_error_codes_print_result(result);
     ASSERT(result == BMI2_OK);
+    sleep_ms(20);
+
+    /* Turn off advanced power saving */
+    result = bmi2_set_adv_power_save(BMI2_DISABLE, &slate->bmi);
+    bmi2_error_codes_print_result(result);
+    ASSERT(result == BMI2_OK);
+    sleep_us(500);
 
     result = set_gyro_config(&slate->bmi);
     bmi2_error_codes_print_result(result);
     ASSERT(result == BMI2_OK);
 
+    /* Verify chip ID */
+    uint8_t chip_id = 0;
+    bmi2_get_regs(0x00, &chip_id, 1, &slate->bmi);
+
+    LOG_INFO("IMU chip ID is %x", chip_id);
+    ASSERT(chip_id == 0x24);
+
     /* Enable the selected sensors. */
     result = bmi2_sensor_enable(&sens_list, 1, &slate->bmi);
     bmi2_error_codes_print_result(result);
     ASSERT(result == BMI2_OK);
+    sleep_ms(3);
 }
 
 void imu_get_rotation(slate_t *slate)
 {
-    int8_t result = bmi2_get_sensor_data(&slate->bmi_sensor_data, &slate->bmi);
-    bmi2_error_codes_print_result(result);
-    ASSERT(result == BMI2_OK);
-    ASSERT(slate->bmi_sensor_data.status & BMI2_DRDY_GYR);
+    // uint8_t status = 0;
+    // // 0x1B is the status register in the BMI270 register map
+    // bmi2_get_regs(0x1D, &status, 1, &slate->bmi);
 
-    /*
-     * Converting lsb to degree per second for 16 bit gyro at 2000dps range.
-     */
-    const float x = lsb_to_dps(slate->bmi_sensor_data.gyr.x, 2000.0f,
-                               slate->bmi.resolution);
-    const float y = lsb_to_dps(slate->bmi_sensor_data.gyr.y, 2000.0f,
-                               slate->bmi.resolution);
-    const float z = lsb_to_dps(slate->bmi_sensor_data.gyr.z, 2000.0f,
-                               slate->bmi.resolution);
+    // LOG_INFO("INT register is 0x%x", status);
 
-    LOG_INFO("[IMU] %d, %d, %d, %4.2f, %4.2f, %4.2f",
-             slate->bmi_sensor_data.gyr.x, slate->bmi_sensor_data.gyr.y,
-             slate->bmi_sensor_data.gyr.z, x, y, z);
+    /* Structure to define type of sensor and their respective data. */
+    struct bmi2_sens_data sensor_data;
+
+    int8_t result = bmi2_get_sensor_data(&sensor_data, &slate->bmi);
+
+    uint8_t state = gpio_get(SAMWISE_ADCS_IMU_INT1);
+    LOG_INFO("Interrupt pin state is:  %d", state);
+
+    if ((result == BMI2_OK) && (sensor_data.status & BMI2_DRDY_GYR))
+    {
+        /*
+         * Converting lsb to degree per second for 16 bit gyro at 2000dps range.
+         */
+        const float x =
+            lsb_to_dps(sensor_data.gyr.x, 2000.0f, slate->bmi.resolution);
+        const float y =
+            lsb_to_dps(sensor_data.gyr.y, 2000.0f, slate->bmi.resolution);
+        const float z =
+            lsb_to_dps(sensor_data.gyr.z, 2000.0f, slate->bmi.resolution);
+
+        LOG_INFO("[IMU] %d, %d, %d, %4.2f, %4.2f, %4.2f", sensor_data.gyr.x,
+                 sensor_data.gyr.y, sensor_data.gyr.z, x, y, z);
+    }
+    else
+    {
+        LOG_INFO("NO DATA");
+        bmi2_error_codes_print_result(result);
+        if (!(sensor_data.status & BMI2_DRDY_GYR))
+            LOG_ERROR("GYRO NOT READY! status is %x", sensor_data.status);
+    }
+
+    sleep_ms(20);
 }

@@ -18,14 +18,16 @@
 #include "macros.h"
 #include "slate.h"
 
+#include "pins.h"
+
 slate_t slate;
 
 // #define TEST
 
-// static bool reserved_addr(uint8_t addr)
-// {
-//     return (addr & 0x78) == 0 || (addr & 0x78) == 0x78;
-// }
+static bool reserved_addr(uint8_t addr)
+{
+    return (addr & 0x78) == 0 || (addr & 0x78) == 0x78;
+}
 
 // void i2c_scan_init()
 // {
@@ -43,53 +45,51 @@ slate_t slate;
 //     i2c_init(SAMWISE_ADCS_I2C1, 100000);
 // }
 
-// void i2c_scan()
-// {
+void i2c_scan()
+{
 
-//     LOG_INFO("I2C Bus Scan: I2C0");
-//     LOG_INFO("\n0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
+    LOG_INFO("I2C Bus Scan: I2C0");
+    LOG_INFO("\n0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
 
-//     for (int addr = 0; addr < (1 << 7); ++addr)
-//     {
-//         if (addr % 16 == 0)
-//         {
-//             printf("%02x ", addr);
-//         }
+    for (int addr = 0; addr < (1 << 7); ++addr)
+    {
+        if (addr % 16 == 0)
+        {
+            printf("%02x ", addr);
+        }
 
-//         int ret;
-//         uint8_t rxdata;
-//         if (reserved_addr(addr))
-//             ret = PICO_ERROR_GENERIC;
-//         else
-//             ret = i2c_read_timeout_us(SAMWISE_ADCS_I2C0, addr, &rxdata, 1,
-//                                       false, 1000);
+        int ret;
+        uint8_t rxdata;
+        if (reserved_addr(addr))
+            ret = PICO_ERROR_GENERIC;
+        else
+            ret = i2c_read_timeout_us(i2c0, addr, &rxdata, 1, false, 1000);
 
-//         printf(ret < 0 ? "." : "@");
-//         printf(addr % 16 == 15 ? "\n" : "  ");
-//     }
+        printf(ret < 0 ? "." : "@");
+        printf(addr % 16 == 15 ? "\n" : "  ");
+    }
 
-//     LOG_INFO("I2C Bus Scan: I2C1");
-//     LOG_INFO("\n0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
+    LOG_INFO("I2C Bus Scan: I2C1");
+    LOG_INFO("\n0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
 
-//     for (int addr = 0; addr < (1 << 7); ++addr)
-//     {
-//         if (addr % 16 == 0)
-//         {
-//             printf("%02x ", addr);
-//         }
+    for (int addr = 0; addr < (1 << 7); ++addr)
+    {
+        if (addr % 16 == 0)
+        {
+            printf("%02x ", addr);
+        }
 
-//         int ret;
-//         uint8_t rxdata;
-//         if (reserved_addr(addr))
-//             ret = PICO_ERROR_GENERIC;
-//         else
-//             ret = i2c_read_timeout_us(SAMWISE_ADCS_I2C1, addr, &rxdata, 1,
-//                                       false, 1000);
+        int ret;
+        uint8_t rxdata;
+        if (reserved_addr(addr))
+            ret = PICO_ERROR_GENERIC;
+        else
+            ret = i2c_read_timeout_us(i2c1, addr, &rxdata, 1, false, 1000);
 
-//         printf(ret < 0 ? "." : "@");
-//         printf(addr % 16 == 15 ? "\n" : "  ");
-//     }
-// }
+        printf(ret < 0 ? "." : "@");
+        printf(addr % 16 == 15 ? "\n" : "  ");
+    }
+}
 
 int main()
 {
@@ -138,6 +138,8 @@ int main()
 
     LOG_INFO("Initialization complete!");
     LOG_INFO("Slate uses %d bytes of memory", sizeof(slate));
+
+    // imu_power_disable();
 
     while (1)
     {

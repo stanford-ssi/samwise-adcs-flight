@@ -26,7 +26,6 @@ typedef struct samwise_adcs_slate
 
     // IMU
     bmi2_dev bmi;
-    bmi2_sens_data bmi_sensor_data;
 
     // ************************************************************************
     //                            HARDWARE OBJECTS

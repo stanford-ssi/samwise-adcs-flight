@@ -21,5 +21,7 @@ struct adcs_intf_config
     uint8_t bus;  /* Bus instance of the interface selected */
 };
 
+void imu_power_disable();
+void imu_power_enable();
 void imu_init(slate_t *slate);
 void imu_get_rotation(slate_t *slate);

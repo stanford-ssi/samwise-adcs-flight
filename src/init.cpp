@@ -32,8 +32,24 @@ static void init_i2c_buses()
     gpio_pull_up(SAMWISE_ADCS_I2C1_SCL);
     gpio_pull_up(SAMWISE_ADCS_I2C1_SDA);
 
-    i2c_init(i2c0, 100000);
-    i2c_init(i2c1, 100000);
+    i2c_init(i2c0, SAMWISE_ADCS_I2C0_BAUD);
+    i2c_init(i2c1, SAMWISE_ADCS_I2C1_BAUD);
+}
+
+/**
+ * @brief Initialize misc GPIO pins
+ *
+ * @param slate
+ */
+static void init_gpio_pins()
+{
+    // Set power enable to output
+    gpio_set_dir(SAMWISE_ADCS_EN_IMU, GPIO_OUT);
+    gpio_put(SAMWISE_ADCS_EN_IMU, 0);
+
+    // Set IMU pins as inputs
+    gpio_set_dir(SAMWISE_ADCS_IMU_INT1, GPIO_IN);
+    gpio_set_dir(SAMWISE_ADCS_IMU_INT2, GPIO_IN);
 }
 
 // **************************
@@ -44,6 +60,7 @@ void init(slate_t *slate)
     LOG_INFO("Intializing...");
 
     init_i2c_buses();
+    init_gpio_pins();
 
     // Initialize drivers
     imu_init(slate);

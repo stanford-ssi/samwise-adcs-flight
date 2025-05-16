@@ -62,8 +62,10 @@
 #define ERROR(message)                                                         \
     do                                                                         \
     {                                                                          \
-        LOG_ERROR("%s:%d %s\n", __FILE__, __LINE__, message);                  \
-        fatal_error();                                                         \
+        while (1)                                                              \
+        {                                                                      \
+            LOG_ERROR("%s:%d %s\n", __FILE__, __LINE__, message);              \
+        }                                                                      \
     } while (0)
 
 /**
