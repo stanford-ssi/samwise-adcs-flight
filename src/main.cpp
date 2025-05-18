@@ -135,11 +135,10 @@ int main()
     //         ;
 
     init(&slate);
+    sleep_ms(5000);
 
     LOG_INFO("Initialization complete!");
     LOG_INFO("Slate uses %d bytes of memory", sizeof(slate));
-
-    // imu_power_disable();
 
     while (1)
     {

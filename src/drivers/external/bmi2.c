@@ -2047,9 +2047,15 @@ int8_t bmi2_get_regs(uint8_t reg_addr, uint8_t *data, uint16_t len,
             reg_addr = (reg_addr | BMI2_SPI_RD_MASK);
         }
 
-        dev->intf_rslt = ((len + dev->dummy_byte) !=
-                          dev->read(reg_addr, temp_buf, (len + dev->dummy_byte),
-                                    dev->intf_ptr));
+        // dev->intf_rslt = ((len + dev->dummy_byte) !=
+        //                   dev->read(reg_addr, temp_buf, (len +
+        //                   dev->dummy_byte),
+        //                             dev->intf_ptr));
+
+        int8_t bytes_read = dev->read(reg_addr, temp_buf,
+                                      (len + dev->dummy_byte), dev->intf_ptr);
+        printf("The boi read %d bytes!", bytes_read);
+        dev->intf_rslt = ((len + dev->dummy_byte) != bytes_read);
 
         if (dev->aps_status == BMI2_ENABLE)
         {
@@ -2071,6 +2077,9 @@ int8_t bmi2_get_regs(uint8_t reg_addr, uint8_t *data, uint16_t len,
         }
         else
         {
+            printf("FAILED HERE!\n");
+            printf("The boi read %d bytes!", bytes_read);
+            printf("Should have read %d bytes!", (len + dev->dummy_byte));
             rslt = BMI2_E_COM_FAIL;
         }
     }
