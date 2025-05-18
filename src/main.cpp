@@ -30,6 +30,7 @@ int main()
 #ifdef TEST
 
     // Test initialization
+    slate.af_init_count = 0;
     attitude_filter_init(&slate);
 
     while (1)

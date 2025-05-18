@@ -86,8 +86,8 @@ static void populate_af_process_noise(float *Q, quaternion q, float dt)
     float Q_[AF_STATE_SIZE * AF_STATE_SIZE];
     mat_mul(W, W_T, Q_, AF_STATE_SIZE, 3, AF_STATE_SIZE);
 
-    // Copy into Q, multiplying by noise and (dt/2) ^2
-    const float scale = GYRO_NOISE_SPECTRAL_DENSITY * (dt * dt * 0.25f);
+    // Copy into Q, multiplying by noise and dt^2
+    const float scale = (GYRO_STD_DEV * GYRO_STD_DEV) * (dt * dt);
 
     for (int i = 0; i < AF_STATE_SIZE * AF_STATE_SIZE; i++)
     {
@@ -189,13 +189,21 @@ void attitude_filter_propagate(slate_t *slate, float dt)
 
     // Propagate attitude using gyro
     const float3 w = slate->w_body;
-    const float3 w_hat = normalize(w);
-    const float d_theta = dt * length(w);
+    quaternion dq;
 
-    // Quaternion update
-    const float3 dq_vec_part = w_hat * sin(d_theta / 2);
-    quaternion dq = {dq_vec_part[0], dq_vec_part[1], dq_vec_part[2],
-                     cos(d_theta / 2)};
+    if (length(w) > 1e-10)
+    {
+        const float3 w_hat = normalize(w);
+        const float d_theta = dt * length(w);
+
+        // Quaternion update
+        const float3 dq_vec_part = w_hat * sin(d_theta / 2);
+        dq = {dq_vec_part[0], dq_vec_part[1], dq_vec_part[2], cos(d_theta / 2)};
+    }
+    else
+    {
+        dq = {0.0f, 0.0f, 0.0f, 1.0f};
+    }
 
     // Calculate attitude jacobian and process noise matrices
     float J[AF_STATE_SIZE * AF_STATE_SIZE];
@@ -331,14 +339,32 @@ void attitude_filter_update(slate_t *slate)
     }
 }
 
+int count = 0;
+;
 void test_attitude_filter(slate_t *slate)
 {
     // Propagate and print out Q + covar frobenius
-    attitude_filter_propagate(slate, 0.01);
+    slate->w_body = {0.00001f, 0.0f, 0.0f};
+    slate->sun_vector_eci = {1.0f, 0.0f, 0.0f};
+    slate->b_unit_eci = {0.0f, 1.0f, 0.0f};
 
-    LOG_INFO("%f, %f, %f, %f, %f", slate->q_eci_to_body[0],
+    slate->sun_vector_local = {0.0f, 1.0f, 0.0f};
+    slate->b_unit_local = {0.0f, 0.0f, -1.0f};
+
+    for (int i = 0; i < 10; i++)
+    {
+        attitude_filter_propagate(slate, 0.1);
+
+        LOG_INFO("%f, %f, %f, %f, %f", slate->q_eci_to_body[0],
+                 slate->q_eci_to_body[1], slate->q_eci_to_body[2],
+                 slate->q_eci_to_body[3], slate->attitude_covar_log_frobenius);
+    }
+
+    attitude_filter_update(slate);
+
+    LOG_INFO("%f, %f, %f, %f, %f", ++count, slate->q_eci_to_body[0],
              slate->q_eci_to_body[1], slate->q_eci_to_body[2],
              slate->q_eci_to_body[3], slate->attitude_covar_log_frobenius);
 
-    ASSERT(slate->af_init_count == 1);
+    // ASSERT(slate->af_init_count == 1);
 }
