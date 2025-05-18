@@ -2,6 +2,9 @@
  * @author Niklas Vainio
  * @brief This file implements the main attitude EFK
  * @date 2025-05-03
+ *
+ * Information largely sourced from
+ * https://ahrs.readthedocs.io/en/latest/filters/ekf.html#initial-values
  */
 
 #include "attitude_filter.h"
@@ -10,93 +13,143 @@
 #include "macros.h"
 #include "matrix_utils.h"
 
-// Constant matrices for process and measurement noise
-// TODO - pick good.sensible values for these
+// State is just the quaternion
+#define AF_STATE_SIZE (4)
+
+// Measurement is local sun and magnetic field vectors
+#define AF_MEASUREMENT_SIZE (6)
+
+// Identity matrix instantiation
 // clang-format off
-const float af_process_noise[7*7] = {
-    0.01, 0, 0, 0, 0, 0, 0,
-    0, 0.01, 0, 0, 0, 0, 0,
-    0, 0, 0.01, 0, 0, 0, 0,
-    0, 0, 0, 0.01, 0, 0, 0,
-    0, 0, 0, 0, 0.02, 0, 0,
-    0, 0, 0, 0, 0, 0.02, 0,
-    0, 0, 0, 0, 0, 0, 0.02,
-};
-
-const float af_measurement_noise[4*4] = {
-     0.04,  -0.01, -0.01, -0.01,
-    -0.01,   0.04, -0.01, -0.01,
-    -0.01,  -0.01,  0.04, -0.01,
-     0.04,   0.04, -0.01, -0.01
+const float I_4[AF_STATE_SIZE * AF_STATE_SIZE] = {
+    1, 0, 0, 0, 
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
 };
 // clang-format on
 
-// Initial value of covariance matrix
-const float af_initial_covar[7 * 7] = {
-    1, -0.5, -0.5, -0.5, 0,    0, 0,   -0.5, 1,    -0.5, -0.5, 0, 0,
-    0, -0.5, -0.5, 1,    -0.5, 0, 0,   0,    -0.5, -0.5, -0.5, 1, 0,
-    0, 0,    0,    0,    0,    0, 0.2, 0,    0,    0,    0,    0, 0,
-    0, 0.2,  0,    0,    0,    0, 0,   0,    0,    0.2,
+// Measurement covariance matrix
+// clang-format off
+const float af_measurement_covariance[AF_MEASUREMENT_SIZE * AF_MEASUREMENT_SIZE] = {
+    SUN_SENSOR_STD, 0, 0, 0, 0, 0,
+    0, SUN_SENSOR_STD, 0, 0, 0, 0,
+    0, 0, SUN_SENSOR_STD, 0, 0, 0,
+    0, 0, 0, MAG_SENSOR_STD, 0, 0,
+    0, 0, 0, 0, MAG_SENSOR_STD, 0,
+    0, 0, 0, 0, 0, MAG_SENSOR_STD,
 };
 // clang-format on
 
-static void populate_af_jacobian(float *J, quaternion q, quaternion dq,
-                                 float3 w_vec, float dt, float3 I)
+static void populate_af_jacobian(float *J, float3 w_vec, float dt)
 {
-    // Compute d(dq)/dw (useful for top right block)
-    float w = length(w_vec);
-    float w_2 = w * w;
-    float w_3 = w_2 * w;
+    // Populate J with jacobian
+    // Since the state only contains the quaternion and we just propagate based
+    // on the gyro, this has a relatively simple closed form
 
-    float wx = w_vec.x;
-    float wx_2 = wx * wx;
-    float wy = w_vec.y;
-    float wy_2 = wy * wy;
-    float wz = w_vec.z;
-    float wz_2 = wz * wz;
-
-    float dtheta_2 = w * dt / 2;
-    float C = cos(dtheta_2);
-    float S = sin(dtheta_2);
+    const float wx = w_vec.x;
+    const float wy = w_vec.y;
+    const float wz = w_vec.z;
 
     // clang-format off
-    float d_dq_dw[4*3] = {
-        dt * wx_2 * C / (2 * w_2) + (wy_2 + wz_2) * S / w_3,             0.5f * wx * wy * (dt * C/w_2 - 2 * S/w_3),             0.5f * wx * wz * (dt * C/w_2 - 2 * S/w_3),
-        0.5f * wx * wy * (dt * C/w_2 - 2 * S/w_3),             dt * wy_2 * C / (2 * w_2) + (wx_2 + wz_2) * S / w_3,             0.5f * wy * wz * (dt * C/w_2 - 2 * S/w_3),
-        0.5f * wx * wz * (dt * C/w_2 - 2 * S/w_3),                       0.5f * wy * wz * (dt * C/w_2 - 2 * S/w_3),   dt * wz_2 * C / (2 * w_2) + (wz_2 + wy_2) * S / w_3,
-                          -0.5f * dt * wx * S / w,                               -0.5f * dt * wy * S / w,                               -0.5f * dt * wz * S / w
-    };
-
-    float d_qnew_d_dq[4*4] = {
-        q.w, -q.z,  q.y,  q.x,
-        q.z,   q.w, -q.x,  q.y,
-        -q.y,  q.x,  q.w,  q.z,
-        -q.z, -q.y, -q.z,  q.w 
-    };
-    // clang-format on
-
-    // Compute top-right part of the jacobian
-    float J_TR[12];
-    mat_mul(d_qnew_d_dq, d_dq_dw, J_TR, 4, 4, 3);
-
-    // clang-format off
-    const float J_[7*7] = {
-        dq.w,       dq.z,       -dq.y,      dq.x,       J_TR[0],      J_TR[1],       J_TR[2],
-        -dq.z,       dq.w,        dq.x,      dq.y,       J_TR[3],      J_TR[4],       J_TR[5],
-        dq.y,      -dq.x,        dq.w,      dq.z,       J_TR[6],      J_TR[7],       J_TR[8],
-        -dq.x,      -dq.y,       -dq.z,      dq.w,       J_TR[9],     J_TR[10],      J_TR[11],
-        0,          0,            0,         0,                             1,      (I[1] - I[2]) * w_vec[2],      (I[1] - I[2]) * w_vec[1],
-        0,          0,            0,         0,      (I[2] - I[0]) * w_vec[2],                             1,      (I[2] - I[0]) * w_vec[0],
-        0,          0,            0,         0,      (I[0] - I[1]) * w_vec[1],      (I[0] - I[1]) * w_vec[0],                             1,
+    const float J_[AF_STATE_SIZE * AF_STATE_SIZE] = {
+                 1,  dt/2 * wz, -dt/2 * wy,  dt/2 * wx,
+        -dt/2 * wz,          1,  dt/2 * wx,  dt/2 * wy,
+         dt/2 * wy, -dt/2 * wx,          1,  dt/2 * wz,
+        -dt/2 * wx, -dt/2 * wy, -dt/2 * wz,          1, 
     };
     // clang-format on
 
     // Copy into J
-    for (int i = 0; i < 7 * 7; i++)
+    for (int i = 0; i < AF_STATE_SIZE * AF_STATE_SIZE; i++)
     {
         J[i] = J_[i];
     }
 }
+
+static void populate_af_process_noise(float *Q, quaternion q, float dt)
+{
+    // Populate Q with process noise
+
+    // clang-format off
+    const float W[AF_STATE_SIZE * 3] = {
+         q.w, -q.z,  q.y,
+         q.z,  q.w, -q.x,
+        -q.y,  q.x,  q.w,
+        -q.x, -q.y, -q.z,
+    };
+    // clang-format on
+
+    float W_T[3 * AF_STATE_SIZE];
+    mat_transpose(W, W_T, AF_STATE_SIZE, 3);
+
+    float Q_[AF_STATE_SIZE * AF_STATE_SIZE];
+    mat_mul(W, W_T, Q_, AF_STATE_SIZE, 3, AF_STATE_SIZE);
+
+    // Copy into Q, multiplying by noise and (dt/2) ^2
+    const float scale = GYRO_NOISE_SPECTRAL_DENSITY * (dt * dt * 0.25f);
+
+    for (int i = 0; i < AF_STATE_SIZE * AF_STATE_SIZE; i++)
+    {
+        Q[i] = scale * Q_[i];
+    }
+}
+
+static void populate_measurement_jacobian(float *H, float3 S, float3 B,
+                                          quaternion q)
+{
+    // Populate H with measurement jacobian
+    // S and B are the actual vectors in ECI
+
+    // clang-format off
+    const float H_[AF_MEASUREMENT_SIZE * AF_STATE_SIZE] = {
+        S.x*q.x + S.y*q.y + S.z*q.z, -S.x*q.y + S.y*q.x - S.z*q.w, -S.x*q.z + S.y*q.w + S.z*q.x,  S.x*q.w + S.y*q.z - S.z*q.y,
+        S.x*q.y - S.y*q.x + S.z*q.w,  S.x*q.x + S.y*q.y + S.z*q.z, -S.x*q.w - S.y*q.z + S.z*q.y, -S.x*q.z + S.y*q.w + S.z*q.x,
+        S.x*q.z - S.y*q.w - S.z*q.x,  S.x*q.w + S.y*q.z - S.z*q.y,  S.x*q.x + S.y*q.y + S.z*q.z,  S.x*q.y - S.y*q.x + S.z*q.w,
+         
+        B.x*q.x + B.y*q.y + B.z*q.z, -B.x*q.y + B.y*q.x - B.z*q.w, -B.x*q.z + B.y*q.w + B.z*q.x,  B.x*q.w + B.y*q.z - B.z*q.y,
+        B.x*q.y - B.y*q.x + B.z*q.w,  B.x*q.x + B.y*q.y + B.z*q.z, -B.x*q.w - B.y*q.z + B.z*q.y, -B.x*q.z + B.y*q.w + B.z*q.x,
+        B.x*q.z - B.y*q.w - B.z*q.x,  B.x*q.w + B.y*q.z - B.z*q.y,  B.x*q.x + B.y*q.y + B.z*q.z,  B.x*q.y - B.y*q.x + B.z*q.w,
+    };
+    // clang-format on
+
+    for (int i = 0; i < AF_MEASUREMENT_SIZE * AF_STATE_SIZE; i++)
+    {
+        H[i] = H_[i];
+    }
+
+    return;
+}
+
+static void populate_expected_measurement(float *z, quaternion q_eci_to_body,
+                                          float3 S_eci, float3 B_eci)
+{
+    // Populate z with the expected measurement given S and B fields in ECI
+    float3 S_local_expected = qrot(q_eci_to_body, S_eci);
+    float3 B_local_expected = qrot(q_eci_to_body, B_eci);
+
+    z[0] = S_local_expected.x;
+    z[1] = S_local_expected.y;
+    z[2] = S_local_expected.z;
+    z[3] = B_local_expected.x;
+    z[4] = B_local_expected.y;
+    z[5] = B_local_expected.z;
+}
+
+static void populate_actual_measurement(float *z, float3 S, float3 B)
+{
+    // Populate z with the actual Sun + B field measurements
+    z[0] = S.x;
+    z[1] = S.y;
+    z[2] = S.z;
+    z[3] = B.x;
+    z[4] = B.y;
+    z[5] = B.z;
+}
+
+// ****************************************************************************
+// ***************     PUBLIC FUNCTIONS                ************************
+// ****************************************************************************
 
 /**
  * @brief Initialize the state of the attitude filter
@@ -105,15 +158,18 @@ static void populate_af_jacobian(float *J, quaternion q, quaternion dq,
  */
 void attitude_filter_init(slate_t *slate)
 {
-    // Set q to identity, w to zero and covariance to initial value
-    slate->q_eci_to_principal = {1.0f, 0.0f, 0.0f, 0.0f};
-    slate->w_principal = {0.2f, -0.1f, 0.0f};
+    // Set q to identity, and covariance to initial value (4x4 identity)
+    slate->q_eci_to_body = {0.0f, 0.0f, 0.0f, 1.0f};
 
-    // Copy initial covariance matrix
-    for (int i = 0; i < 7 * 7; i++)
+    for (int i = 0; i < AF_STATE_SIZE * AF_STATE_SIZE; i++)
     {
-        slate->attitude_covar[i] = af_initial_covar[i];
+        slate->attitude_covar[i] = I_4[i];
     }
+
+    slate->af_is_initialized = true;
+    slate->af_init_count++;
+    LOG_INFO("Initialized attitude filter! (%d times so far)",
+             slate->af_init_count);
 }
 
 /**
@@ -125,8 +181,14 @@ void attitude_filter_init(slate_t *slate)
  */
 void attitude_filter_propagate(slate_t *slate, float dt)
 {
-    // Propagate attitude in principal axes frame
-    const float3 w = slate->w_principal;
+    // Initialize if not already
+    if (!slate->af_is_initialized)
+    {
+        attitude_filter_init(slate);
+    }
+
+    // Propagate attitude using gyro
+    const float3 w = slate->w_body;
     const float3 w_hat = normalize(w);
     const float d_theta = dt * length(w);
 
@@ -135,44 +197,138 @@ void attitude_filter_propagate(slate_t *slate, float dt)
     quaternion dq = {dq_vec_part[0], dq_vec_part[1], dq_vec_part[2],
                      cos(d_theta / 2)};
 
-    // Euler equations for omega
-    const float3 I = SATELLITE_INERTIA;
-    const float3 tau = slate->tau_principal;
-    float3 w_dot = {(I[1] - I[2]) * w[1] * w[2] + tau[0] / I[0],
-                    (I[2] - I[0]) * w[0] * w[2] + tau[1] / I[1],
-                    (I[0] - I[1]) * w[0] * w[1] + tau[2] / I[2]};
+    // Calculate attitude jacobian and process noise matrices
+    float J[AF_STATE_SIZE * AF_STATE_SIZE];
+    float Q[AF_STATE_SIZE * AF_STATE_SIZE];
+    populate_af_jacobian(J, slate->w_body, dt);
+    populate_af_process_noise(Q, slate->q_eci_to_body, dt);
 
-    // Calculate attitude jacobian
-    float J[7 * 7];
-    populate_af_jacobian(J, slate->q_eci_to_principal, dq, slate->w_principal,
-                         dt, I);
-
-    // Perform simple dynamics update
-    slate->q_eci_to_principal = qmul(slate->q_eci_to_principal, dq);
-    slate->w_principal += w_dot * dt;
-
-    // Perform jacobian update
+    // Update state and covariance matrix
     // C = J @ C @ J.T + Q
-    float J_T[7 * 7];
-    mat_transpose(J, J_T, 7, 7);
+    slate->q_eci_to_body = qmul(slate->q_eci_to_body, dq);
 
-    float temp[7 * 7];
-    mat_mul_square(slate->attitude_covar, J_T, temp, 7);
-    mat_mul_square(J, temp, slate->attitude_covar, 7);
+    float J_T[AF_STATE_SIZE * AF_STATE_SIZE];
+    mat_transpose(J, J_T, AF_STATE_SIZE, AF_STATE_SIZE);
 
-    mat_add(slate->attitude_covar, af_process_noise, slate->attitude_covar, 7,
-            7);
+    float temp[AF_STATE_SIZE * AF_STATE_SIZE];
+    mat_mul_square(slate->attitude_covar, J_T, temp, AF_STATE_SIZE);
+    mat_mul_square(J, temp, slate->attitude_covar, AF_STATE_SIZE);
+
+    mat_add(slate->attitude_covar, Q, slate->attitude_covar, AF_STATE_SIZE,
+            AF_STATE_SIZE);
+
+    // Compute log frobenius
+    slate->attitude_covar_log_frobenius =
+        mat_log_frobenius(slate->attitude_covar, AF_STATE_SIZE);
+
+    // Check for NaN and de-initialize if so
+    if (mat_contains_nan(slate->attitude_covar, AF_STATE_SIZE, AF_STATE_SIZE))
+    {
+        LOG_ERROR(
+            "Attitude covariance contains NaN after propagate: resetting!");
+        attitude_filter_init(slate);
+    }
 }
 
 /**
- * @brief Perform a measurement update om the attitude filter
+ * @brief Perform a measurement update on the attitude filter
  *
  * @param slate
- * @param q_meas_eci_to_principal
  */
-void attitude_filter_update(slate_t *slate, quaternion q_meas_eci_to_principal)
+void attitude_filter_update(slate_t *slate)
 {
-    // TODO
+    if (!slate->af_is_initialized)
+    {
+        LOG_ERROR("Attempt to call update on uninitialized attitude filter! "
+                  "Exiting...");
+        return;
+    }
+
+    // Compute expected and actual measurements
+    float z_expected[AF_MEASUREMENT_SIZE];
+    float z_actual[AF_MEASUREMENT_SIZE];
+
+    populate_expected_measurement(z_expected, slate->q_eci_to_body,
+                                  slate->sun_vector_eci, slate->b_unit_eci);
+    populate_actual_measurement(z_actual, slate->sun_vector_local,
+                                slate->b_unit_local);
+
+    float z_diff[AF_MEASUREMENT_SIZE];
+    mat_sub(z_actual, z_expected, z_diff, AF_MEASUREMENT_SIZE, 1);
+
+    // Compute innovation (S) and Kalman gain (K)
+    // S = H @ C @ H.T + R
+    // K = C @ H.T @ inv(S)
+    float H[AF_MEASUREMENT_SIZE * AF_STATE_SIZE];
+    populate_measurement_jacobian(H, slate->sun_vector_eci, slate->b_unit_eci,
+                                  slate->q_eci_to_body);
+
+    float H_T[AF_STATE_SIZE * AF_MEASUREMENT_SIZE];
+    mat_transpose(H, H_T, AF_MEASUREMENT_SIZE, AF_STATE_SIZE);
+
+    float tmp[AF_MEASUREMENT_SIZE * AF_STATE_SIZE];
+    float S[AF_MEASUREMENT_SIZE * AF_MEASUREMENT_SIZE];
+    mat_mul(H, slate->attitude_covar, tmp, AF_MEASUREMENT_SIZE, AF_STATE_SIZE,
+            AF_STATE_SIZE);
+    mat_mul(tmp, H_T, S, AF_MEASUREMENT_SIZE, AF_STATE_SIZE,
+            AF_MEASUREMENT_SIZE);
+    mat_add(S, af_measurement_covariance, S, AF_MEASUREMENT_SIZE,
+            AF_MEASUREMENT_SIZE);
+
+    float S_inv[AF_MEASUREMENT_SIZE * AF_MEASUREMENT_SIZE];
+    mat_inverse(S, S_inv, AF_MEASUREMENT_SIZE);
+
+    float K[AF_STATE_SIZE * AF_MEASUREMENT_SIZE];
+    float tmp2[AF_STATE_SIZE * AF_MEASUREMENT_SIZE];
+    mat_mul(H_T, S_inv, tmp2, AF_STATE_SIZE, AF_MEASUREMENT_SIZE,
+            AF_MEASUREMENT_SIZE);
+    mat_mul(slate->attitude_covar, tmp2, K, AF_STATE_SIZE, AF_STATE_SIZE,
+            AF_MEASUREMENT_SIZE);
+
+    // Update quaternion (with normalization)
+    float dq[AF_STATE_SIZE];
+    mat_mul(K, z_diff, dq, AF_STATE_SIZE, AF_MEASUREMENT_SIZE, 1);
+
+    quaternion dq_quat;
+    dq_quat.x = dq[0];
+    dq_quat.y = dq[1];
+    dq_quat.z = dq[2];
+    dq_quat.w = dq[3];
+
+    slate->q_eci_to_body = normalize(slate->q_eci_to_body + dq_quat);
+
+    // Update covariance matrix
+    // C' = (I - K @ H) @ C
+    float KH[AF_STATE_SIZE * AF_STATE_SIZE];
+    mat_mul(K, H, KH, AF_STATE_SIZE, AF_MEASUREMENT_SIZE, AF_STATE_SIZE);
+
+    float tmp3[AF_STATE_SIZE * AF_STATE_SIZE];
+    mat_sub(I_4, KH, tmp3, AF_STATE_SIZE, AF_STATE_SIZE);
+
+    float tmp4[AF_STATE_SIZE * AF_STATE_SIZE];
+    mat_mul_square(tmp3, slate->attitude_covar, tmp4, AF_STATE_SIZE);
+
+    for (int i = 0; i < AF_STATE_SIZE * AF_STATE_SIZE; i++)
+    {
+        slate->attitude_covar[i] = tmp4[i];
+    }
+
+    // Compute log frobenius
+    slate->attitude_covar_log_frobenius =
+        mat_log_frobenius(slate->attitude_covar, AF_STATE_SIZE);
+
+    // Check for NaN and de-initialize if so
+    if (mat_contains_nan(dq, AF_STATE_SIZE, 1))
+    {
+        LOG_ERROR("Attitude quat contains NaN after update: resetting!");
+        attitude_filter_init(slate);
+    }
+
+    if (mat_contains_nan(slate->attitude_covar, AF_STATE_SIZE, AF_STATE_SIZE))
+    {
+        LOG_ERROR("Attitude covariance contains NaN after update: resetting!");
+        attitude_filter_init(slate);
+    }
 }
 
 void test_attitude_filter(slate_t *slate)
@@ -180,8 +336,9 @@ void test_attitude_filter(slate_t *slate)
     // Propagate and print out Q + covar frobenius
     attitude_filter_propagate(slate, 0.01);
 
-    LOG_INFO("%f, %f, %f, %f, %f", slate->q_eci_to_principal[0],
-             slate->q_eci_to_principal[1], slate->q_eci_to_principal[2],
-             slate->q_eci_to_principal[3],
-             mat_frobenius(slate->attitude_covar, 7));
+    LOG_INFO("%f, %f, %f, %f, %f", slate->q_eci_to_body[0],
+             slate->q_eci_to_body[1], slate->q_eci_to_body[2],
+             slate->q_eci_to_body[3], slate->attitude_covar_log_frobenius);
+
+    ASSERT(slate->af_init_count == 1);
 }
