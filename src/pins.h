@@ -88,5 +88,5 @@
 #define SAMWISE_ADCS_MAGMETER_SPI (spi0)
 
 #define SAMWISE_ADCS_GPS_UART (uart0)
-#define SAMWISE_ADCS_MOTOR_UART (uart0)
+#define SAMWISE_ADCS_MOTOR_UART (uart1)
 #define SAMWISE_ADCS_PICUBED_UART (uart1)
