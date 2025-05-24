@@ -33,22 +33,30 @@ int main()
     slate.af_init_count = 0;
     attitude_filter_init(&slate);
 
+    sleep_ms(5000);
+
     while (1)
     {
-        // // Test bdot control
-        // test_bdot_control(&slate);
-
-        // Test attitude propagation
         test_attitude_filter(&slate);
-
-        // // Test sun vector
-        // test_sun_vector_eci(&slate);
-
-        // // Test reaction wheel allocation
-        // test_reaction_wheel_allocation();
-        // test_matrix_utils();
-        // sleep_ms(1000);
+        sleep_ms(100);
     }
+
+    // while (1)
+    // {
+    //     // // Test bdot control
+    //     // test_bdot_control(&slate);
+
+    //     // Test attitude propagation
+    //     test_attitude_filter(&slate);
+
+    //     // // Test sun vector
+    //     // test_sun_vector_eci(&slate);
+
+    //     // // Test reaction wheel allocation
+    //     // test_reaction_wheel_allocation();
+    //     // test_matrix_utils();
+    //     // sleep_ms(1000);
+    // }
 #else
 #endif
 

@@ -12,7 +12,7 @@ import argparse
 parser = argparse.ArgumentParser()
 # Change this for your device
 # On linux, probably something like /dev/ttyACM0
-parser.add_argument("--port", type=str, required=False, default="/dev/cu.usbmodem101")
+parser.add_argument("--port", type=str, required=False, default="/dev/cu.usbmodem2101")
 
 # Number of points to plot
 parser.add_argument("--n", type=int, required=True)
@@ -23,7 +23,7 @@ args = parser.parse_args()
 
 max_points = args.max_points
 num_values = args.n
-ser = serial.Serial('/dev/cu.usbmodem101', 115200, timeout=1)
+ser = serial.Serial(args.port, 115200, timeout=1)
 
 # Configure matplotlib
 plt.ion()

@@ -115,7 +115,7 @@ static void populate_measurement_jacobian(float *H, float3 S, float3 B,
 
     for (int i = 0; i < AF_MEASUREMENT_SIZE * AF_STATE_SIZE; i++)
     {
-        H[i] = H_[i];
+        H[i] = 2 * H_[i];
     }
 
     return;
@@ -344,7 +344,7 @@ int count = 0;
 void test_attitude_filter(slate_t *slate)
 {
     // Propagate and print out Q + covar frobenius
-    slate->w_body = {0.00001f, 0.0f, 0.0f};
+    slate->w_body = {0.00000f, 0.0f, 0.0f};
     slate->sun_vector_eci = {1.0f, 0.0f, 0.0f};
     slate->b_unit_eci = {0.0f, 1.0f, 0.0f};
 
