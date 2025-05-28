@@ -49,6 +49,9 @@ pico_enable_stdio_usb(samwise-adcs 1)
 
 # Add the standard library to the build
 target_link_libraries(samwise-adcs
+        hardware_uart
+        hardware_i2c
+        hardware_spi
         pico_stdlib pico_util)
 
 # Add the standard include files to the build
