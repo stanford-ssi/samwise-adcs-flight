@@ -19,7 +19,7 @@ slate_t slate;
 int main()
 {
     stdio_init_all();
-   
+
 #ifdef TEST
     while (1)
     {
@@ -39,5 +39,4 @@ int main()
     }
 #else
 #endif
-  
 }
