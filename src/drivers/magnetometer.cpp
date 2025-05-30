@@ -248,23 +248,6 @@ rm3100_error_t rm3100_get_reading(float3 *mag_field)
     return RM3100_OK;
 }
 
-/**
- * @brief Calculate magnitude of magnetic field vector
- *
- * @param mag_field Pointer to float3 magnetic field vector
- * @return float Magnitude in microTesla
- */
-float rm3100_magnitude(const float3 *mag_field)
-{
-    if (mag_field == NULL)
-    {
-        return 0.0f;
-    }
-
-    return sqrtf((mag_field->x * mag_field->x) + (mag_field->y * mag_field->y) +
-                 (mag_field->z * mag_field->z));
-}
-
 // Example usage
 int main()
 {
@@ -294,7 +277,6 @@ int main()
         if (result == RM3100_OK)
         {
             uint64_t timestamp_ms = time_us_64() / 1000;
-            float magnitude = rm3100_magnitude(&mag_field);
 
             printf("%llu,%.3f,%.3f,%.3f,%.3f\n", timestamp_ms, mag_field.x,
                    mag_field.y, mag_field.z, magnitude);

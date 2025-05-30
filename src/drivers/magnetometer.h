@@ -45,11 +45,3 @@ rm3100_error_t rm3100_init(void);
  * @return rm3100_error_t Error code (RM3100_OK on success)
  */
 rm3100_error_t rm3100_get_reading(float3 *mag_field);
-
-/**
- * @brief Calculate magnitude of magnetic field vector
- *
- * @param mag_field Pointer to float3 magnetic field vector
- * @return float Magnitude in microTesla
- */
-float rm3100_magnitude(const float3 *mag_field);
