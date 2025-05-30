@@ -37,8 +37,11 @@ pico_sdk_init()
 file(GLOB top CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB gnc CONFIGURE_DEPENDS "src/gnc/*.cpp")
 file(GLOB drivers CONFIGURE_DEPENDS "src/drivers/*.cpp")
+file(GLOB scheduler CONFIGURE_DEPENDS "src/scheduler/*.cpp")
+file(GLOB states CONFIGURE_DEPENDS "src/states/*.cpp")
+file(GLOB tasks CONFIGURE_DEPENDS "src/tasks/*.cpp")
 
-add_executable(samwise-adcs ${top} ${gnc} ${drivers})
+add_executable(samwise-adcs ${top} ${gnc} ${drivers} ${scheduler} ${states} ${tasks})
 
 pico_set_program_name(samwise-adcs "samwise_adcs")
 pico_set_program_version(samwise-adcs "0.1")

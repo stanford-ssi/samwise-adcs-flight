@@ -13,12 +13,18 @@
 
 #include "linalg.h"
 #include "pico/types.h"
+#include "scheduler/state_machine_types.h"
 
 using namespace linalg::aliases;
 using namespace linalg;
 
 typedef struct samwise_slate
 {
+    // State machine
+    sched_state_t *current_state;
+    absolute_time_t entered_current_state_time;
+    uint32_t time_in_current_state_ms;
+
     // General world state
     float3 sun_vector_eci;     // (unit vector)
     float3 b_field_local;      // [T]
