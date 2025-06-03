@@ -18,7 +18,7 @@
  * IMPORTANT: Uncomment before flight!
  */
 // #define FLIGHT
-#define TEST
+// #define TEST
 
 /**
  * Convenience macros to get whether we are in flight in a runtime build.
@@ -35,7 +35,7 @@
 #ifdef TEST
 #define IS_TEST true
 
-// Test and flight should never be defined
+// Test and flight should never both be defined
 #ifdef FLIGHT
 #error "TEST and FLIGHT should never be defined at the same time!"
 #endif
