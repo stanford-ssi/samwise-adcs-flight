@@ -7,6 +7,6 @@ The state machine has the states:
 
 * `cool_down`: Error state that we enter if something is bad. Gets sensors but does nothing else
 
-## Future states which are currently no-ops
+## TODO: Future states which are currently no-ops
 * `nadir_pointing`: State that holds attitude with the camera pointing in the nadir (down) direction
 * `desaturating`: State that slows down the reaction wheels. We enter this state if the wheel rotation rate is too high.

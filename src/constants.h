@@ -9,6 +9,10 @@ using namespace linalg::aliases;
 
 #pragma once
 
+// General specifications
+constexpr uint32_t NUM_SUN_SENSORS = 10;
+constexpr uint32_t NUM_REACTION_WHEELS = 4;
+
 // #### REACTION WHEEL SPECS ####
 // Spec sheet:
 // https://www.faulhaber.com/fileadmin/Import/Media/EN_2610_B_DFF.pdf Reaction

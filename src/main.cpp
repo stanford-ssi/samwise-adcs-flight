@@ -24,12 +24,14 @@ int main()
      */
     sleep_ms(5000);
 
-    LOG_INFO("Slate takes up %d bytes!", sizeof(slate));
+    LOG_INFO("[main] Slate takes up %d bytes!", sizeof(slate));
     sched_init(&slate);
 
     /*
      * Run the state machine for all of time
      */
+
+    LOG_INFO("[main] Initialization sequence complete - beginning main loop!");
     while (1)
     {
         sched_dispatch(&slate);

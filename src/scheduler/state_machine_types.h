@@ -14,7 +14,7 @@
 /*
  * Forward declare the slate type since it depends on us
  */
-typedef struct samwise_slate slate_t;
+typedef struct samwise_adcs_slate slate_t;
 
 /**
  * Holds the info for a single task. A single task can belong to multiple
