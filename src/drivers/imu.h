@@ -23,5 +23,5 @@ struct adcs_intf_config
 
 void imu_power_disable();
 void imu_power_enable();
-void imu_init(slate_t *slate);
-void imu_get_rotation(slate_t *slate);
+bool imu_init();
+bool imu_get_rotation(float3 *w_out);

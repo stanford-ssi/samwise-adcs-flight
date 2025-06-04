@@ -18,6 +18,7 @@
 #include "macros.h"
 #include "slate.h"
 
+#include "pico/stdlib.h"
 #include "pins.h"
 
 slate_t slate;
