@@ -61,35 +61,58 @@ uint8_t do_pwm(int8_t xdn, int8_t ydn, int8_t zdn) {
         return (abs_percentage * pwm_wrap_value) / 100;
     };
 
+    // Set X-axis magnetorquer
+    uint16_t x_level = percentage_to_pwm_level(xdn);
+    if (xdn >= 0) {
+        // Positive direction
+        pwm_set_gpio_level(SAMWISE_ADCS_X_MAGDRV_IN1, x_level);
+        pwm_set_gpio_level(SAMWISE_ADCS_X_MAGDRV_IN2, 0);
+    } else {
+        // Negative direction
+        pwm_set_gpio_level(SAMWISE_ADCS_X_MAGDRV_IN1, 0);
+        pwm_set_gpio_level(SAMWISE_ADCS_X_MAGDRV_IN2, x_level); 
+    }
 
+    // Set Y-axis magnetorquer
+    uint16_t y_level = percentage_to_pwm_level(ydn);
+    if (ydn >= 0) {
+        // Positive direction
+        pwm_set_gpio_level(SAMWISE_ADCS_Y_MAGDRV_IN1, y_level);
+        pwm_set_gpio_level(SAMWISE_ADCS_Y_MAGDRV_IN2, 0);
+    } else {
+        // Negative direction
+        pwm_set_gpio_level(SAMWISE_ADCS_Y_MAGDRV_IN1, 0);
+        pwm_set_gpio_level(SAMWISE_ADCS_Y_MAGDRV_IN2, y_level); 
+    }
+
+    // Set Z-axis magnetorquer
+    uint16_t z_level = percentage_to_pwm_level(zdn);
+    if (zdn >= 0) {
+        // Positive direction
+        pwm_set_gpio_level(SAMWISE_ADCS_Z_MAGDRV_IN1, z_level);
+        pwm_set_gpio_level(SAMWISE_ADCS_Z_MAGDRV_IN2, 0);
+    } else {
+        // Negative direction
+        pwm_set_gpio_level(SAMWISE_ADCS_Z_MAGDRV_IN1, 0);
+        pwm_set_gpio_level(SAMWISE_ADCS_Z_MAGDRV_IN2, z_level); 
+    }
+
+    return 0; // Return 0 to indicate successful operation
 }
 
+void stop_pwm() {
+    if (pwm_initialized == false) {
+        return 1; // Return 1 to indicate that PWM is not initialized
+    }
 
+    // Set all PWM levels to 0
+    pwm_set_gpio_level(SAMWISE_ADCS_X_MAGDRV_IN1, 0);
+    pwm_set_gpio_level(SAMWISE_ADCS_X_MAGDRV_IN2, 0);
+    pwm_set_gpio_level(SAMWISE_ADCS_Y_MAGDRV_IN1, 0);
+    pwm_set_gpio_level(SAMWISE_ADCS_Y_MAGDRV_IN2, 0);
+    pwm_set_gpio_level(SAMWISE_ADCS_Z_MAGDRV_IN1, 0);
+    pwm_set_gpio_level(SAMWISE_ADCS_Z_MAGDRV_IN2, 0);
 
-// basic c code from here, not part of the driver
-
-int main() {
-    /// \tag::setup_pwm[]
-
-    // Tell GPIO 0 and 1 they are allocated to the PWM
-    gpio_set_function(8, GPIO_FUNC_PWM);
-    gpio_set_function(9, GPIO_FUNC_PWM);
-
-    // Find out which PWM slice is connected to GPIO 0 (it's slice 0)
-    uint slice_num = pwm_gpio_to_slice_num(8);
-
-    // Set period of 4 cycles (0 to 3 inclusive),
-    // which corresponds to a frequency of 125MHz / 4 = 31.25 MHz
-    // since the ineternal clock is 125MHz.
-    pwm_set_wrap(slice_num, 3);
-    // Set channel A output high for one cycle before dropping
-    pwm_set_chan_level(slice_num, PWM_CHAN_A, 1);
-    // Set initial B output high for three cycles before dropping
-    pwm_set_chan_level(slice_num, PWM_CHAN_B, 3);
-    // Set the PWM running
-    pwm_set_enabled(slice_num, true);
-    /// \end::setup_pwm[]
-
-    // Note we could also use pwm_set_gpio_level(gpio, x) which looks up the
-    // correct slice and channel for a given GPIO.
+    return 0; // Return 0 to indicate successful stop
 }
+
