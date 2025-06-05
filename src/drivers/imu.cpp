@@ -577,12 +577,12 @@ bool imu_init()
  * @param w_out     Pointer to put angular speed (in radians per second)
  * @return true if data is available, false otherwise
  */
-bool imu_get_rotation(float3 *w_out);
+bool imu_get_rotation(float3 *w_out)
 {
     /* Structure to define type of sensor and their respective data. */
     struct bmi2_sens_data sensor_data;
 
-    int8_t result = bmi2_get_sensor_data(&sensor_data, bmi);
+    int8_t result = bmi2_get_sensor_data(&sensor_data, &bmi);
 
     uint8_t state = gpio_get(SAMWISE_ADCS_IMU_INT1);
 
@@ -597,10 +597,9 @@ bool imu_get_rotation(float3 *w_out);
         const float z = lsb_to_dps(sensor_data.gyr.z, 125.0f, bmi.resolution);
 
         *w_out = float3(x, y, z);
+        return true;
     }
-    else
-    {
-        LOG_DEBUG("Reading the gyro with no data!");
-        return false;
-    }
+
+    LOG_DEBUG("Reading the gyro with no data!");
+    return false;
 }
