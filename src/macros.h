@@ -7,8 +7,6 @@
  */
 
 #pragma once
-
-#include "error.h"
 #include "pico/printf.h"
 
 /**
@@ -20,6 +18,7 @@
  * IMPORTANT: Uncomment before flight!
  */
 // #define FLIGHT
+// #define TEST
 
 /**
  * Convenience macros to get whether we are in flight in a runtime build.
@@ -28,6 +27,21 @@
 #define IS_FLIGHT true
 #else
 #define IS_FLIGHT false
+#endif
+
+/**
+ * Conveinence macro to determine if we are in a test build.
+ */
+#ifdef TEST
+#define IS_TEST true
+
+// Test and flight should never both be defined
+#ifdef FLIGHT
+#error "TEST and FLIGHT should never be defined at the same time!"
+#endif
+
+#else
+#define IS_TEST false
 #endif
 
 /**
@@ -56,17 +70,22 @@
     printf("[ERROR]   " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
 
 /**
- * Log an error messgae and calls the fatal_error function. In non-flight
- * builds, this locks the system in an unrecoverable panic state
+ * Log an error message. In flight, does nothing, in non flight locks up and
+ * logs the error message repeatedly
  */
+#ifdef FLIGHT
 #define ERROR(message)                                                         \
     do                                                                         \
     {                                                                          \
-        while (1)                                                              \
-        {                                                                      \
-            LOG_ERROR("%s:%d %s\n", __FILE__, __LINE__, message);              \
-        }                                                                      \
+        LOG_ERROR("%s:%d %s\n", __FILE__, __LINE__, message);                  \
     } while (0)
+#else
+#define ERROR(message)                                                         \
+    do                                                                         \
+    {                                                                          \
+        LOG_ERROR("%s:%d %s\n", __FILE__, __LINE__, message);                  \
+    } while (1)
+#endif
 
 /**
  * Assert a certain condition at runtime and raise an error if it is false.
