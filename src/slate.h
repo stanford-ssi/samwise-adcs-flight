@@ -57,7 +57,9 @@ typedef struct samwise_adcs_slate
     bool sun_sensors_alive;
 
     // IMU
-    float3 w_body; // [rad/s] in body frame
+    float3 w_body_raw;      // [rad/s] in body frame
+    float3 w_body_filtered; // [rad/s] in body frame
+    float w_mag;            // [rad/s] overall magnitude in body frame
     float imu_data_valid;
     float imu_alive;
 
@@ -91,7 +93,7 @@ typedef struct samwise_adcs_slate
     float3 w_principal;   // [rad s^-1] in principal axes frame
     float3 tau_principal; // [Nm] total torque in principal axes frame
 
-    // TODO mat<float, 3, 3> attitude_covar;  // attitude covariance matrix
+    float attitude_covar[7 * 7]; // attitude covariance matrix
 
     // Attituide control
     float3 control_torque;

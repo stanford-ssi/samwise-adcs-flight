@@ -6,6 +6,7 @@
 
 #include "pico/stdlib.h"
 
+#include "init.h"
 #include "macros.h"
 #include "scheduler/scheduler.h"
 #include "slate.h"
@@ -28,9 +29,14 @@ int main()
     sched_init(&slate);
 
     /*
+     * Run global initialization
+     */
+    LOG_INFO("[main] Running global init...");
+    init(&slate);
+
+    /*
      * Run the state machine for all of time
      */
-
     LOG_INFO("[main] Initialization sequence complete - beginning main loop!");
     while (1)
     {
