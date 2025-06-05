@@ -9,6 +9,7 @@
 
 #include "imu.h"
 
+#include "constants.h"
 #include "macros.h"
 #include "pins.h"
 
@@ -467,6 +468,15 @@ static float lsb_to_dps(int16_t val, float dps, uint8_t bit_width)
     return (dps / (half_scale)) * (val);
 }
 
+/*!
+ * @brief This function converts lsb to radians per second for 16 bit gyro at
+ * range 125, 250, 500, 1000 or 2000dps.
+ */
+static float lsb_to_rps(int16_t val, float dps, uint8_t bit_width)
+{
+    return lsb_to_dps(val, dps, bit_width) * RAD_TO_DEG;
+}
+
 // *******************************
 
 /**
@@ -589,14 +599,19 @@ bool imu_get_rotation(float3 *w_out)
     if ((result == BMI2_OK) && (sensor_data.status & BMI2_DRDY_GYR))
     {
         /*
-         * Converting lsb to degree per second for 16 bit gyro at 2000dps
+         * Converting lsb to radians per second for 16 bit gyro at 125 dps
          range.
          */
-        const float x = lsb_to_dps(sensor_data.gyr.x, 125.0f, bmi.resolution);
-        const float y = lsb_to_dps(sensor_data.gyr.y, 125.0f, bmi.resolution);
-        const float z = lsb_to_dps(sensor_data.gyr.z, 125.0f, bmi.resolution);
+        const float x = lsb_to_rps(sensor_data.gyr.x, 125.0f, bmi.resolution);
+        const float y = lsb_to_rps(sensor_data.gyr.y, 125.0f, bmi.resolution);
+        const float z = lsb_to_rps(sensor_data.gyr.z, 125.0f, bmi.resolution);
 
-        *w_out = float3(x, y, z);
+        /*
+         * Apply calibration offset
+         */
+        float3 w_raw(x, y, z);
+        *w_out = w_raw - IMU_ZERO_READING_RPS;
+
         return true;
     }
 

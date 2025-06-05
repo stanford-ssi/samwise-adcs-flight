@@ -57,7 +57,9 @@ typedef struct samwise_adcs_slate
     bool sun_sensors_alive;
 
     // IMU
-    float3 w_body; // [rad/s] in body frame
+    float3 w_body_raw;      // [rad/s] in body frame
+    float3 w_body_filtered; // [rad/s] in body frame
+    float w_mag;            // [rad/s] overall magnitude in body frame
     float imu_data_valid;
     float imu_alive;
 
