@@ -99,9 +99,6 @@ void compute_B(slate_t *slate)
     float r_ratio_n = r_ratio * r_ratio * r_ratio; // Start at n=1 term T
     for (int n = 1; n <= MAX_ORDER; n++)
     {
-        float Br_m = 0.0f;
-        float Bphi_m = 0.0f;
-        float Btheta_m = 0.0f;
         for (int m = 0; m <= n; m++)
         {
             // Get Schmidt normalized associated Legendre functions
@@ -114,14 +111,14 @@ void compute_B(slate_t *slate)
 
             // Accumulate field components
             // Magnetic field in r direction
-            Br_m +=  P * term;
+            Br += (float)(n + 1) * r_ratio_n * P * term;
             // Magnetic field in latitude direction
-            Btheta_m -= dP * term;
+            Btheta -= r_ratio_n * dP * term;
 
             // Handle Btheta carefully near poles
             if (m > 0)
             { // m=0 terms don't contribute to Bphi
-                const float Bphi_term_m =
+                const float Bphi_term =
                     (-g[n][m] * sin_mphi[m] + h[n][m] * cos_mphi[m]) *
                      P / sin_theta_reg;
                 // (float)m * P / sin_theta_reg *
@@ -131,14 +128,9 @@ void compute_B(slate_t *slate)
                                               ? sin_theta / POLE_THRESH
                                               : 1.0f;
 
-                Bphi_m -= Bphi_term_m * pole_factor;
+                Bphi -= r_ratio_n * Bphi_term * pole_factor;
             }
         }
-
-        Br += (float)(n + 1) * r_ratio_n * Br_m;
-        Bphi += r_ratio_n * Bphi_m;
-        Btheta += r_ratio_n * Btheta_m;
-
         // Multiply another ratio before next loop
         r_ratio_n *= r_ratio;
     }

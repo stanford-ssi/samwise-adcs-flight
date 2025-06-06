@@ -29,8 +29,12 @@ int main()
     gpio_put(PICO_DEFAULT_LED_PIN, 0);
 
     sleep_ms(5000);
-    // test_legendre_polynomials();
-    test_compute_B(&slate);
+    test_legendre_polynomials();
+
+    while (1) {
+
+    }
+    //test_compute_B(&slate);
 
     // #ifdef TEST
     //     while (1)
