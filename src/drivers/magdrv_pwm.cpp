@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
+ * @author Iris Xu
+ * @date 2025-06-04
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ *
  */
 
 #include "hardware/pwm.h"
