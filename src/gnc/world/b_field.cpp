@@ -176,9 +176,11 @@ float legendre_schmidt(int n, int m, float x)
     float pnm = 0.0f;
     for (int k = m + 2; k <= n; k++)
     {
-        pnm = ((2.0f * k - 1.0f) * x * pmmp1 - (k + m - 1.0f) * pmm) / (k - m);
+        pnm = ((2.0f * k - 1.0f) * x * pmmp1 / SCHMIDT_FACTORS[k - 1][m] -
+               (k + m - 1.0f) * pmm / SCHMIDT_FACTORS[k - 2][m]) /
+              (k - m);
         // Apply Schmidt factor ratio for this k
-        pnm *= SCHMIDT_FACTORS[k][m] / SCHMIDT_FACTORS[k - 1][m];
+        pnm *= SCHMIDT_FACTORS[k][m];
         pmm = pmmp1;
         pmmp1 = pnm;
     }

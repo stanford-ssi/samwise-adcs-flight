@@ -28,29 +28,33 @@ int main()
     sleep_ms(1000);
     gpio_put(PICO_DEFAULT_LED_PIN, 0);
 
-#ifdef TEST
-    while (1)
-    {
-        // test_bdot_control(&slate);
-        // test_compute_B(&slate);
-        test_legendre_polynomials();
-        // // Test bdot control
-        // test_bdot_control(&slate);
+    sleep_ms(5000);
+    // test_legendre_polynomials();
+    test_compute_B(&slate);
 
-        // // Test attitude propagation
-        // test_propagate_attitude(&slate);
+    // #ifdef TEST
+    //     while (1)
+    //     {
+    //         // test_bdot_control(&slate);
+    //         // test_compute_B(&slate);
+    //         test_legendre_polynomials();
+    //         // // Test bdot control
+    //         // test_bdot_control(&slate);
 
-        // // Test sun vector
-        // test_sun_vector_eci(&slate);
+    //         // // Test attitude propagation
+    //         // test_propagate_attitude(&slate);
 
-        // // Test reaction wheel allocation
-        // test_reaction_wheel_allocation();
-        // test_matrix_utils();
-        sleep_ms(1000);
-    }
-#else
-#endif
+    //         // // Test sun vector
+    //         // test_sun_vector_eci(&slate);
 
-    while (1)
-        ;
+    //         // // Test reaction wheel allocation
+    //         // test_reaction_wheel_allocation();
+    //         // test_matrix_utils();
+    //         sleep_ms(1000);
+    //     }
+    // #else
+    // #endif
+
+    //     while (1)
+    //         ;
 }
