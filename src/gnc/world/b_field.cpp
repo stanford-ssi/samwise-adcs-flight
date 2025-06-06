@@ -65,8 +65,8 @@ void compute_B(slate_t *slate)
 
     // Convert to spherical coordinates using math spherical coordinate
     // conventions
-    const float phi = (90.0f - lat) * M_PI / 180.0f; // colatitude [0 to π]
-    const float theta = lon * M_PI / 180.0f;         // azimuth [-π to π]
+    const float theta = (90.0f - lat) * M_PI / 180.0f; // colatitude [0 to π]
+    const float phi = lon * M_PI / 180.0f;         // azimuth [-π to π]
 
     float Br = 0.0f;
     float Btheta = 0.0f;
@@ -75,66 +75,76 @@ void compute_B(slate_t *slate)
     const float r_ratio = R_E / (R_E + alt);
 
     // Cache trig terms with pole regularization
-    const float sin_phi = sin(phi); // for pole regularization
-    const float cos_phi = cos(phi); // for Legendre polynomials
+    const float sin_theta = sin(theta); // for pole regularization
+    const float cos_theta = cos(theta); // for Legendre polynomials
 
     // // Regularization for pole proximity (prevents division by zero)
     const float POLE_THRESH = 1e-7f; // Added missing constant
-    const float sin_phi_reg =
-        (fabs(sin_phi) < POLE_THRESH)
-            ? POLE_THRESH * (sin_phi >= 0.0f ? 1.0f : -1.0f)
-            : sin_phi;
+    const float sin_theta_reg =
+        (fabs(sin_theta) < POLE_THRESH)
+            ? POLE_THRESH * (sin_theta >= 0.0f ? 1.0f : -1.0f)
+            : sin_theta;
     // FLAG: IGNORE TRIADS IN THIS CASE
 
     // Pre-compute sin/cos m*phi terms
-    float sin_mtheta[MAX_ORDER + 1] = {0.0f};
-    float cos_mtheta[MAX_ORDER + 1] = {0.0f};
+    float sin_mphi[MAX_ORDER + 1] = {0.0f};
+    float cos_mphi[MAX_ORDER + 1] = {0.0f};
     for (int m = 0; m <= MAX_ORDER; m++)
     {
-        sin_mtheta[m] = sin(m * theta);
-        cos_mtheta[m] = cos(m * theta);
+        sin_mphi[m] = sin(m * phi);
+        cos_mphi[m] = cos(m * phi);
     }
 
     // Main field computation loop
     float r_ratio_n = r_ratio * r_ratio * r_ratio; // Start at n=1 term T
     for (int n = 1; n <= MAX_ORDER; n++)
     {
+        float Br_m = 0.0f;
+        float Bphi_m = 0.0f;
+        float Btheta_m = 0.0f;
         for (int m = 0; m <= n; m++)
         {
             // Get Schmidt normalized associated Legendre functions
-            const float P = legendre_schmidt(n, m, cos_phi);
-            const float dP = -sin_phi * d_legendre_schmidt(n, m, cos_phi);
+            const float P = legendre_schmidt(n, m, cos_theta);
+            const float dP = - sin_theta * d_legendre_schmidt(n, m, cos_theta);
 
             // Compute common term for efficiency
             const float term =
-                r_ratio_n * (g[n][m] * cos_mtheta[m] + h[n][m] * sin_mtheta[m]);
+                    (g[n][m] * cos_mphi[m] + h[n][m] * sin_mphi[m]);
 
             // Accumulate field components
-            Br += (float)(n + 1) * P * term;
-            Bphi -= dP * term;
+            // Magnetic field in r direction
+            Br_m +=  P * term;
+            // Magnetic field in latitude direction
+            Btheta_m -= dP * term;
 
             // Handle Btheta carefully near poles
             if (m > 0)
             { // m=0 terms don't contribute to Bphi
-                const float Btheta_term =
-                    (-g[n][m] * sin_mtheta[m] + h[n][m] * cos_mtheta[m]) * P *
-                    r_ratio_n / sin_phi_reg;
-                // (float)m * P / sin_phi_reg *
+                const float Bphi_term_m =
+                    (-g[n][m] * sin_mphi[m] + h[n][m] * cos_mphi[m]) *
+                     P / sin_theta_reg;
+                // (float)m * P / sin_theta_reg *
 
                 // Smooth transition near poles
-                const float pole_factor = (fabs(sin_phi) < POLE_THRESH)
-                                              ? sin_phi / POLE_THRESH
+                const float pole_factor = (fabs(sin_theta) < POLE_THRESH)
+                                              ? sin_theta / POLE_THRESH
                                               : 1.0f;
 
-                Btheta -= Btheta_term * pole_factor;
+                Bphi_m -= Bphi_term_m * pole_factor;
             }
         }
 
+        Br += (float)(n + 1) * r_ratio_n * Br_m;
+        Bphi += r_ratio_n * Bphi_m;
+        Btheta += r_ratio_n * Btheta_m;
+
+        // Multiply another ratio before next loop
         r_ratio_n *= r_ratio;
     }
 
     // Store results
-    slate->B_est = float3(Br, Btheta, Bphi);
+    slate->B_est = float3(Br, Bphi, Btheta);
 }
 
 // Modified Legendre function using pre-computed factors
