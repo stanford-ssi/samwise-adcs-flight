@@ -17,6 +17,9 @@ float legendre_schmidt(int n, int m, float x);
 float d_legendre_schmidt(int n, int m, float x);
 
 // IGRF 2025 Coefficients (up to n=6)
+// Indices are n going down and m going left to right
+// Units in nanotesla
+// There is no n=0 term (that would imply a magnetic monopole)
 float g[MAX_ORDER + 1][MAX_ORDER + 1] = {
     {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},               // n=0
     {-29350.0, -1410.3, 0.0, 0.0, 0.0, 0.0, 0.0},      // n=1
@@ -27,6 +30,8 @@ float g[MAX_ORDER + 1][MAX_ORDER + 1] = {
     {66.0, 65.5, 72.9, -121.5, -36.2, 13.9, -64.7}     // n=6
 };
 
+// There is no m=0 term. In m=0 the sin term is zero and
+// the cosine term is 1 so only the g term matters.
 float h[MAX_ORDER + 1][MAX_ORDER + 1] = {
     {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},           // n=0
     {0.0, 4545.5, 0.0, 0.0, 0.0, 0.0, 0.0},        // n=1
@@ -56,6 +61,27 @@ const float SCHMIDT_FACTORS[MAX_ORDER + 1][MAX_ORDER + 1] = {
     {1.000000, 0.218218, 0.034503, 0.005751, 0.001050, 0.000224,
      0.000065}, // n=6
 };
+
+/* Factors computed using formula
+ * Sqrt((n-m)!/(n+m)!)
+ * Idk which formula is supposed to be used
+const float SCHMIDT_FACTORS[MAX_ORDER + 1][MAX_ORDER + 1] = {
+    {1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
+     0.000000}, // n=0/
+    {1.000000, 0.707107, 0.000000, 0.000000, 0.000000, 0.000000,
+     0.000000}, // n=1
+    {1.000000, 0.408248, 0.204124, 0.000000, 0.000000, 0.000000,
+     0.000000}, // n=2
+    {1.000000, 0.288675, 0.091287, 0.037267, 0.000000, 0.000000,
+     0.000000}, // n=3
+    {1.000000, 0.223606, 0.052704, 0.014085, 0.004980, 0.000000,
+     0.000000}, // n=4
+    {1.000000, 0.182574, 0.034503, 0.007042, 0.001660, 0.000524,
+     0.000000}, // n=5
+    {1.000000, 0.154303, 0.024397, 0.004066, 0.000742, 0.000158,
+     0.000045}, // n=6
+};
+*/
 
 void compute_B(slate_t *slate)
 {
@@ -115,12 +141,12 @@ void compute_B(slate_t *slate)
             // Magnetic field in latitude direction
             Btheta -= r_ratio_n * dP * term;
 
-            // Handle Btheta carefully near poles
+            // Handle Bphi carefully near poles
             if (m > 0)
             { // m=0 terms don't contribute to Bphi
                 const float Bphi_term =
                     (-g[n][m] * sin_mphi[m] + h[n][m] * cos_mphi[m]) *
-                     P / sin_theta_reg;
+                     (float)m * P / sin_theta_reg;
                 // (float)m * P / sin_theta_reg *
 
                 // Smooth transition near poles
@@ -200,7 +226,7 @@ float d_legendre_schmidt(int n, int m, float x)
 
     // Calculate derivative using relationship for Schmidt semi-normalized
     // functions dP_n^m/dθ = 1/sqrt(1-x^2) * [ n*x*P_n^m - (n+m)*P_(n-1)^m ]
-    const float factor = 1.0f / sqrt(1.0f - x * x);
+    const float factor = 1.0f / ((x * x) - 1.0f);
 
     if (n == m)
     {
@@ -345,6 +371,7 @@ void test_legendre_polynomials()
     for (float x = -1.00f; x <= 1.00f; x += 0.01f)
     {
         printf("[INFO]    ");
+        /*
         for (int n = 5; n < 6; n++)
         {
             for (int m = 0; m <= n; m++)
@@ -352,6 +379,13 @@ void test_legendre_polynomials()
                 float P = legendre_schmidt(n, m, x);
                 printf("%f, ", P);
             }
+        }
+        */
+        int m = 0;
+        for (int n = 1; n < 5; n++)
+        {
+            float P = d_legendre_schmidt(n, m, x);
+            printf("%f, ", P);
         }
         printf("\n");
     }

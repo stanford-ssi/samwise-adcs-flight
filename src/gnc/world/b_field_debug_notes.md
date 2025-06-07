@@ -16,6 +16,4 @@ Basically the issue was that one of the factors was being multiplied inside of a
 
 
 Niklas's Bug:
-
-
-
+Niklas found a bug in the spherical harmonics where they were being normalized in different ways and added together in a way that did not reflect their different normalizations. Ask Niklas for more info.
