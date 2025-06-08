@@ -9,3 +9,5 @@ void compute_B(slate_t *slate);
 void test_compute_B(slate_t *slate);
 // test_legendre_values
 void test_legendre_polynomials();
+// test B field values everywhere!!!
+void test_map_compute_B(slate_t *slate);

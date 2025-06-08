@@ -44,7 +44,6 @@ float h[MAX_ORDER + 1][MAX_ORDER + 1] = {
 
 // Pre-computed Schmidt quasi-normalization factors
 // S(n,m) = sqrt((2-delta(0,m))(n-m)!/(n+m)!)
-// TODO: RECALCULATE SCHMIDT FACTORS
 const float SCHMIDT_FACTORS[MAX_ORDER + 1][MAX_ORDER + 1] = {
     {1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
      0.000000}, // n=0/
@@ -62,37 +61,17 @@ const float SCHMIDT_FACTORS[MAX_ORDER + 1][MAX_ORDER + 1] = {
      0.000065}, // n=6
 };
 
-/* Factors computed using formula
- * Sqrt((n-m)!/(n+m)!)
- * Idk which formula is supposed to be used
-const float SCHMIDT_FACTORS[MAX_ORDER + 1][MAX_ORDER + 1] = {
-    {1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=0/
-    {1.000000, 0.707107, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=1
-    {1.000000, 0.408248, 0.204124, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=2
-    {1.000000, 0.288675, 0.091287, 0.037267, 0.000000, 0.000000,
-     0.000000}, // n=3
-    {1.000000, 0.223606, 0.052704, 0.014085, 0.004980, 0.000000,
-     0.000000}, // n=4
-    {1.000000, 0.182574, 0.034503, 0.007042, 0.001660, 0.000524,
-     0.000000}, // n=5
-    {1.000000, 0.154303, 0.024397, 0.004066, 0.000742, 0.000158,
-     0.000045}, // n=6
-};
-*/
-
 void compute_B(slate_t *slate)
 {
     const float alt = slate->geodetic[0]; // altitude (km)
     const float lat = slate->geodetic[1]; // latitude (-90 to 90)
     const float lon = slate->geodetic[2]; // longitude (-180 to 180)
+    
 
     // Convert to spherical coordinates using math spherical coordinate
     // conventions
     const float theta = (90.0f - lat) * M_PI / 180.0f; // colatitude [0 to π]
-    const float phi = lon * M_PI / 180.0f;         // azimuth [-π to π]
+    const float phi = (lon + 180) * M_PI / 180.0f;         // azimuth [-π to π]
 
     float Br = 0.0f;
     float Btheta = 0.0f;
@@ -251,8 +230,8 @@ void test_compute_B(slate_t *slate)
     {
         float alt, lat, lon;
         float expected_Br;     // Expected radial component  (-Z)
-        float expected_Btheta; // Expected theta component  (Y)
-        float expected_Bphi;   // Expected phi component    (-X)
+        float expected_Bphi; // Expected theta component  (Y)
+        float expected_Btheta;   // Expected phi component    (-X)
         float expected_mag;    // Expected total magnitude  (F)
         const char *name;
     };
@@ -301,9 +280,9 @@ void test_compute_B(slate_t *slate)
 
         // Calculate differences
         float diff_Br = fabs(slate->B_est.x - test_points[i].expected_Br);
+        float diff_Bphi = fabs(slate->B_est.y - test_points[i].expected_Bphi);
         float diff_Btheta =
-            fabs(slate->B_est.y - test_points[i].expected_Btheta);
-        float diff_Bphi = fabs(slate->B_est.z - test_points[i].expected_Bphi);
+            fabs(slate->B_est.z - test_points[i].expected_Btheta);
         float diff_mag = fabs(magnitude - test_points[i].expected_mag);
 
         // Log detailed results
@@ -317,12 +296,12 @@ void test_compute_B(slate_t *slate)
         LOG_INFO("Br         | %11.1f | %11.1f | %9.1f | %8.1f%%",
                  slate->B_est.x, test_points[i].expected_Br, diff_Br,
                  100.0f * diff_Br / fabs(test_points[i].expected_Br));
-        LOG_INFO("Btheta     | %11.1f | %11.1f | %9.1f | %8.1f%%",
-                 slate->B_est.y, test_points[i].expected_Btheta, diff_Btheta,
-                 100.0f * diff_Btheta / fabs(test_points[i].expected_Btheta));
         LOG_INFO("Bphi       | %11.1f | %11.1f | %9.1f | %8.1f%%",
-                 slate->B_est.z, test_points[i].expected_Bphi, diff_Bphi,
+                 slate->B_est.y, test_points[i].expected_Bphi, diff_Bphi,
                  100.0f * diff_Bphi / fabs(test_points[i].expected_Bphi));
+        LOG_INFO("Btheta     | %11.1f | %11.1f | %9.1f | %8.1f%%",
+                 slate->B_est.z, test_points[i].expected_Btheta, diff_Btheta,
+                 100.0f * diff_Btheta / fabs(test_points[i].expected_Btheta));
         LOG_INFO("Magnitude  | %11.1f | %11.1f | %9.1f | %8.1f%%", magnitude,
                  test_points[i].expected_mag, diff_mag,
                  100.0f * diff_mag / test_points[i].expected_mag);
@@ -381,7 +360,7 @@ void test_legendre_polynomials()
             }
         }
         */
-        int m = 0;
+        int m = 1;
         for (int n = 1; n < 5; n++)
         {
             float P = d_legendre_schmidt(n, m, x);
@@ -405,4 +384,33 @@ void test_legendre_polynomials()
 
     // Final summary
     // LOG_INFO("\nLegendre testing complete:");
+}
+
+void test_map_compute_B(slate_t *slate)
+{
+    int altitude = 0;
+    // Latitude is rougly theta
+    printf("Altitude, Latitude, Longitude, B_r, B_phi, B_theta, B_magnitude\n");
+    for (float lat = -89.9f; lat < 90.0f; lat += 1.0f)
+    {
+        for (float lon = -180.0f; lon < 180.0f; lon += 1.0f)
+        {
+            slate->geodetic[0] = altitude;
+            slate->geodetic[1] = lat;
+            slate->geodetic[2] = lon;
+
+            compute_B(slate);
+
+            float magnitude = sqrt(slate->B_est.x * slate->B_est.x +
+                               slate->B_est.y * slate->B_est.y +
+                               slate->B_est.z * slate->B_est.z);
+            printf("%d, %f, %f, %f, %f, %f, %f\n", altitude, 
+                                            lat, 
+                                            lon, 
+                                            slate->B_est.x, 
+                                            slate->B_est.y, 
+                                            slate->B_est.z, 
+                                            magnitude);
+        }
+    }
 }
