@@ -99,8 +99,8 @@ def read_serial_to_csv(port, baudrate=9600, timeout=1, output_file=None):
 # Example usage
 if __name__ == "__main__":
     # Configure these parameters for your setup
-    SERIAL_PORT = "/dev/ttyACM0"  # Change to your port (e.g., "/dev/ttyUSB0" on Linux)
-    BAUD_RATE = 9600      # Change to match your device
+    SERIAL_PORT = "/dev/tty.usbmodem1101"  # Change to your port (e.g., "/dev/ttyUSB0" on Linux)
+    BAUD_RATE = 115200      # Change to match your device
     
     # Read serial data to CSV
     read_serial_to_csv(SERIAL_PORT, BAUD_RATE)
