@@ -17,9 +17,9 @@ float wrapTo360(float angle)
 
 void compute_sun_vector_eci(slate_t *slate)
 {
-    int M = slate->UTC_date[0];
-    int D_int = slate->UTC_date[1];
-    int Y = slate->UTC_date[2];
+    int Y = slate->UTC_date[0];     // YEAR at index 0
+    int M = slate->UTC_date[1];     // MONTH at index 1
+    int D_int = slate->UTC_date[2]; // DAY at index 2
 
     int hh = static_cast<int>(slate->UTC_time / 10000);
     int mm = static_cast<int>(fmodf(slate->UTC_time, 10000) / 100);
