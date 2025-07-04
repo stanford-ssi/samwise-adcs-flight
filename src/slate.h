@@ -79,7 +79,8 @@ typedef struct samwise_adcs_slate
     // ************************************************************************
     // General world state
     float3 sun_vector_eci; // (unit vector)
-
+    float3 UTC_date; // TODO: change it after GPS time format is confirmed
+    float UTC_time;  // TODO: change it after GPS time format is confirmed
     float MJD;
 
     // Bdot
