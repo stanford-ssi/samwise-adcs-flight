@@ -6,6 +6,7 @@
 
 #include "pico/stdlib.h"
 
+#include "gnc/sun_vector.h"
 #include "init.h"
 #include "macros.h"
 #include "scheduler/scheduler.h"
@@ -25,24 +26,31 @@ int main()
      */
     sleep_ms(5000);
 
-    LOG_INFO("[main] Slate takes up %d bytes!", sizeof(slate));
-    sched_init(&slate);
+    // LOG_INFO("[main] Slate takes up %d bytes!", sizeof(slate));
+
+    while (true)
+    {
+        test_sun_vector_year(&slate);
+        sleep_ms(10000); // Sleep for 1 second between tests
+    }
+
+    // sched_init(&slate);
 
     /*
      * Run global initialization
      */
-    LOG_INFO("[main] Running global init...");
-    init(&slate);
+    // LOG_INFO("[main] Running global init...");
+    // init(&slate);
 
     /*
      * Run the state machine for all of time
      */
-    LOG_INFO("[main] Initialization sequence complete - beginning main loop!");
-    while (1)
-    {
-        sched_dispatch(&slate);
-    }
+    // LOG_INFO("[main] Initialization sequence complete - beginning main
+    // loop!"); while (1)
+    // {
+    //     sched_dispatch(&slate);
+    // }
 
-    // We should not be here -> very bad
-    ERROR("Reached the end of the code! This should not happen!");
+    // // We should not be here -> very bad
+    // ERROR("Reached the end of the code! This should not happen!");
 }
