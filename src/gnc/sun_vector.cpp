@@ -8,14 +8,16 @@
 #include "macros.h"
 #include "pico/stdlib.h"
 
-float wrapTo360(float angle) {
+float wrapTo360(float angle)
+{
     return fmodf(fmodf(angle, 360.0f) + 360.0f, 360.0f);
 }
 
 // Note: the difference between UTC and UT1 is ignored
 
 void compute_sun_vector_eci(slate_t *slate)
-{   int M = slate->UTC_date[0];
+{
+    int M = slate->UTC_date[0];
     int D_int = slate->UTC_date[1];
     int Y = slate->UTC_date[2];
 
@@ -26,17 +28,21 @@ void compute_sun_vector_eci(slate_t *slate)
     float D = D_int + (hh + mm / 60.0f + ss / 3600.0f) / 24.0f;
 
     int y, m;
-    if (M <= 2) {
+    if (M <= 2)
+    {
         y = Y - 1;
         m = M + 12;
-    } else {
+    }
+    else
+    {
         y = Y;
         m = M;
     }
 
     float B = floorf(y / 400.0f) - floorf(y / 100.0f) + floorf(y / 4.0f);
 
-    float mjd = 365.0f * y - 679004.0f + floorf(B) + floorf(30.6001f * (m + 1)) + D;
+    float mjd =
+        365.0f * y - 679004.0f + floorf(B) + floorf(30.6001f * (m + 1)) + D;
 
     // Julian centuries since J2000
     float T = (mjd - 51544.0f) / 36525.0f;
