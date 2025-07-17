@@ -45,18 +45,6 @@ void init_pwm()
     LOG_INFO("PWM: Magnetorquer PWM initialized");
 }
 
-void init_pwm()
-{
-    /// \tag::setup_pwm[]
-    // Tell GPIO 0 and 1 they are allocated to the PWM
-    gpio_set_function(SAMWISE_ADCS_X_MAGDRV_IN1, GPIO_FUNC_PWM);
-    gpio_set_function(SAMWISE_ADCS_X_MAGDRV_IN2, GPIO_FUNC_PWM);
-    gpio_set_function(SAMWISE_ADCS_Y_MAGDRV_IN1, GPIO_FUNC_PWM);
-    gpio_set_function(SAMWISE_ADCS_Y_MAGDRV_IN2, GPIO_FUNC_PWM);
-    gpio_set_function(SAMWISE_ADCS_Z_MAGDRV_IN1, GPIO_FUNC_PWM);
-    gpio_set_function(SAMWISE_ADCS_Z_MAGDRV_IN2, GPIO_FUNC_PWM);
-}
-
 /**
  * Set PWM duty cycles for magnetorquer control
  *
