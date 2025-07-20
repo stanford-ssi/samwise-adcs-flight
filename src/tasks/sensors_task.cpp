@@ -27,7 +27,7 @@ void sensors_task_init(slate_t *slate)
 
     if (magmeter_result != RM3100_OK)
     {
-        LOG_ERROR("[sensors] Error initializing magnetorquers - deactivating!");
+        LOG_ERROR("[sensors] Error initializing magnetometer - deactivating!");
     }
 
     // IMU
