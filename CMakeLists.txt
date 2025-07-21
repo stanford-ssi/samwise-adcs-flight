@@ -44,7 +44,7 @@ file(GLOB tasks CONFIGURE_DEPENDS "src/tasks/*.cpp")
 file(GLOB tests CONFIGURE_DEPENDS "src/tests/*.cpp")
 
 
-add_executable(samwise-adcs ${top} ${gnc} ${drivers} ${drivers_external} ${scheduler} ${states}  ${tests})
+add_executable(samwise-adcs ${top} ${gnc} ${drivers} ${drivers_external} ${scheduler} ${states} ${tasks} ${tests})
 
 pico_set_program_name(samwise-adcs "samwise_adcs")
 pico_set_program_version(samwise-adcs "0.1")
