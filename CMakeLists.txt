@@ -41,8 +41,10 @@ file(GLOB drivers_external CONFIGURE_DEPENDS "src/drivers/external/*.[c|cpp]")
 file(GLOB scheduler CONFIGURE_DEPENDS "src/scheduler/*.cpp")
 file(GLOB states CONFIGURE_DEPENDS "src/states/*.cpp")
 file(GLOB tasks CONFIGURE_DEPENDS "src/tasks/*.cpp")
+file(GLOB tests CONFIGURE_DEPENDS "src/tests/*.cpp")
 
-add_executable(samwise-adcs ${top} ${gnc} ${drivers} ${drivers_external} ${scheduler} ${states} ${tasks})
+
+add_executable(samwise-adcs ${top} ${gnc} ${drivers} ${drivers_external} ${scheduler} ${states}  ${tests})
 
 pico_set_program_name(samwise-adcs "samwise_adcs")
 pico_set_program_version(samwise-adcs "0.1")
