@@ -20,6 +20,8 @@ void sensors_task_init(slate_t *slate)
 {
     // Initialize all sensors
     LOG_INFO("[sensors] Initializing sensors...");
+
+    // TODO: remove this when we have a proper init function
     init(slate);
 
     // Magnetometers
