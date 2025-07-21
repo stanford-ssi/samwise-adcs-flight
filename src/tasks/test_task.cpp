@@ -6,11 +6,13 @@
  */
 
 #include "test_task.h"
+#include "../tests/i2c_scanner.h"
 #include "macros.h"
 
 void test_task_init(slate_t *slate)
 {
     LOG_INFO("[test] Initializing test task!");
+    i2c_scanner();
 }
 
 void test_task_dispatch(slate_t *slate)
