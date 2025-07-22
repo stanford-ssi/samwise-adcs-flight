@@ -6,7 +6,6 @@
  */
 
 #include "test_task.h"
-#include "../tests/i2c_scanner.h"
 #include "macros.h"
 
 void test_task_init(slate_t *slate)
