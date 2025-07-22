@@ -13,16 +13,12 @@
 #include "drivers/imu.h"
 #include "drivers/magnetometer.h"
 #include "gnc/utils.h"
-#include "init.h"
 #include "pico/time.h"
 
 void sensors_task_init(slate_t *slate)
 {
     // Initialize all sensors
     LOG_INFO("[sensors] Initializing sensors...");
-
-    // TODO: remove this when we have a proper init function
-    // init(slate);
 
     // Magnetometers
     LOG_INFO("[sensors] Initializing magnetometer...");
