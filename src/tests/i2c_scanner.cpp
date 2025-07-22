@@ -16,7 +16,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define I2C_TIMEOUT_MS 1000 // Timeout for I2C operations in milliseconds
+#define I2C_TIMEOUT_MS 100 // Timeout for I2C operations in milliseconds
 
 // Read the I2C bus for devices
 // function protype below
@@ -35,18 +35,18 @@ void i2c_scanner(void)
         // involve trying to read a known register. For a simple scan, we just
         // see if we get an ACK. The SDK functions return PICO_ERROR_GENERIC if
         // no device responds.
-        LOG_INFO("Scanning IMU address 0x%02X\n", addr);
+        LOG_INFO("Scanning IMU address 0x%02X", addr);
         int ret = i2c_read_blocking_until(SAMWISE_ADCS_IMU_I2C, addr, &rxdata,
                                           1, false,
                                           make_timeout_time_ms(I2C_TIMEOUT_MS));
         if (ret >= 0)
         { // If ret is not an error code (i.e., ACK received)
-            LOG_INFO("IMU Device found at 0x%02X\n", addr);
+            LOG_INFO("IMU Device found at 0x%02X", addr);
             found_device = true;
         }
         else
         {
-            LOG_INFO("No device at 0x%02X\n", addr);
+            LOG_INFO("No device at 0x%02X", addr);
         }
     }
     if (!found_device)
