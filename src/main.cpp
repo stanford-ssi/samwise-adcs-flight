@@ -20,19 +20,21 @@ int main()
 {
     stdio_init_all();
 
-    /*
-     * Initialize the state machine
-     */
     sleep_ms(5000);
-
-    LOG_INFO("[main] Slate takes up %d bytes!", sizeof(slate));
-    sched_init(&slate);
 
     /*
      * Run global initialization
      */
     LOG_INFO("[main] Running global init...");
     init(&slate);
+
+    /*
+     * Initialize the state machine
+     */
+    sleep_ms(1000);
+
+    LOG_INFO("[main] Slate takes up %d bytes!", sizeof(slate));
+    sched_init(&slate);
 
     /*
      * Run the state machine for all of time
