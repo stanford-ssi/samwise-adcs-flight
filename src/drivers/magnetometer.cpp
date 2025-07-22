@@ -77,12 +77,15 @@ static bool rm3100_spi_read_reg(uint8_t reg, uint8_t *data, size_t len)
 {
     uint8_t cmd = reg | 0x80; // Set MSB for read command
 
+    LOG_DEBUG("RM3100: Reading reg 0x%02X (cmd=0x%02X)", reg, cmd);
+
     rm3100_cs_select();
 
     // Send register address (read command)
     int ret = spi_write_blocking(spi0, &cmd, 1);
     if (ret != 1)
     {
+        LOG_DEBUG("RM3100: Failed to send read command");
         rm3100_cs_deselect();
         return false;
     }
@@ -90,6 +93,8 @@ static bool rm3100_spi_read_reg(uint8_t reg, uint8_t *data, size_t len)
     // Read data
     ret = spi_read_blocking(spi0, 0, data, len);
     rm3100_cs_deselect();
+
+    LOG_DEBUG("RM3100: Read %d bytes: 0x%02X", ret, data[0]);
 
     return ret == (int)len;
 }
@@ -105,6 +110,14 @@ static bool rm3100_spi_read_reg(uint8_t reg, uint8_t *data, size_t len)
  */
 rm3100_error_t rm3100_init(void)
 {
+    // Enable magnetometer power FIRST
+    gpio_init(SAMWISE_ADCS_EN_MAGMETER);
+    gpio_set_dir(SAMWISE_ADCS_EN_MAGMETER, GPIO_OUT);
+    gpio_put(SAMWISE_ADCS_EN_MAGMETER, 0); // Enable power
+
+    // Give it time to power up
+    sleep_ms(100);
+
     // Initialize SPI interface
     spi_init(spi0, RM3100_SPI_FREQ);
     spi_set_format(spi0, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
@@ -120,7 +133,16 @@ rm3100_error_t rm3100_init(void)
     gpio_put(SAMWISE_ADCS_SCS_MAGMETER, 1); // Start deselected
 
     // Small delay for SPI to stabilize
-    sleep_ms(10);
+    sleep_ms(500);
+
+    // Test multiple registers
+    uint8_t test_regs[] = {0x00, 0x01, 0x34, 0x36}; // POLL, CMM, STATUS, REVID
+    for (int i = 0; i < 4; i++)
+    {
+        uint8_t val;
+        rm3100_spi_read_reg(test_regs[i], &val, 1);
+        LOG_DEBUG("RM3100: Reg 0x%02X = 0x%02X", test_regs[i], val);
+    }
 
     // Verify chip presence by reading revision ID
     uint8_t revision_id;
