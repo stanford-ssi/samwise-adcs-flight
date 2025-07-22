@@ -56,6 +56,7 @@ target_link_libraries(samwise-adcs
   hardware_i2c
   hardware_spi
   hardware_uart
+  hardware_flash
   pico_stdlib 
   pico_util
 )

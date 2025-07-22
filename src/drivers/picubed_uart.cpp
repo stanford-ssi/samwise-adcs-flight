@@ -2,9 +2,10 @@
  * @author Niklas Vainio
  * @date 2025-05-24
  *
- * This file contains functions for sending telemetry over UART to the picubed
+ * This file contains functions for interacting with the PiCubed over UART
  */
 
+#include "hardware/flash.h"
 #include "hardware/uart.h"
 #include "pico/stdlib.h"
 
@@ -18,14 +19,154 @@
 #define PICUBED_UART_STOP_BITS (1)
 #define PICUBED_UART_PARITY (UART_PARITY_NONE)
 
-// Software configuration for SLIP, a very simple packet framing technique
-// Packets start with a start byte
-// Start bytes in the message are escaped with ESC + ESC_START
-// Escape bytes in the message are escaped with ESC + ESC_ESC
-#define SLIP_START (0xC0)
-#define SLIP_ESC (0xDB)
-#define SLIP_ESC_START (0xDC)
-#define SLIP_ESC_ESC (0xDD)
+// Sentinel bytes for commands
+// IMPORTANT: Keep in sync with adcs_driver.c on the picubed
+#define ADCS_SEND_TELEM ('T')
+#define ADCS_HEALTH_CHECK ('?')
+#define ADCS_HEALTH_CHECK_SUCCESS ('!')
+
+// Backdoor for flash programming to enable potential OTA in the future
+#define ADCS_FLASH_ERASE ('E')
+#define ADCS_FLASH_PROGRAM ('P')
+
+// Timeout between bytes in microseconds
+// currently set to 1 second
+#define ADCS_BYTE_TIMEOUT_US (1000000)
+
+/**
+ * @brief Helper function to read up to num_bytes bytes from ADCS uart with a
+ * timeout in the case of missing bytes
+ *
+ * @param buf           Buffer to read into
+ * @param num_bytes     Maximum number of bytes to read
+ * @param timeout_us    Timeout between bytes in microseconds
+ *
+ * @return Number of bytes reac successfully (between 0 and num_bytes inclusive)
+ */
+static uint32_t read_uart_with_timeout(char *buf, uint32_t num_bytes,
+                                       uint32_t timeout_us)
+{
+    for (uint32_t i = 0; i < num_bytes; i++)
+    {
+        if (uart_is_readable_within_us(SAMWISE_ADCS_PICUBED_UART, timeout_us))
+        {
+            buf[i] = uart_getc(SAMWISE_ADCS_PICUBED_UART);
+        }
+        else
+        {
+            return i;
+        }
+    }
+
+    return num_bytes;
+}
+
+/**
+ * Send a telemetry packet to the picubed over uart
+ */
+static void send_packet(const adcs_packet_t *packet)
+{
+    const char *data = (const char *)packet;
+
+    // Send bytes one by one
+    for (uint32_t i = 0; i < sizeof(adcs_packet_t); i++)
+    {
+        uart_putc_raw(SAMWISE_ADCS_PICUBED_UART, data[i]);
+    }
+}
+
+/**
+ * Handle a command byte from the picubed.
+ *
+ * @param slate
+ * @param cmd       Command byte to handle
+ * @return True on success, false otherwise.
+ */
+static bool handle_command_byte(slate_t *slate, char command)
+{
+    LOG_INFO("[picubed-uart] Handling command byte %c", command);
+
+    switch (command)
+    {
+        case ADCS_SEND_TELEM:
+            // Send telemetry
+            send_packet(&slate->telem);
+            return true;
+        case ADCS_HEALTH_CHECK:
+            // Send a sentinel byte to report as healthy
+            uart_putc_raw(SAMWISE_ADCS_PICUBED_UART, ADCS_HEALTH_CHECK_SUCCESS);
+            return true;
+
+            // *********************************************************************
+            // The following section of code exists purely to provide a backdoor
+            // for potential future OTA-ing of the ADCS board.
+            //
+            // DANGER: USING THIS INTERFACE INCORRECTLY COULD BRICK THE BOARD
+            // PERMANENTLY. ONLY COMMAND THIS IF YOU ARE 100% SURE THAT IT WILL
+            // WORK. IDEALLY THAT FIRST THING THAT EVER GETS PROGRAMMED HERE IS
+            // A LESS DUMB OTA INTERFACE.
+
+        case ADCS_FLASH_ERASE:
+        {
+            // Erase a single flash sector at the provided offset
+            uint32_t offset;
+            uint32_t num_bytes = read_uart_with_timeout(
+                (char *)offset, sizeof(offset), ADCS_BYTE_TIMEOUT_US);
+
+            if (num_bytes < sizeof(offset))
+            {
+                LOG_ERROR(
+                    "[picubed-uart] Bad flash erase command! Got %d/4 bytes",
+                    num_bytes);
+                return false;
+            }
+
+            LOG_INFO("[picubed-uart] Erasing flash offset 0x%x", offset);
+            flash_range_erase(offset, 1);
+            return true;
+        }
+        case ADCS_FLASH_PROGRAM:
+        {
+            // Program 256 bytes into flash at the desired offset
+            uint32_t offset;
+            uint32_t num_bytes = read_uart_with_timeout(
+                (char *)offset, sizeof(offset), ADCS_BYTE_TIMEOUT_US);
+
+            if (num_bytes < sizeof(offset))
+            {
+                LOG_ERROR(
+                    "[picubed-uart] Bad flash program command! Got %d/4 bytes",
+                    num_bytes);
+                return false;
+            }
+
+            uint8_t data[256];
+            num_bytes = read_uart_with_timeout((char *)data, sizeof(data),
+                                               ADCS_BYTE_TIMEOUT_US);
+
+            if (num_bytes < sizeof(offset))
+                if (num_bytes < sizeof(data))
+                {
+                    LOG_ERROR("[picubed-uart] Bad flash program command! Got "
+                              "%d/256 bytes",
+                              num_bytes);
+                    return false;
+                }
+
+            LOG_INFO("[picubed-uart] Programing flast at offset 0x%x", offset);
+            flash_range_program(offset, data, sizeof(data));
+            return true;
+        }
+            // *********************************************************************
+
+        default:
+            // Invalid packet
+            LOG_ERROR(
+                "[picubed-uart] Encountered an invalid command byte: %c (0x%x)",
+                command, command);
+            return false;
+    }
+}
 
 /**
  * Initialize uart for communication with picubed
@@ -48,35 +189,20 @@ void picubed_uart_init()
 }
 
 /**
- * Send a telemetry packet to the picubed over uart
+ * Handle all available command packets from the picubed
+ *
+ * @return True on success, false otherwise
  */
-void picubed_uart_send_packet(const adcs_packet_t *packet)
+bool picubed_uart_handle_commands(slate_t *slate)
 {
-    const char *data = (const char *)packet;
-    const uint32_t num_bytes = sizeof(adcs_packet_t);
+    bool all_commands_succeeded = true;
 
-    // Send start byte
-    uart_putc_raw(SAMWISE_ADCS_PICUBED_UART, SLIP_START);
-
-    // Encode each byte with SLIP
-    for (uint32_t i = 0; i < num_bytes; i++)
+    while (uart_is_readable(SAMWISE_ADCS_PICUBED_UART))
     {
-        switch (data[i])
-        {
-            case SLIP_START:
-                // Escaped start byte
-                uart_putc_raw(SAMWISE_ADCS_PICUBED_UART, SLIP_ESC);
-                uart_putc_raw(SAMWISE_ADCS_PICUBED_UART, SLIP_ESC_START);
-                break;
-            case SLIP_ESC:
-                // Escaped escape character
-                uart_putc_raw(SAMWISE_ADCS_PICUBED_UART, SLIP_ESC);
-                uart_putc_raw(SAMWISE_ADCS_PICUBED_UART, SLIP_ESC_ESC);
-                break;
-            default:
-                // Normal byte
-                uart_putc_raw(SAMWISE_ADCS_PICUBED_UART, data[i]);
-                break;
-        }
+        // Read byte and handle it
+        char byte = uart_getc(SAMWISE_ADCS_PICUBED_UART);
+        all_commands_succeeded &= handle_command_byte(slate, byte);
     }
+
+    return all_commands_succeeded;
 }
