@@ -98,6 +98,11 @@ static void parse_gga_sentence(const char *sentence)
 {
     char *token;
     char *sentence_copy = strdup(sentence);
+    if (sentence_copy == NULL)
+    {
+        // Handle memory allocation failure
+        return;
+    }
     int field = 0;
 
     token = strtok(sentence_copy, ",");
