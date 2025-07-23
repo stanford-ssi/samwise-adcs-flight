@@ -46,10 +46,18 @@ void gps_uart_irq_handler(void)
         // Add character to buffer if there's space
         if (buffer_index < GPS_BUFFER_SIZE - 1)
         {
-            gps_buffer[buffer_index++] = c;
+            gps_buffer[buffer_index] = c;
 
             // Check for sentence end (CR or LF)
             if (c == '\r' || c == '\n')
+            {
+                if (buffer_index > 5)
+                { // Minimum valid sentence length
+                    gps_buffer[buffer_index - 1] = '\0';
+                    sentence_ready = true;
+                }
+                buffer_index++;
+            }
             {
                 if (buffer_index > 5)
                 { // Minimum valid sentence length
