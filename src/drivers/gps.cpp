@@ -15,7 +15,7 @@
 #include <string.h>
 
 // UART configuration
-#define GPS_UART_BAUD 9600
+#define GPS_UART_BAUD 115200
 #define GPS_UART_DATA_BITS 8
 #define GPS_UART_STOP_BITS 1
 #define GPS_UART_PARITY UART_PARITY_NONE
@@ -39,8 +39,12 @@ void gps_uart_irq_handler(void)
         // Handle sentence start
         if (c == '$')
         {
-            buffer_index = 0;
-            sentence_ready = false;
+            // Only reset if no sentence is pending
+            if (!sentence_ready)
+            {
+                buffer_index = 0;
+            }
+            // Don't clear sentence_ready here!
         }
 
         // Add character to buffer if there's space
@@ -51,24 +55,23 @@ void gps_uart_irq_handler(void)
             // Check for sentence end (CR or LF)
             if (c == '\r' || c == '\n')
             {
+                gps_buffer[buffer_index] = '\0'; // Null terminate
                 if (buffer_index > 5)
-                { // Minimum valid sentence length
-                    gps_buffer[buffer_index - 1] = '\0';
+                {
                     sentence_ready = true;
+                    // LOG_DEBUG("[GPS] Sentence complete, length: %d",
+                    // buffer_index);
                 }
-                buffer_index++;
+                buffer_index = 0; // Reset for next sentence
             }
+            else
             {
-                if (buffer_index > 5)
-                { // Minimum valid sentence length
-                    gps_buffer[buffer_index] = '\0';
-                    sentence_ready = true;
-                }
+                buffer_index++;
             }
         }
         else
         {
-            // Buffer overflow, reset
+            // LOG_DEBUG("[GPS] Buffer overflow, resetting");
             buffer_index = 0;
             sentence_ready = false;
         }
@@ -175,28 +178,46 @@ static void parse_gga_sentence(const char *sentence)
  */
 static void process_nmea_sentence(const char *sentence)
 {
-    // Check for GGA sentence (Global Positioning System Fix Data)
+    // LOG_DEBUG("[GPS] Processing: '%s'", sentence);
+
+    // Check for GGA sentence
     if (strncmp(sentence, "$GPGGA", 6) == 0 ||
         strncmp(sentence, "$GNGGA", 6) == 0)
     {
         parse_gga_sentence(sentence);
     }
-    // Add other sentence types as needed (RMC, etc.)
 }
 
 /**
  * Initialize GPS UART interface
+ * @return true if GPS initialization successful, false otherwise
  */
-void gps_init(void)
+bool gps_init(void)
 {
     // Enable GPS power
     gpio_init(SAMWISE_ADCS_EN_GPS);
     gpio_set_dir(SAMWISE_ADCS_EN_GPS, GPIO_OUT);
-    gpio_put(SAMWISE_ADCS_EN_GPS, 1); // Enable GPS power
-    sleep_ms(100);                    // Allow GPS to power up
+    gpio_put(SAMWISE_ADCS_EN_GPS, 0); // Pull low to enable GPS
+    sleep_ms(1000);
 
     // Initialize UART
-    uart_init(SAMWISE_ADCS_GPS_UART, GPS_UART_BAUD);
+    uint actual_baud = uart_init(SAMWISE_ADCS_GPS_UART, GPS_UART_BAUD);
+    if (actual_baud == 0)
+    {
+        LOG_ERROR("Failed to initialize GPS UART");
+        return false;
+    }
+
+    // Set GPIO functions for UART
+    gpio_set_function(
+        SAMWISE_ADCS_TX_TO_GPS,
+        UART_FUNCSEL_NUM(SAMWISE_ADCS_GPS_UART, SAMWISE_ADCS_TX_TO_GPS));
+    gpio_set_function(
+        SAMWISE_ADCS_RX_FROM_GPS,
+        UART_FUNCSEL_NUM(SAMWISE_ADCS_GPS_UART, SAMWISE_ADCS_RX_FROM_GPS));
+
+    uart_set_format(SAMWISE_ADCS_GPS_UART, GPS_UART_DATA_BITS,
+                    GPS_UART_STOP_BITS, GPS_UART_PARITY);
 
     // Set GPIO functions for UART
     gpio_set_function(
@@ -225,7 +246,10 @@ void gps_init(void)
     current_gps_data.satellites = 0;
     current_gps_data.timestamp = 0;
 
-    LOG_INFO("GPS UART initialized at %d baud", GPS_UART_BAUD);
+    LOG_INFO("GPS UART initialized at %d baud (actual: %d)", GPS_UART_BAUD,
+             actual_baud);
+
+    return true;
 }
 
 /**
@@ -234,13 +258,15 @@ void gps_init(void)
 bool gps_get_data(gps_data_t *data)
 {
     if (!data)
-    {
         return false;
-    }
+
+    // LOG_DEBUG("[GPS] gps_get_data called, sentence_ready = %s",
+    //           sentence_ready ? "true" : "false");
 
     // Process any pending sentences
     if (sentence_ready)
     {
+        // LOG_DEBUG("[GPS] About to process sentence");
         process_nmea_sentence(gps_buffer);
         sentence_ready = false;
     }
