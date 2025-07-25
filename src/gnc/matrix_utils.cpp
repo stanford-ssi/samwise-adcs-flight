@@ -8,6 +8,7 @@
 #include "matrix_utils.h"
 #include "macros.h"
 #include "pico/printf.h"
+#include <math.h>
 
 #define IDX(row, col, ncols) (((row) * ncols) + col)
 
@@ -20,7 +21,7 @@
  * @param out (NxN)
  * @param N
  */
-void mat_mul_square(float *A, float *B, float *out, int N)
+void mat_mul_square(const float *A, const float *B, float *out, int N)
 {
     for (int i = 0; i < N; i++)
     {
@@ -49,7 +50,7 @@ void mat_mul_square(float *A, float *B, float *out, int N)
  * @param P
  * @param N
  */
-void mat_mul(float *A, float *B, float *out, int M, int P, int N)
+void mat_mul(const float *A, const float *B, float *out, int M, int P, int N)
 {
     for (int i = 0; i < M; i++)
     {
@@ -75,13 +76,33 @@ void mat_mul(float *A, float *B, float *out, int M, int P, int N)
  * @param M
  * @param N
  */
-void mat_transpose(float *A, float *out, int M, int N)
+void mat_transpose(const float *A, float *out, int M, int N)
 {
     for (int i = 0; i < M; i++)
     {
         for (int j = 0; j < N; j++)
         {
             out[IDX(j, i, M)] = A[IDX(i, j, N)];
+        }
+    }
+}
+
+/**
+ * @brief Populate out (row-major) with A + B
+ *
+ * @param A (MxN)
+ * @param B (MxN)
+ * @param out (MxN)
+ * @param M
+ * @param N
+ */
+void mat_add(const float *A, const float *B, float *out, int M, int N)
+{
+    for (int i = 0; i < M; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            out[IDX(i, j, N)] = A[IDX(i, j, N)] + B[IDX(i, j, N)];
         }
     }
 }
@@ -94,7 +115,7 @@ void mat_transpose(float *A, float *out, int M, int N)
  * @param out (NxN)
  * @param N
  */
-void mat_inverse(float *A, float *out, int N)
+void mat_inverse(const float *A, float *out, int N)
 {
     // (courtesy of ChatGPT!)
 
@@ -153,6 +174,25 @@ void mat_inverse(float *A, float *out, int N)
             }
         }
     }
+}
+
+/**
+ * @brief Caculate the frobenius norm (square root of sum of squared elements)
+ * of an NxN matrix `A`
+ *
+ * @param A
+ * @param N
+ * @return float
+ */
+float mat_frobenius(const float *A, float N)
+{
+    float sum_squares;
+    for (int i = 0; i < N * N; i++)
+    {
+        sum_squares += (A[i] * A[i]);
+    }
+
+    return sqrtf(sum_squares);
 }
 
 // Helper functions to generate random numbers for testing

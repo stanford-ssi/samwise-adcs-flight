@@ -37,11 +37,13 @@ pico_sdk_init()
 file(GLOB top CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB gnc CONFIGURE_DEPENDS "src/gnc/*.cpp")
 file(GLOB drivers CONFIGURE_DEPENDS "src/drivers/*.cpp")
+file(GLOB drivers_external CONFIGURE_DEPENDS "src/drivers/external/*.[c|cpp]")
 file(GLOB scheduler CONFIGURE_DEPENDS "src/scheduler/*.cpp")
 file(GLOB states CONFIGURE_DEPENDS "src/states/*.cpp")
 file(GLOB tasks CONFIGURE_DEPENDS "src/tasks/*.cpp")
+file(GLOB tests CONFIGURE_DEPENDS "src/tests/*.cpp")
 
-add_executable(samwise-adcs ${top} ${gnc} ${drivers} ${scheduler} ${states} ${tasks})
+add_executable(samwise-adcs ${top} ${gnc} ${drivers} ${drivers_external} ${scheduler} ${states} ${tasks} ${tests})
 
 pico_set_program_name(samwise-adcs "samwise_adcs")
 pico_set_program_version(samwise-adcs "0.1")
@@ -52,10 +54,13 @@ pico_enable_stdio_usb(samwise-adcs 1)
 
 # Add the standard library to the build
 target_link_libraries(samwise-adcs
-        hardware_uart
-        hardware_i2c
-        hardware_spi
-        pico_stdlib pico_util)
+  hardware_i2c
+  hardware_spi
+  hardware_uart
+  hardware_pwm
+  pico_stdlib 
+  pico_util
+)
 
 # Add the standard include files to the build
 target_include_directories(samwise-adcs PRIVATE
