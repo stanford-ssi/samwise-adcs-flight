@@ -26,8 +26,9 @@ typedef struct
 /**
  * Initialize GPS UART interface
  * Sets up UART with interrupts for receiving NMEA sentences
+ * @return true if initialization was successful, false otherwise
  */
-void gps_init(void);
+bool gps_init(void);
 
 /**
  * Get latest GPS data
