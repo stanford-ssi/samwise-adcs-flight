@@ -10,7 +10,6 @@
 #include "sensors_task.h"
 #include "macros.h"
 
-
 #include "drivers/gps.h"
 #include "drivers/imu.h"
 #include "drivers/magnetometer.h"
@@ -100,6 +99,7 @@ void sensors_task_dispatch(slate_t *slate)
     else
     {
         LOG_DEBUG("[sensors] Skipping GPS due to invalid initialization!");
+    }
 
     // IMU
     if (slate->imu_alive)
