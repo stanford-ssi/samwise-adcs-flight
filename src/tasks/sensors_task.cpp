@@ -10,7 +10,9 @@
 #include "sensors_task.h"
 #include "macros.h"
 
+#include "drivers/gps.h"
 #include "drivers/magnetometer.h"
+#include "gnc/utils.h"
 #include "pico/time.h"
 
 void sensors_task_init(slate_t *slate)
@@ -28,10 +30,15 @@ void sensors_task_init(slate_t *slate)
         LOG_ERROR("[sensors] Error initializing magnetorquers - deactivating!");
     }
 
+    // GPS
+    LOG_INFO("[sensors] Initializing GPS...");
+    bool gps_result = gps_init();
+    slate->gps_alive = gps_result;
+
     // Ensure all sensor data valid flags are false
     slate->magmeter_data_valid = false;
     // slate->sun_sensor_data_valid = false;
-    // slate->gps_data_valid = false;
+    slate->gps_data_valid = false;
     // slate->imu_data_valid = false;
 
     LOG_INFO("[sensors] Sensor Initialization Complete!");
@@ -54,6 +61,31 @@ void sensors_task_dispatch(slate_t *slate)
     {
         LOG_DEBUG(
             "[sensors] Skipping magnetometer due to invalid initialization!");
+    }
+
+    // GPS
+    if (slate->gps_alive)
+    {
+        LOG_DEBUG("[sensors] Reading GPS...");
+        gps_data_t gps_data;
+        bool result =
+            gps_get_data(&gps_data); // Only returns true if valid data AND fix
+
+        if (result)
+        {
+            slate->gps_lat = gps_data.latitude;
+            slate->gps_lon = gps_data.longitude;
+            slate->gps_time =
+                (float)gps_data.timestamp; // Convert HHMMSS to float
+            LOG_INFO("[sensors] GPS data: Lat: %.6f, Lon: %.6f, Time: %.3f",
+                     slate->gps_lat, slate->gps_lon, slate->gps_time);
+        }
+
+        slate->gps_data_valid = result;
+    }
+    else
+    {
+        LOG_DEBUG("[sensors] Skipping GPS due to invalid initialization!");
     }
 }
 
