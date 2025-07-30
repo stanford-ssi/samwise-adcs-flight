@@ -55,6 +55,7 @@ typedef struct samwise_adcs_slate
     float sun_sensors_intensities[NUM_SUN_SENSORS]; // arbitrary units
     bool sun_sensors_data_valid;
     bool sun_sensors_alive;
+    float3 sun_vector_principal;
 
     // IMU
     float3 w_body_raw;      // [rad/s] in body frame
