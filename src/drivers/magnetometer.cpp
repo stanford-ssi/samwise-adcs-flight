@@ -59,7 +59,7 @@ static bool rm3100_spi_write_reg(uint8_t reg, const uint8_t *data, size_t len)
     rm3100_cs_select();
 
     // Send register address (write command)
-    int ret = spi_write_blocking(spi0, &reg, 1);
+    int ret = spi_write_blocking(SAMWISE_ADCS_MAGMETER_SPI, &reg, 1);
     if (ret != 1)
     {
         rm3100_cs_deselect();
@@ -67,7 +67,7 @@ static bool rm3100_spi_write_reg(uint8_t reg, const uint8_t *data, size_t len)
     }
 
     // Send data
-    ret = spi_write_blocking(spi0, data, len);
+    ret = spi_write_blocking(SAMWISE_ADCS_MAGMETER_SPI, data, len);
     rm3100_cs_deselect();
 
     return ret == (int)len;
@@ -82,7 +82,7 @@ static bool rm3100_spi_read_reg(uint8_t reg, uint8_t *data, size_t len)
     rm3100_cs_select();
 
     // Send register address (read command)
-    int ret = spi_write_blocking(spi0, &cmd, 1);
+    int ret = spi_write_blocking(SAMWISE_ADCS_MAGMETER_SPI, &cmd, 1);
     if (ret != 1)
     {
         LOG_DEBUG("RM3100: Failed to send read command");
@@ -91,7 +91,7 @@ static bool rm3100_spi_read_reg(uint8_t reg, uint8_t *data, size_t len)
     }
 
     // Read data
-    ret = spi_read_blocking(spi0, 0, data, len);
+    ret = spi_read_blocking(SAMWISE_ADCS_MAGMETER_SPI, 0, data, len);
     rm3100_cs_deselect();
 
     LOG_DEBUG("RM3100: Read %d bytes: 0x%02X", ret, data[0]);
@@ -119,8 +119,9 @@ rm3100_error_t rm3100_init(void)
     sleep_ms(100);
 
     // Initialize SPI interface
-    spi_init(spi0, RM3100_SPI_FREQ);
-    spi_set_format(spi0, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
+    spi_init(SAMWISE_ADCS_MAGMETER_SPI, RM3100_SPI_FREQ);
+    spi_set_format(SAMWISE_ADCS_MAGMETER_SPI, 8, SPI_CPOL_0, SPI_CPHA_0,
+                   SPI_MSB_FIRST);
 
     // Configure SPI pins
     gpio_set_function(SAMWISE_ADCS_SCLK_MAGMETER, GPIO_FUNC_SPI);
