@@ -33,7 +33,7 @@ uint8_t init_pwm(i2c_t i2c0)
     uint32_t cycles_per_period = clk_sys / pwm_freq; // cycles per period
     uint16_t divider = 125; // 125 MHz ÷ (125 × wrap) = 1 MHz base, moderate and
                             // good for most applications
-    uint16_t wrap = 999; // 1000 cycles per period
+    uint16_t wrap = 999;    // 1000 cycles per period
 
     // Set up PWM slices
     for (uint i = 0; i < 6; i++)

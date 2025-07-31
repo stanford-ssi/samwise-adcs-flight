@@ -1,5 +1,5 @@
 /**
- * @author Sage Wu
+ * @author Lundeen Cahilly and Sage Wu
  * @date 2025-06-03
  *
  * This file contains functions for reading ADC data from the ADS7830
@@ -44,3 +44,13 @@ bool ads7830_get_reading(uint8_t channel, uint8_t *value);
  * @return bool True on success, false on failure
  */
 bool ads7830_get_voltage(uint8_t channel, float *voltage, float vref);
+
+/**
+ * Read all 8 ADC channels
+ *
+ * This function reads all 8 ADC channels and returns the raw 8-bit values.
+ *
+ * @param values_out Array to store 8 ADC readings (0-255)
+ * @return bool True if all channels read successfully, false otherwise
+ */
+bool ads7830_read_all_channels(uint8_t values_out[8]);

@@ -1,5 +1,5 @@
 /**
- * @author Sage Wu
+ * @author Lundeen Cahilly and Sage Wu
  * @date 2025-06-03
  *
  * This file defines utilities for controlling the ADS7830 ADC.
