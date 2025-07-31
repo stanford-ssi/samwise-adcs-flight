@@ -43,17 +43,15 @@
 /******************************************************************************/
 /*!                Static variable definition                                 */
 
-/*! Channel selection commands for single-ended mode */
-static const uint8_t ads7830_channel_commands[ADS7830_MAX_CHANNELS] = {
-    0x8C, // Channel 0: (0x08 << 4) | 0x0C
-    0xCC, // Channel 1: (0x0C << 4) | 0x0C
-    0x9C, // Channel 2: (0x09 << 4) | 0x0C
-    0xDC, // Channel 3: (0x0D << 4) | 0x0C
-    0xAC, // Channel 4: (0x0A << 4) | 0x0C
-    0xEC, // Channel 5: (0x0E << 4) | 0x0C
-    0xBC, // Channel 6: (0x0B << 4) | 0x0C
-    0xFC  // Channel 7: (0x0F << 4) | 0x0C
+// Using external reference
+static const uint8_t ads7830_channel_commands[8] = {
+    0x84, 0xC4, 0x94, 0xD4, 0xA4, 0xE4, 0xB4, 0xF4 // PD1=0, PD0=1
 };
+
+// Using internal reference (2.5V)
+// static const uint8_t ads7830_channel_commands[8] = {
+//     0x8C, 0xCC, 0x9C, 0xDC, 0xAC, 0xEC, 0xBC, 0xFC  // PD1=1, PD0=1
+// };
 
 /*! I2C instance for ADC communication */
 static i2c_inst_t *ads7830_i2c_inst = i2c1;
