@@ -8,17 +8,18 @@
 #include "test_task.h"
 #include "../tests/magnetorquer_tests.h"
 #include "macros.h"
+#include "sensors_task.h"
 
 void test_task_init(slate_t *slate)
 {
     LOG_INFO("[test] Initializing test task!");
-    magnetorquer_tests_init();
+    sensors_task_init(slate);
 }
 
 void test_task_dispatch(slate_t *slate)
 {
     LOG_INFO("[test] TEST TASK IS DISPATCHING");
-    magnetorquer_tests_dispatch();
+    sensors_task_dispatch(slate);
 }
 
 sched_task_t test_task = {.name = "test",

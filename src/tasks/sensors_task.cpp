@@ -10,6 +10,7 @@
 #include "sensors_task.h"
 #include "macros.h"
 
+#include "drivers/ads7830.h"
 #include "drivers/gps.h"
 #include "drivers/imu.h"
 #include "drivers/magnetometer.h"
@@ -35,6 +36,22 @@ void sensors_task_init(slate_t *slate)
     LOG_INFO("[sensors] Initializing GPS...");
     bool gps_result = gps_init();
     slate->gps_alive = gps_result;
+
+    if (!gps_result)
+    {
+        LOG_ERROR("[sensors] Error initializing GPS - deactivating!");
+    }
+
+    // Sun Sensors
+    LOG_INFO("[sensors] Initializing sun sensors...");
+    bool sun_sensors_result = ads7830_init();
+    slate->sun_sensors_alive = sun_sensors_result;
+
+    if (!sun_sensors_result)
+    {
+        LOG_ERROR("[sensors] Error initializing sun sensors - deactivating!");
+    }
+    LOG_INFO("[sensors] Sun sensors initialized successfully!");
 
     // IMU
     LOG_INFO("[sensors] Initializing IMU...");
@@ -127,6 +144,12 @@ void sensors_task_dispatch(slate_t *slate)
     else
     {
         LOG_DEBUG("[sensors] Skipping IMU due to invalid initialization!");
+    }
+
+    // Sun Sensors
+    if (slate->sun_sensors_alive)
+    {
+        LOG_DEBUG("[sensors] Reading sun sensors...");
     }
 }
 
