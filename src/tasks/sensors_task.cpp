@@ -51,7 +51,6 @@ void sensors_task_init(slate_t *slate)
     {
         LOG_ERROR("[sensors] Error initializing sun sensors - deactivating!");
     }
-    LOG_INFO("[sensors] Sun sensors initialized successfully!");
 
     // IMU
     LOG_INFO("[sensors] Initializing IMU...");
