@@ -176,9 +176,13 @@ void picubed_uart_init()
 {
     // Initialize uart hardware
     uart_init(SAMWISE_ADCS_PICUBED_UART, PICUBED_UART_BAUD);
+
+    gpio_init(SAMWISE_ADCS_TX_TO_PICUBED);
     gpio_set_function(SAMWISE_ADCS_TX_TO_PICUBED,
                       UART_FUNCSEL_NUM(SAMWISE_ADCS_PICUBED_UART,
                                        SAMWISE_ADCS_TX_TO_PICUBED));
+
+    gpio_init(SAMWISE_ADCS_RX_FROM_PICUBED);
     gpio_set_function(SAMWISE_ADCS_RX_FROM_PICUBED,
                       UART_FUNCSEL_NUM(SAMWISE_ADCS_PICUBED_UART,
                                        SAMWISE_ADCS_RX_FROM_PICUBED));
