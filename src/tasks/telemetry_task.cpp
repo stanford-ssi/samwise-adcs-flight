@@ -36,6 +36,7 @@ void telemetry_task_init(slate_t *slate)
 
 void telemetry_task_dispatch(slate_t *slate)
 {
+    LOG_INFO("[telem] Telemetry task dispatching...");
     populate_telemetry(slate);
     picubed_uart_handle_commands(slate);
 }
