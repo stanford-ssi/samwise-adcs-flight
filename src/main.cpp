@@ -11,6 +11,10 @@
 #include "scheduler/scheduler.h"
 #include "slate.h"
 
+// Make sure top gpio bank enabled
+static_assert(PICO_RP2350A == 0,
+              "PICO_RP2350A must be defined to 0 for PICUBED builds.");
+
 /**
  * One slate to rule them all!
  */
