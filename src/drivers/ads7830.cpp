@@ -47,11 +47,14 @@
 static const uint8_t ads7830_channel_commands[8] = {
     0x84, 0xC4, 0x94, 0xD4, 0xA4, 0xE4, 0xB4, 0xF4 // PD1=0, PD0=1
 };
+#define VREF                                                                   \
+    (2.5f) // Reference voltage for external reference (confirm w/ hardware)
 
 // Using internal reference (2.5V)
 // static const uint8_t ads7830_channel_commands[8] = {
 //     0x8C, 0xCC, 0x9C, 0xDC, 0xAC, 0xEC, 0xBC, 0xFC  // PD1=1, PD0=1
 // };
+// #define VREF (2.5f)  // Reference voltage for internal reference
 
 /*! I2C instance for ADC communication */
 static i2c_inst_t *ads7830_i2c_inst = i2c1;
@@ -123,6 +126,11 @@ static void ads7830_print_result(int8_t rslt, const char *operation)
  */
 static void ads7830_init_pins()
 {
+    // Enable photodiode
+    gpio_init(SAMWISE_ADCS_EN_PD);
+    gpio_set_dir(SAMWISE_ADCS_EN_PD, GPIO_OUT);
+    gpio_put(SAMWISE_ADCS_EN_PD, 0); // Pull low to enable photodiode
+
     // Initialize I2C1 pins
     gpio_init(SAMWISE_ADCS_I2C1_SDA);
     gpio_init(SAMWISE_ADCS_I2C1_SCL);
@@ -263,6 +271,36 @@ bool ads7830_read_all_channels(uint8_t values_out[ADS7830_MAX_CHANNELS])
         if (!ads7830_read_channel(channel, &values_out[channel]))
         {
             LOG_ERROR("[ads7830] Failed to read ADC channel %d", channel);
+            return false;
+        }
+
+        // Small delay between channel reads
+        sleep_us(500);
+    }
+
+    return true;
+}
+
+/**
+ * @brief Read all 8 ADC channels and convert to voltages
+ *
+ * @param voltages_out Array to store 8 voltage readings (in volts)
+ * @return true if all channels read successfully, false otherwise
+ */
+bool ads7830_read_all_voltages(float voltages_out[ADS7830_MAX_CHANNELS])
+{
+    if (voltages_out == NULL)
+    {
+        LOG_ERROR("[ads7830] Null pointer provided for voltages array");
+        return false;
+    }
+
+    for (uint8_t channel = 0; channel < ADS7830_MAX_CHANNELS; channel++)
+    {
+        if (!ads7830_read_voltage(channel, &voltages_out[channel], VREF))
+        {
+            LOG_ERROR("[ads7830] Failed to read voltage on channel %d",
+                      channel);
             return false;
         }
 

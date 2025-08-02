@@ -153,7 +153,9 @@ void sensors_task_dispatch(slate_t *slate)
     {
         LOG_DEBUG("[sensors] Reading sun sensors...");
         uint8_t adc_values[8];
+        float voltages[8];
         bool result = ads7830_read_all_channels(adc_values);
+        bool voltage_result = ads7830_read_all_voltages(voltages);
 
         if (result)
         {
@@ -181,6 +183,14 @@ void sensors_task_dispatch(slate_t *slate)
                       slate->sun_sensors_intensities[5],
                       slate->sun_sensors_intensities[6],
                       slate->sun_sensors_intensities[7]);
+        }
+
+        if (voltage_result)
+        {
+            LOG_INFO("[sensors] Voltages: [%.3fV, %.3fV, %.3fV, %.3fV, "
+                     "%.3fV, %.3fV, %.3fV, %.3fV]",
+                     voltages[0], voltages[1], voltages[2], voltages[3],
+                     voltages[4], voltages[5], voltages[6], voltages[7]);
         }
 
         slate->sun_sensors_data_valid = result;

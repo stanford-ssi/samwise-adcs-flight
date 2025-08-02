@@ -54,3 +54,14 @@ bool ads7830_get_voltage(uint8_t channel, float *voltage, float vref);
  * @return bool True if all channels read successfully, false otherwise
  */
 bool ads7830_read_all_channels(uint8_t values_out[8]);
+
+/**
+ * Read all 8 ADC channels and convert to voltages
+ *
+ * This function reads all 8 ADC channels and converts them to voltage values
+ * using the specified reference voltage.
+ *
+ * @param voltages_out Array to store 8 voltage readings (in volts)
+ * @return bool True if all channels read successfully, false otherwise
+ */
+bool ads7830_read_all_voltages(float voltages_out[8]);
