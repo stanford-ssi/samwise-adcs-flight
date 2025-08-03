@@ -187,10 +187,11 @@ void sensors_task_dispatch(slate_t *slate)
 
         if (voltage_result)
         {
-            LOG_INFO("[sensors] Voltages: [%.3fV, %.3fV, %.3fV, %.3fV, "
-                     "%.3fV, %.3fV, %.3fV, %.3fV]",
-                     voltages[0], voltages[1], voltages[2], voltages[3],
-                     voltages[4], voltages[5], voltages[6], voltages[7]);
+            LOG_DEBUG(
+                "[sensors] Sun sensor voltages: [%.3fV, %.3fV, %.3fV, %.3fV, "
+                "%.3fV, %.3fV, %.3fV, %.3fV]",
+                voltages[0], voltages[1], voltages[2], voltages[3], voltages[4],
+                voltages[5], voltages[6], voltages[7]);
         }
 
         slate->sun_sensors_data_valid = result;
