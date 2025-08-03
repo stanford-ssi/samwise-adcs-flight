@@ -9,16 +9,21 @@
 #include "../tests/magnetorquer_tests.h"
 #include "macros.h"
 #include "sensors_task.h"
+#include "telemetry_task.h"
 
 void test_task_init(slate_t *slate)
 {
     LOG_INFO("[test] Initializing test task!");
+    // telemetry_task_init(slate);
+    // magnetorquer_tests_init();
     sensors_task_init(slate);
 }
 
 void test_task_dispatch(slate_t *slate)
 {
     LOG_INFO("[test] TEST TASK IS DISPATCHING");
+    // telemetry_task_dispatch(slate);
+    // magnetorquer_tests_dispatch();
     sensors_task_dispatch(slate);
 }
 
