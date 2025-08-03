@@ -98,7 +98,7 @@ static void send_packet(const adcs_packet_t *packet)
 static bool handle_command_byte(slate_t *slate, char command)
 {
     LOG_INFO("[picubed-uart] Handling command byte %c", command);
-    sleep_ms(50); // Sleep for 20 milliseconds to simulate work
+    // sleep_ms(50); // Sleep for 20 milliseconds to simulate work
 
     switch (command)
     {
