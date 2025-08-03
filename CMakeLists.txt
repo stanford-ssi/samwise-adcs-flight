@@ -6,6 +6,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/boards)
+
 # Initialise pico_sdk from installed location
 # (note this can come from environment, CMake cache etc)
 
@@ -20,7 +22,7 @@ set(toolchainVersion 13_2_Rel1)
 set(picotoolVersion 2.0.0)
 include(${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 # ====================================================================================
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+set(PICO_BOARD adcs CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(${CMAKE_CURRENT_LIST_DIR}/pico-sdk/pico_sdk_init.cmake)
@@ -57,6 +59,7 @@ target_link_libraries(samwise-adcs
   hardware_i2c
   hardware_spi
   hardware_uart
+  hardware_flash
   hardware_pwm
   pico_stdlib 
   pico_util
