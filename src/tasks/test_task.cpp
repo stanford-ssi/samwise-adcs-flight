@@ -25,7 +25,7 @@ void test_task_dispatch(slate_t *slate)
 }
 
 sched_task_t test_task = {.name = "test",
-                          .dispatch_period_ms = 1000,
+                          .dispatch_period_ms = 10,
                           .task_init = &test_task_init,
                           .task_dispatch = &test_task_dispatch,
 
