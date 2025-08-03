@@ -2,7 +2,7 @@
  * @author Niklas Vainio
  * @date 2025-05-24
  *
- * This file contains functions for sending telemetry over UART to the picubed
+ * This file contains functions for interacting with the PiCubed over UART
  */
 #pragma once
 
@@ -11,10 +11,4 @@
 
 void picubed_uart_init();
 
-void picubed_uart_send_packet(const adcs_packet_t *packet);
-
-// TO BE RUN ON THE PICUBED
-
-void adcs_telemetry_task_init(slate_t *slate);
-
-void adcs_telemetry_task_dispatch(slate_t *slate);
+bool picubed_uart_handle_commands(slate_t *slate);

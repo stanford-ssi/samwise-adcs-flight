@@ -36,15 +36,13 @@ void telemetry_task_init(slate_t *slate)
 
 void telemetry_task_dispatch(slate_t *slate)
 {
-    LOG_INFO("[telem] Disptatching telemetry to the picubed (%d bytes)...",
-             sizeof(adcs_packet_t));
-
+    LOG_INFO("[telem] Telemetry task dispatching...");
     populate_telemetry(slate);
-    picubed_uart_send_packet(&slate->telem);
+    picubed_uart_handle_commands(slate);
 }
 
 sched_task_t telemetry_task = {.name = "telem",
-                               .dispatch_period_ms = 1000,
+                               .dispatch_period_ms = 100,
                                .task_init = &telemetry_task_init,
                                .task_dispatch = &telemetry_task_dispatch,
 

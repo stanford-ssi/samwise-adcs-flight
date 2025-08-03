@@ -1,5 +1,9 @@
+#!/bin/bash
+
+# Get the list of files that were staged in the original commit
+staged_files=$(git diff --cached --name-only)
+
 ./format_all.sh
 
-git add -u # Re-add the changes so they're included in the git commit
-
- 
+# Re-add only the files that were originally staged
+echo "$staged_files" | xargs git add 
