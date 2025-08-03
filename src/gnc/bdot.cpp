@@ -4,29 +4,43 @@
  */
 
 #include "gnc/bdot.h"
+#include "gnc/utils.h"
 #include "macros.h"
 #include "pico/stdlib.h"
 
-constexpr float k = 1e5f;
+// Control constrant
+static constexpr float bdot_k = 1e5f;
 
-void compute_bdot_control(slate_t *slate)
+/**
+ * Return requested magnetorquer moments using proportional control (XYZ
+ * order)
+ *
+ * @param dB
+ * @param dt
+ */
+float3 bdot_compute_control_proportional(float3 dB, float dt)
 {
-    // Compute dt
-    uint32_t dt_us =
-        absolute_time_diff_us(slate->bdot_last_ran_time, get_absolute_time());
-    slate->bdot_last_ran_time = get_absolute_time();
+    const float3 bdot = dB / dt;
+    const float3 moments_raw = -bdot_k * bdot;
 
-    float dt = (float)dt_us / 1e6f;
+    // Clamp moments from 0 to 1
+    return float3(clamp_abs_to_one(moments_raw.x),
+                  clamp_abs_to_one(moments_raw.y),
+                  clamp_abs_to_one(moments_raw.z));
+}
 
-    // Compute dB/dt
-    float3 dB = slate->b_field_local - slate->b_field_local_prev;
-    float3 bdot = dB / dt;
+/**
+ * Return requested magnetorquer moments using bang-bang control (XYZ order)
+ *
+ * @param dB
+ * @param dt
+ */
+float3 bdot_compute_control_bang_bang(float3 dB, float dt)
+{
+    const float3 bdot = dB / dt;
 
-    // Compute mu
-    slate->bdot_mu_requested = -k * bdot;
-
-    // Save previous field
-    slate->b_field_local_prev = slate->b_field_local;
+    // Return sign of moments
+    return float3(sign(-bdot.x), sign(-bdot.y), sign(-bdot.z));
 }
 
 void test_bdot_control(slate_t *slate)
@@ -36,21 +50,24 @@ void test_bdot_control(slate_t *slate)
     // Initialize
     slate->b_field_local = {1e-6f, 0.0f, 0.0f};
     slate->b_field_local_prev = {1e-6f, 0.0f, 0.0f};
-    slate->bdot_last_ran_time = get_absolute_time();
     sleep_ms(100);
 
     for (int i = 0; i < 10; i++)
     {
         slate->b_field_local += float3{1e-7f, 1e-7f, 1e-7f};
 
-        compute_bdot_control(slate);
+        const float3 dB = slate->b_field_local - slate->b_field_local_prev;
+        const float dt = 0.1f;
+        const float3 moments = bdot_compute_control_proportional(dB, dt);
 
         // Check result
-        ASSERT(slate->bdot_mu_requested[0] < 0);
-        ASSERT(slate->bdot_mu_requested[1] < 0);
-        ASSERT(slate->bdot_mu_requested[2] < 0);
+        ASSERT(moments.x < 0 && moments.y < 0 && moments.z < 0);
+        ASSERT(abs(moments.x) <= 1.0f && abs(moments.y) <= 1.0f &&
+               abs(moments.z) <= 1.0f);
 
         sleep_ms(100);
+
+        slate->b_field_local_prev = slate->b_field_local;
     }
 
     LOG_INFO("Bdot testing successful! :)");

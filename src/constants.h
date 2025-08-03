@@ -9,6 +9,24 @@ using namespace linalg::aliases;
 
 #pragma once
 
+// General specifications
+constexpr uint32_t NUM_SUN_SENSORS = 10;
+constexpr uint32_t NUM_REACTION_WHEELS = 4;
+
+// IMU Calibration - zero rotation reading in radians per second
+constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
+
+// (These are generally useful)
+constexpr float DEG_TO_RAD = 0.01745329251;
+constexpr float RAD_TO_DEG = 57.2957795131;
+
+// Rotation thresholds for state transitions - TODO: pick good values!
+constexpr float W_COOL_DOWN_ENTER_THRESHOLD = (100.0 * DEG_TO_RAD); // in rad/s
+constexpr float W_COOL_DOWN_EXIT_THRESHOLD = (90.0 * DEG_TO_RAD);   // in rad/s
+
+constexpr float W_ENTER_DETUMBLE_THRESHOLD = (10.0 * DEG_TO_RAD); // in rad/s
+constexpr float W_EXIT_DETUMBLE_THRESHOLD = (1.0 * DEG_TO_RAD);   // in rad/s
+
 // #### REACTION WHEEL SPECS ####
 // Spec sheet:
 // https://www.faulhaber.com/fileadmin/Import/Media/EN_2610_B_DFF.pdf Reaction
