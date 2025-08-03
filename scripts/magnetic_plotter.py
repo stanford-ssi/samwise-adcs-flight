@@ -3,16 +3,24 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
- # Set the CSV file name (update this to match your file)
-csv_file = "serial_data_20250607_135010.csv"  # Update with your actual filename
+# Set the CSV file name (update this to match your file)
+csv_file = "magnetic_field_data.csv"  # Update with your actual filename
 
 print("Simple Magnetic Field Contour Plotter")
 print("=" * 40)
 
-
 # Read the CSV file
 df = pd.read_csv(csv_file)
 print(f"Loaded {len(df)} data points")
+
+# Clean up column names by stripping whitespace
+df.columns = df.columns.str.strip()
+print(f"Cleaned column names: {list(df.columns)}")
+
+# Display the first few rows to verify structure
+print("\nFirst 5 rows of data:")
+print(df.head())
+print(f"\nColumns: {list(df.columns)}")
 
 # Get unique longitude and latitude values
 unique_lons = np.sort(df['Longitude'].unique())
@@ -20,6 +28,11 @@ unique_lats = np.sort(df['Latitude'].unique())
 
 print(f"Longitude points: {len(unique_lons)}")
 print(f"Latitude points: {len(unique_lats)}")
+
+# Check if altitude data is available
+if 'Altitude' in df.columns:
+    unique_alts = np.sort(df['Altitude'].unique())
+    print(f"Altitude points: {len(unique_alts)}")
 
 # Determine grid dimensions
 n_lon = len(unique_lons)
@@ -41,12 +54,18 @@ n_rows = len(df) // n_lon
 # Reshape data into grids
 longitude = df['Longitude'].values.reshape(n_rows, n_lon)
 latitude = df['Latitude'].values.reshape(n_rows, n_lon)
+altitude = df['Altitude'].values.reshape(n_rows, n_lon)
 b_r = df['B_r'].values.reshape(n_rows, n_lon)
 b_phi = df['B_phi'].values.reshape(n_rows, n_lon)
 b_theta = df['B_theta'].values.reshape(n_rows, n_lon)
 
-# Calculate magnitude
-magnitude = np.sqrt(b_r**2 + b_phi**2 + b_theta**2)
+# Use provided magnitude or calculate it
+if 'B_magnitude' in df.columns:
+    magnitude = df['B_magnitude'].values.reshape(n_rows, n_lon)
+    print("Using provided B_magnitude values")
+else:
+    magnitude = np.sqrt(b_r**2 + b_phi**2 + b_theta**2)
+    print("Calculated magnitude from components")
 
 print(f"Final grid shape: {n_rows} x {n_lon}")
 
@@ -97,24 +116,42 @@ for i, (data, title, colormap) in enumerate(data_sets):
 plt.tight_layout()
 
 # Save the plot
-output_file = csv_file.replace('.csv', '_simple_contours.png')
+output_file = csv_file.replace('.csv', '_contours.png')
 plt.savefig(output_file, dpi=300, bbox_inches='tight')
 print(f"\nContour plots saved as: {output_file}")
 
 # Show the plot
 plt.show()
 
-
 # %%
-fig = plt.figure()
-ax = fig.gca(projection='3d')
+# Optional: 3D Vector Field Visualization
+# Note: This section requires the magnetic field data to be on a 3D grid
+# Uncomment and modify as needed for your specific use case
 
-x, y, z = np.meshgrid(np.arange(-0.8, 1, 0.2),
-                      np.arange(-0.8, 1, 0.2),
-                      np.arange(-0.8, 1, 0.8))
+"""
+fig = plt.figure(figsize=(12, 8))
+ax = fig.add_subplot(111, projection='3d')
 
-ax.quiver(x, y, z, u, v, w, length=0.1)
+# Create a coarser grid for vector visualization (for clarity)
+step = max(1, len(unique_lons) // 10)  # Adjust step size as needed
+lon_subset = longitude[::step, ::step]
+lat_subset = latitude[::step, ::step] 
+b_r_subset = b_r[::step, ::step]
+b_phi_subset = b_phi[::step, ::step]
+b_theta_subset = b_theta[::step, ::step]
+
+# For 3D visualization, you can now use the altitude data
+z_values = altitude[::step, ::step]  # Use actual altitude values
+
+# Create 3D quiver plot
+ax.quiver(lon_subset, lat_subset, z_values, 
+          b_r_subset, b_phi_subset, b_theta_subset, 
+          length=0.1, normalize=True, alpha=0.7)
+
+ax.set_xlabel('Longitude')
+ax.set_ylabel('Latitude') 
+ax.set_zlabel('Altitude')
+ax.set_title('3D Magnetic Field Vectors')
 
 plt.show()
-
-# %%
+"""
