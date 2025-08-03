@@ -44,17 +44,17 @@
 /*!                Static variable definition                                 */
 
 // Using external reference
-static const uint8_t ads7830_channel_commands[8] = {
-    0x84, 0xC4, 0x94, 0xD4, 0xA4, 0xE4, 0xB4, 0xF4 // PD1=0, PD0=1
-};
-#define VREF                                                                   \
-    (2.5f) // Reference voltage for external reference (confirm w/ hardware)
+// static const uint8_t ads7830_channel_commands[8] = {
+//     0x84, 0xC4, 0x94, 0xD4, 0xA4, 0xE4, 0xB4, 0xF4 // PD1=0, PD0=1
+// };
+// #define VREF \
+//     (2.5f) // Reference voltage for external reference (confirm w/ hardware)
 
 // Using internal reference (2.5V)
-// static const uint8_t ads7830_channel_commands[8] = {
-//     0x8C, 0xCC, 0x9C, 0xDC, 0xAC, 0xEC, 0xBC, 0xFC  // PD1=1, PD0=1
-// };
-// #define VREF (2.5f)  // Reference voltage for internal reference
+static const uint8_t ads7830_channel_commands[8] = {
+    0x8C, 0xCC, 0x9C, 0xDC, 0xAC, 0xEC, 0xBC, 0xFC // PD1=1, PD0=1
+};
+#define VREF (2.5f) // Reference voltage for internal reference
 
 /*! I2C instance for ADC communication */
 static i2c_inst_t *ads7830_i2c_inst = i2c1;
