@@ -13,8 +13,12 @@
 
 #include "states/detumble_state.h"
 
+#include "../drivers/neopixel.h"
+
 sched_state_t *cool_down_get_next_state(slate_t *slate)
 {
+    neopixel_set_color_rgb(255, 255, 0); // Yellow for cool down state
+
     // Transition to detumble if angular velocity is low enough
     if (slate->imu_data_valid && (slate->w_mag < W_COOL_DOWN_EXIT_THRESHOLD))
     {
