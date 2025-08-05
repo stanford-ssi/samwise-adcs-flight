@@ -10,6 +10,7 @@
 #include "sensors_task.h"
 #include "macros.h"
 
+#include "drivers/ads7830.h"
 #include "drivers/gps.h"
 #include "drivers/imu.h"
 #include "drivers/magnetometer.h"
@@ -36,6 +37,21 @@ void sensors_task_init(slate_t *slate)
     bool gps_result = gps_init();
     slate->gps_alive = gps_result;
 
+    if (!gps_result)
+    {
+        LOG_ERROR("[sensors] Error initializing GPS - deactivating!");
+    }
+
+    // Sun Sensors
+    LOG_INFO("[sensors] Initializing sun sensors...");
+    bool sun_sensors_result = ads7830_init();
+    slate->sun_sensors_alive = sun_sensors_result;
+
+    if (!sun_sensors_result)
+    {
+        LOG_ERROR("[sensors] Error initializing sun sensors - deactivating!");
+    }
+
     // IMU
     LOG_INFO("[sensors] Initializing IMU...");
     bool imu_result = imu_init();
@@ -49,13 +65,16 @@ void sensors_task_init(slate_t *slate)
     // Ensure all sensor data valid flags are false
     slate->magmeter_data_valid = false;
     slate->imu_data_valid = false;
-    // slate->sun_sensor_data_valid = false;
+    slate->sun_sensors_data_valid = false;
     slate->gps_data_valid = false;
 
     LOG_INFO("[sensors] Sensor Initialization Complete! Magmeter alive: %s, "
              "IMU alive: %s",
+             "Sun sensors alive: %s, GPS alive: %s",
              slate->magmeter_alive ? "true" : "false",
-             slate->imu_alive ? "true" : "false");
+             slate->imu_alive ? "true" : "false",
+             slate->sun_sensors_alive ? "true" : "false",
+             slate->gps_alive ? "true" : "false");
 }
 
 void sensors_task_dispatch(slate_t *slate)
@@ -127,6 +146,60 @@ void sensors_task_dispatch(slate_t *slate)
     else
     {
         LOG_DEBUG("[sensors] Skipping IMU due to invalid initialization!");
+    }
+
+    // Sun Sensors
+    if (slate->sun_sensors_alive)
+    {
+        LOG_DEBUG("[sensors] Reading sun sensors...");
+        uint8_t adc_values[8];
+        float voltages[8];
+        bool result = ads7830_read_all_channels(adc_values);
+        bool voltage_result = ads7830_read_all_voltages(voltages);
+
+        if (result)
+        {
+            // Convert 8-bit ADC values to float intensities
+            // ADC has 8 channels, but we have 10 sun sensors in the slate
+            // Map the 8 ADC channels to the first 8 sun sensor positions
+            for (int i = 0; i < 8; i++)
+            {
+                slate->sun_sensors_intensities[i] = (float)adc_values[i];
+            }
+
+            // Set remaining sun sensor values to 0 if not connected
+            for (int i = 8; i < NUM_SUN_SENSORS; i++)
+            {
+                slate->sun_sensors_intensities[i] = 0.0f;
+            }
+
+            LOG_DEBUG("[sensors] Sun sensor readings: [%.1f, %.1f, %.1f, %.1f, "
+                      "%.1f, %.1f, %.1f, %.1f]",
+                      slate->sun_sensors_intensities[0],
+                      slate->sun_sensors_intensities[1],
+                      slate->sun_sensors_intensities[2],
+                      slate->sun_sensors_intensities[3],
+                      slate->sun_sensors_intensities[4],
+                      slate->sun_sensors_intensities[5],
+                      slate->sun_sensors_intensities[6],
+                      slate->sun_sensors_intensities[7]);
+        }
+
+        if (voltage_result)
+        {
+            LOG_DEBUG(
+                "[sensors] Sun sensor voltages: [%.3fV, %.3fV, %.3fV, %.3fV, "
+                "%.3fV, %.3fV, %.3fV, %.3fV]",
+                voltages[0], voltages[1], voltages[2], voltages[3], voltages[4],
+                voltages[5], voltages[6], voltages[7]);
+        }
+
+        slate->sun_sensors_data_valid = result;
+    }
+    else
+    {
+        LOG_DEBUG(
+            "[sensors] Skipping sun sensors due to invalid initialization!");
     }
 }
 
