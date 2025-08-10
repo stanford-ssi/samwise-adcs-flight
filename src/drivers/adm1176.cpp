@@ -23,7 +23,7 @@
 // Conversion constants
 #define VOLTAGE_SCALE (26.35f / 4096.0f) // For VRANGE = 0
 #define CURRENT_SCALE (0.10584f / 4096.0f)
-#define DEFAULT_SENSE_RESISTOR 0.1f
+#define DEFAULT_SENSE_RESISTOR 0.0207f // Calibrated sense resistor value
 
 // Static buffers (matching working driver)
 static uint8_t _cmd_buf[1];

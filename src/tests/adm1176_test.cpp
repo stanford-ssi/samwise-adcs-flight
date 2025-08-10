@@ -17,7 +17,7 @@ void init_power_monitor()
 {
     LOG_DEBUG("[adm1176_test] Attempting to initialize ADM1176...");
 
-    if (adm_init(0.0f)) // Use default sense resistor
+    if (adm_init(0.0207f)) // Use sense resistor
     {
         // Power on the device after initialization
         if (!adm_power_on())
