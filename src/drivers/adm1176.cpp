@@ -86,8 +86,9 @@ bool adm_init(float resistor_ohms)
     }
 
     is_initialized = true;
-    LOG_INFO("ADM1176 initialized on I2C1 with sense resistor: %.3f ohms",
-             sense_resistor);
+    LOG_INFO(
+        "[adm1176] ADM1176 initialized on i2c1 with sense resistor: %.3f ohms",
+        sense_resistor);
 
     return true;
 }
@@ -100,7 +101,7 @@ bool adm_power_on(void)
 {
     if (!is_initialized)
     {
-        LOG_ERROR("ADM1176 not initialized");
+        LOG_ERROR("[adm1176] ADM1176 not initialized");
         return false;
     }
 
@@ -108,31 +109,37 @@ bool adm_power_on(void)
     _ext_cmd_buf[0] = 0x83;
     _ext_cmd_buf[1] = 0;
 
-    LOG_DEBUG("ADM1176: Sending power-on command 0x83, 0x00 to address 0x%02X",
+    // LOG_DEBUG("[adm1176] Sending power-on command 0x83, 0x00 to address
+    // 0x%02X",
               ADM1176_I2C_ADDR);
 
-    int result = i2c_write_blocking_until(
-        SAMWISE_ADCS_PWR_I2C, ADM1176_I2C_ADDR, _ext_cmd_buf, 2, false,
-        make_timeout_time_ms(I2C_TIMEOUT_MS));
+              int result = i2c_write_blocking_until(
+                  SAMWISE_ADCS_PWR_I2C, ADM1176_I2C_ADDR, _ext_cmd_buf, 2,
+                  false, make_timeout_time_ms(I2C_TIMEOUT_MS));
 
-    LOG_DEBUG("ADM1176: I2C write result: %d (expected: 2)", result);
+              // LOG_DEBUG("[adm1176] I2C write result: %d (expected: 2)",
+              // result);
 
-    if (result != 2)
-    {
-        LOG_ERROR("Failed to turn on ADM1176, I2C write returned: %d", result);
-        return false;
-    }
+              if (result != 2)
+              {
+                  LOG_ERROR("[adm1176] Failed to turn on ADM1176, I2C write "
+                            "returned: %d",
+                            result);
+                  return false;
+              }
 
-    // Configure for continuous voltage and current (matches working driver)
-    int modes[2] = {1, 3}; // V_CONT and I_CONT
-    if (!adm_config(modes, 2))
-    {
-        LOG_ERROR("Failed to configure ADM1176 after power on");
-        return false;
-    }
+              // Configure for continuous voltage and current (matches working
+              // driver)
+              int modes[2] = {1, 3}; // V_CONT and I_CONT
+              if (!adm_config(modes, 2))
+              {
+                  LOG_ERROR(
+                      "[adm1176] Failed to configure ADM1176 after power on");
+                  return false;
+              }
 
-    LOG_DEBUG("ADM1176 powered on, config: 0x%02X", _cmd_buf[0]);
-    return true;
+              // LOG_DEBUG("[adm1176] powered on, config: 0x%02X", _cmd_buf[0]);
+              return true;
 }
 
 /**
@@ -143,7 +150,7 @@ bool adm_power_off(void)
 {
     if (!is_initialized)
     {
-        LOG_ERROR("ADM1176 not initialized");
+        LOG_ERROR("[adm1176] ADM1176 not initialized");
         return false;
     }
 
@@ -154,11 +161,11 @@ bool adm_power_off(void)
                                  _ext_cmd_buf, 2, false,
                                  make_timeout_time_ms(I2C_TIMEOUT_MS)) < 0)
     {
-        LOG_ERROR("Failed to turn off ADM1176");
+        LOG_ERROR("[adm1176] Failed to turn off ADM1176");
         return false;
     }
 
-    LOG_DEBUG("ADM1176 powered off");
+    // LOG_DEBUG("[adm1176] ADM1176 powered off");
     return true;
 }
 
@@ -171,7 +178,7 @@ bool adm_get_voltage(float *voltage_out)
 {
     if (!is_initialized || !voltage_out)
     {
-        LOG_ERROR("ADM1176 not initialized or invalid parameter");
+        LOG_ERROR("[adm1176] ADM1176 not initialized or invalid parameter");
         return false;
     }
 
@@ -195,7 +202,8 @@ bool adm_get_voltage(float *voltage_out)
     float raw_volts = ((_read_buf[0] << 8) | (_read_buf[2] & DATA_V_MASK)) >> 4;
     *voltage_out = VOLTAGE_SCALE * raw_volts;
 
-    LOG_DEBUG("ADM1176 voltage: %.3f V (raw: %.0f)", *voltage_out, raw_volts);
+    // LOG_DEBUG("[adm1176] voltage: %.3f V (raw: %.0f)", *voltage_out,
+    // raw_volts);
     return true;
 }
 
@@ -232,7 +240,8 @@ bool adm_get_current(float *current_out)
     float raw_amps = ((_read_buf[0] << 8) | (_read_buf[2] & DATA_V_MASK)) >> 4;
     *current_out = (CURRENT_SCALE * raw_amps) / sense_resistor;
 
-    LOG_DEBUG("ADM1176 current: %.3f A (raw: %.0f)", *current_out, raw_amps);
+    // LOG_DEBUG("[adm1176] current: %.3f A (raw: %.0f)", *current_out,
+    // raw_amps);
     return true;
 }
 
@@ -268,7 +277,7 @@ bool adm_get_status(uint8_t *status_out)
         return false;
     }
 
-    LOG_DEBUG("ADM1176 status: 0x%02X", *status_out);
+    // LOG_DEBUG("[adm1176] status: 0x%02X", *status_out);
     return true;
 }
 
