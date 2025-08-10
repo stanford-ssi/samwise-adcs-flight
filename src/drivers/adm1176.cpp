@@ -111,35 +111,34 @@ bool adm_power_on(void)
 
     // LOG_DEBUG("[adm1176] Sending power-on command 0x83, 0x00 to address
     // 0x%02X",
-              ADM1176_I2C_ADDR);
+    // ADM1176_I2C_ADDR);
 
-              int result = i2c_write_blocking_until(
-                  SAMWISE_ADCS_PWR_I2C, ADM1176_I2C_ADDR, _ext_cmd_buf, 2,
-                  false, make_timeout_time_ms(I2C_TIMEOUT_MS));
+    int result = i2c_write_blocking_until(
+        SAMWISE_ADCS_PWR_I2C, ADM1176_I2C_ADDR, _ext_cmd_buf, 2, false,
+        make_timeout_time_ms(I2C_TIMEOUT_MS));
 
-              // LOG_DEBUG("[adm1176] I2C write result: %d (expected: 2)",
-              // result);
+    // LOG_DEBUG("[adm1176] I2C write result: %d (expected: 2)",
+    // result);
 
-              if (result != 2)
-              {
-                  LOG_ERROR("[adm1176] Failed to turn on ADM1176, I2C write "
-                            "returned: %d",
-                            result);
-                  return false;
-              }
+    if (result != 2)
+    {
+        LOG_ERROR("[adm1176] Failed to turn on ADM1176, I2C write "
+                  "returned: %d",
+                  result);
+        return false;
+    }
 
-              // Configure for continuous voltage and current (matches working
-              // driver)
-              int modes[2] = {1, 3}; // V_CONT and I_CONT
-              if (!adm_config(modes, 2))
-              {
-                  LOG_ERROR(
-                      "[adm1176] Failed to configure ADM1176 after power on");
-                  return false;
-              }
+    // Configure for continuous voltage and current (matches working
+    // driver)
+    int modes[2] = {1, 3}; // V_CONT and I_CONT
+    if (!adm_config(modes, 2))
+    {
+        LOG_ERROR("[adm1176] Failed to configure ADM1176 after power on");
+        return false;
+    }
 
-              // LOG_DEBUG("[adm1176] powered on, config: 0x%02X", _cmd_buf[0]);
-              return true;
+    // LOG_DEBUG("[adm1176] powered on, config: 0x%02X", _cmd_buf[0]);
+    return true;
 }
 
 /**
@@ -237,7 +236,7 @@ bool adm_get_current(float *current_out)
     }
 
     // Extract current data (matches working driver exactly)
-    float raw_amps = ((_read_buf[0] << 8) | (_read_buf[2] & DATA_V_MASK)) >> 4;
+    float raw_amps = ((_read_buf[1] << 4) | (_read_buf[2] & DATA_I_MASK));
     *current_out = (CURRENT_SCALE * raw_amps) / sense_resistor;
 
     // LOG_DEBUG("[adm1176] current: %.3f A (raw: %.0f)", *current_out,
