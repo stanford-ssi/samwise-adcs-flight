@@ -10,10 +10,9 @@
 #include "macros.h"
 #include "pins.h"
 
+#include "drivers/neopixel.h"
 #include "hardware/i2c.h"
 #include "pico/stdlib.h"
-
-#include "drivers/imu.h"
 
 /**
  * @brief Initialize pins for IMU busses
@@ -44,7 +43,8 @@ static void init_i2c_buses()
 
 void init(slate_t *slate)
 {
-    LOG_INFO("Intializing...");
+    LOG_INFO("[init] Initializing...");
 
     init_i2c_buses();
+    neopixel_init();
 }

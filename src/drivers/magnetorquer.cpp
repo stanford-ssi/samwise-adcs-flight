@@ -1,6 +1,6 @@
 /**
- * @author Iris Xu and Lundeen Cahilly
- * @date 2025-07-14
+ * @author Lundeen Cahilly and Iris Xu
+ * @date 2025-07-31
  *
  * Runs magnetorquers using PWM
  *
@@ -32,8 +32,29 @@
  * magnetorquer axes (X, Y, Z). Each axis has two PWM outputs (bidirectional
  * control)
  */
-void init_pwm()
+void init_magnetorquer_pwm()
 {
+    // Enable pin
+    gpio_init(SAMWISE_ADCS_EN_MAGDRV);
+    gpio_set_dir(SAMWISE_ADCS_EN_MAGDRV, GPIO_OUT);
+    gpio_put(SAMWISE_ADCS_EN_MAGDRV, 1); // Enable magnetorquers
+
+    // Initialize pins
+    gpio_init(SAMWISE_ADCS_X_MAGDRV_IN1);
+    gpio_set_dir(SAMWISE_ADCS_X_MAGDRV_IN1, GPIO_OUT);
+    gpio_init(SAMWISE_ADCS_X_MAGDRV_IN2);
+    gpio_set_dir(SAMWISE_ADCS_X_MAGDRV_IN2, GPIO_OUT);
+
+    gpio_init(SAMWISE_ADCS_Y_MAGDRV_IN1);
+    gpio_set_dir(SAMWISE_ADCS_Y_MAGDRV_IN1, GPIO_OUT);
+    gpio_init(SAMWISE_ADCS_Y_MAGDRV_IN2);
+    gpio_set_dir(SAMWISE_ADCS_Y_MAGDRV_IN2, GPIO_OUT);
+
+    gpio_init(SAMWISE_ADCS_Z_MAGDRV_IN1);
+    gpio_set_dir(SAMWISE_ADCS_Z_MAGDRV_IN1, GPIO_OUT);
+    gpio_init(SAMWISE_ADCS_Z_MAGDRV_IN2);
+    gpio_set_dir(SAMWISE_ADCS_Z_MAGDRV_IN2, GPIO_OUT);
+
     // Configure GPIO pins for PWM function
     gpio_set_function(SAMWISE_ADCS_X_MAGDRV_IN1, GPIO_FUNC_PWM);
     gpio_set_function(SAMWISE_ADCS_X_MAGDRV_IN2, GPIO_FUNC_PWM);
@@ -42,7 +63,7 @@ void init_pwm()
     gpio_set_function(SAMWISE_ADCS_Z_MAGDRV_IN1, GPIO_FUNC_PWM);
     gpio_set_function(SAMWISE_ADCS_Z_MAGDRV_IN2, GPIO_FUNC_PWM);
 
-    LOG_INFO("PWM: Magnetorquer PWM initialized");
+    LOG_INFO("[magnetorquer] Magnetorquer PWM initialized");
 }
 
 /**
@@ -58,14 +79,15 @@ void init_pwm()
  * @param max_current maximum allowed total current (sum of absolute values)
  * @return uint8_t error code (PWM_OK on success)
  */
-uint8_t do_pwm(int8_t xdn, int8_t ydn, int8_t zdn, int max_current)
+uint8_t do_magnetorquer_pwm(int8_t xdn, int8_t ydn, int8_t zdn, int max_current)
 {
     // Validate input ranges
     if ((xdn > PWM_MAX_DUTY_CYCLE || xdn < PWM_MIN_DUTY_CYCLE) ||
         (ydn > PWM_MAX_DUTY_CYCLE || ydn < PWM_MIN_DUTY_CYCLE) ||
         (zdn > PWM_MAX_DUTY_CYCLE || zdn < PWM_MIN_DUTY_CYCLE))
     {
-        LOG_ERROR("PWM: Duty cycle values out of range (-128 to 128)");
+        LOG_ERROR(
+            "[magnetorquer] Duty cycle values out of range (-128 to 128)");
         return PWM_ERROR_OUT_OF_RANGE;
     }
 
@@ -73,8 +95,8 @@ uint8_t do_pwm(int8_t xdn, int8_t ydn, int8_t zdn, int max_current)
     int total_current = abs(xdn) + abs(ydn) + abs(zdn);
     if (total_current > max_current)
     {
-        LOG_ERROR("PWM: Total current (%d) exceeds maximum (%d)", total_current,
-                  max_current);
+        LOG_ERROR("[magnetorquer] Total current (%d) exceeds maximum (%d)",
+                  total_current, max_current);
         return PWM_ERROR_CURRENT_EXCEEDED;
     }
 
@@ -142,7 +164,7 @@ uint8_t do_pwm(int8_t xdn, int8_t ydn, int8_t zdn, int max_current)
  * This function disables all PWM outputs and sets duty cycles to zero
  * for safe shutdown of the magnetorquer system.
  */
-void stop_pwm()
+void stop_magnetorquer_pwm(void)
 {
     // Set all PWM outputs to zero
     pwm_set_gpio_level(SAMWISE_ADCS_X_MAGDRV_IN1, 0);
@@ -161,5 +183,5 @@ void stop_pwm()
     pwm_set_enabled(slice_y, false);
     pwm_set_enabled(slice_z, false);
 
-    LOG_INFO("PWM: All magnetorquer outputs stopped");
+    LOG_INFO("[magnetorquer] All magnetorquer outputs stopped");
 }

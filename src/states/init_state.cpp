@@ -11,8 +11,11 @@
 
 #include "macros.h"
 
+#include "../drivers/neopixel.h"
+
 sched_state_t *init_get_next_state(slate_t *slate)
 {
+    neopixel_set_color_rgb(255, 255, 255); // White for init state
     // If testing, go straight to test. Otherwise, go to detumble
     if (IS_TEST)
     {
