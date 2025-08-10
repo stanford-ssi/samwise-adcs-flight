@@ -62,7 +62,7 @@ target_link_libraries(samwise-adcs
   hardware_flash
   hardware_pwm
   pico_stdlib 
-  pico_util
+  hardware_pio
 )
 
 # Add the standard include files to the build

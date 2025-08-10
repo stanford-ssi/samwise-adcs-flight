@@ -15,8 +15,12 @@
 #include "states/cool_down_state.h"
 #include "states/slewing_state.h"
 
+#include "../drivers/neopixel.h"
+
 sched_state_t *detumble_get_next_state(slate_t *slate)
 {
+    neopixel_set_color_rgb(0, 0, 255); // Blue for detumble state
+
     // Enter slewing at low angular velocity
     if (slate->imu_data_valid && (slate->w_mag < W_EXIT_DETUMBLE_THRESHOLD))
     {
