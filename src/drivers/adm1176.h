@@ -8,6 +8,7 @@
 #ifndef ADM_H
 #define ADM_H
 
+#include "slate.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -57,5 +58,12 @@ bool adm_get_status(uint8_t *status_out);
  * @return true if initialized, false otherwise
  */
 bool adm_is_initialized(void);
+
+/**
+ * Get power consumption in watts and store in slate
+ * @param slate Pointer to the slate structure
+ * @return true if successful, false otherwise
+ */
+bool adm_get_power(slate_t *slate);
 
 #endif // ADM_H

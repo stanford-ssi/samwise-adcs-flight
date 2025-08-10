@@ -10,6 +10,7 @@
 #include "macros.h"
 #include "pico/stdlib.h"
 #include "pins.h"
+#include "slate.h"
 #include <stdint.h>
 
 // ADM1176 I2C configuration
@@ -287,4 +288,39 @@ bool adm_get_status(uint8_t *status_out)
 bool adm_is_initialized(void)
 {
     return is_initialized;
+}
+
+/**
+ * Get power consumption in watts and store in slate
+ * @param slate Pointer to the slate structure
+ * @return true if successful, false otherwise
+ */
+bool adm_get_power(slate_t *slate)
+{
+    if (!is_initialized || !slate)
+    {
+        LOG_ERROR("[adm1176] ADM1176 not initialized or invalid parameter");
+        return false;
+    }
+
+    float voltage, current;
+
+    if (!adm_get_voltage(&voltage))
+    {
+        LOG_ERROR("[adm1176] Failed to get voltage for power calculation");
+        return false;
+    }
+
+    if (!adm_get_current(&current))
+    {
+        LOG_ERROR("[adm1176] Failed to get current for power calculation");
+        return false;
+    }
+
+    slate->adcs_power = voltage * current;
+
+    LOG_INFO("[adm1176] ADCS power consumption: %.3f W (%.3f V × %.3f A)",
+             slate->adcs_power, voltage, current);
+
+    return true;
 }
