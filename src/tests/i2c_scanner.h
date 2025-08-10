@@ -12,10 +12,8 @@
 /*
  * Read the I2C bus for devices
  *
- * This function scans the I2C bus for devices by attempting to read from each
- * valid 7-bit I2C address. It logs the addresses of any devices that respond.
- * If no devices are found, it logs an error message.
- *
+ * @param i2c_inst The I2C instance to scan
+ * @param bus_name Name for logging (e.g., "I2C0", "I2C1")
  * @return void
  */
-void i2c_scanner(void);
+void scan_i2c_bus(i2c_inst_t *i2c_inst, const char *bus_name);

@@ -6,7 +6,7 @@
  */
 
 #include "test_task.h"
-#include "../tests/magnetorquer_tests.h"
+#include "hardware/i2c.h"
 #include "macros.h"
 #include "sensors_task.h"
 #include "telemetry_task.h"
