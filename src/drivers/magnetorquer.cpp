@@ -15,9 +15,9 @@
 #include "pins.h"
 
 // PWM Configuration Constants
-#define PWM_WRAP_VALUE (255)
+#define PWM_WRAP_VALUE (128)
 #define PWM_CLOCK_DIV (15625)
-#define PWM_MAX_DUTY_CYCLE (128)
+#define PWM_MAX_DUTY_CYCLE (127)
 #define PWM_MIN_DUTY_CYCLE (-128)
 
 // Error codes
@@ -73,9 +73,9 @@ void init_magnetorquer_pwm()
  * Positive values drive current in one direction, negative values in the
  * opposite direction. Uses current limiting.
  *
- * @param xdn x-axis duty cycle (-128 to 128)
- * @param ydn y-axis duty cycle (-128 to 128)
- * @param zdn z-axis duty cycle (-128 to 128)
+ * @param xdn x-axis duty cycle (-128 to 127)
+ * @param ydn y-axis duty cycle (-128 to 127)
+ * @param zdn z-axis duty cycle (-128 to 127)
  * @param max_current maximum allowed total current (sum of absolute values)
  * @return uint8_t error code (PWM_OK on success)
  */
@@ -87,7 +87,7 @@ uint8_t do_magnetorquer_pwm(int8_t xdn, int8_t ydn, int8_t zdn, int max_current)
         (zdn > PWM_MAX_DUTY_CYCLE || zdn < PWM_MIN_DUTY_CYCLE))
     {
         LOG_ERROR(
-            "[magnetorquer] Duty cycle values out of range (-128 to 128)");
+            "[magnetorquer] Duty cycle values out of range (-128 to 127)");
         return PWM_ERROR_OUT_OF_RANGE;
     }
 
