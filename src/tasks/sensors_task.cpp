@@ -2,7 +2,7 @@
  * @author Niklas Vainio
  * @date 2025-06-02
  *
- * This task is responsible for reasding data from sensors (magmeter, IMU, GPS,
+ * This task is responsible for reading data from sensors (magmeter, IMU, GPS,
  * sun sensors) and putting in in the slate. It runs in all states.
  *
  */
@@ -86,6 +86,9 @@ void sensors_task_dispatch(slate_t *slate)
     {
         LOG_DEBUG("[sensors] Reading magnetometer...");
         rm3100_error_t result = rm3100_get_reading(&slate->b_field_local);
+        LOG_DEBUG("[sensors] Magnetometer reading: [%.3f, %.3f, %.3f]",
+                  slate->b_field_local.x, slate->b_field_local.y,
+                  slate->b_field_local.z);
 
         slate->magmeter_data_valid = (result == RM3100_OK);
         slate->b_field_read_time = get_absolute_time();
