@@ -6,6 +6,8 @@ import json
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import os
+from datetime import datetime
 
 class MagnetometerCalibrator:
     def __init__(self, port='/dev/tty.usbmodem1101', baudrate=115200):
@@ -13,6 +15,7 @@ class MagnetometerCalibrator:
         self.baudrate = baudrate
         self.raw_data = []
         self.calibration_params = None
+        self.calibration_quality = None
         
     def collect_data(self, duration_minutes=10, min_samples=1000, reconnect_delay=2):
         """Collect magnetometer data over serial for calibration with auto-reconnect"""
@@ -156,9 +159,17 @@ class MagnetometerCalibrator:
         # Eigenvalue decomposition for transformation matrix
         eigenvals, eigenvecs = np.linalg.eig(A)
         
+        # Ensure positive eigenvalues
+        if np.any(eigenvals <= 0):
+            eigenvals = np.abs(eigenvals)
+        
+        # Compute transformation matrix
+        D_sqrt = np.diag(np.sqrt(eigenvals))
+        transform_matrix = eigenvecs @ D_sqrt @ eigenvecs.T
+        
         return {
             'center': center,
-            'transform_matrix': eigenvecs,
+            'transform_matrix': transform_matrix,
             'scale_factors': 1.0 / np.sqrt(eigenvals),
             'A_matrix': A
         }
@@ -180,7 +191,51 @@ class MagnetometerCalibrator:
             raise ValueError("Method must be 'sphere' or 'ellipsoid'")
         
         print(f"Calibration complete using {method} method")
+        
+        # Calculate calibration quality
+        self._evaluate_calibration_quality()
+        
         return self.calibration_params
+    
+    def _evaluate_calibration_quality(self):
+        """Evaluate the quality of the calibration"""
+        if self.calibration_params is None:
+            return
+        
+        # Apply calibration to all data points
+        calibrated_data = np.array([self.apply_calibration(point) for point in self.raw_data])
+        
+        # Compute distance from origin for calibrated data
+        distances = np.linalg.norm(calibrated_data, axis=1)
+        
+        # Ideal case: all distances should be equal (perfect sphere)
+        mean_distance = np.mean(distances)
+        std_distance = np.std(distances)
+        
+        # Quality metric: lower std deviation relative to mean is better
+        quality_score = std_distance / mean_distance
+        
+        self.calibration_quality = {
+            'mean_radius': mean_distance,
+            'std_radius': std_distance,
+            'quality_score': quality_score,
+            'sphericity': 1.0 - quality_score  # Higher is better (max 1.0 for perfect sphere)
+        }
+        
+        print(f"\nCalibration Quality Assessment:")
+        print(f"  Mean radius: {mean_distance:.3f} µT")
+        print(f"  Radius std dev: {std_distance:.3f} µT")
+        print(f"  Quality score: {quality_score:.4f} (lower is better)")
+        print(f"  Sphericity: {self.calibration_quality['sphericity']:.4f} (higher is better)")
+        
+        if quality_score < 0.05:
+            print("  ✓ Excellent calibration!")
+        elif quality_score < 0.1:
+            print("  ✓ Good calibration")
+        elif quality_score < 0.2:
+            print("  ⚠ Fair calibration - consider collecting more data")
+        else:
+            print("  ⚠ Poor calibration - more data needed or check sensor mounting")
     
     def apply_calibration(self, raw_reading):
         """Apply calibration to a raw magnetometer reading"""
@@ -198,12 +253,10 @@ class MagnetometerCalibrator:
             # Full ellipsoid correction
             center = self.calibration_params['center']
             transform = self.calibration_params['transform_matrix']
-            scales = self.calibration_params['scale_factors']
             
             # Apply transformation
             centered = raw - center
-            transformed = transform.T @ centered
-            calibrated = transform @ (transformed * scales)
+            calibrated = transform @ centered
         
         return calibrated.tolist()
     
@@ -220,6 +273,10 @@ class MagnetometerCalibrator:
             else:
                 params_to_save[key] = value
         
+        # Add quality metrics
+        if self.calibration_quality is not None:
+            params_to_save['calibration_quality'] = self.calibration_quality
+        
         with open(filename, 'w') as f:
             json.dump(params_to_save, f, indent=2)
         print(f"Calibration saved to {filename}")
@@ -234,11 +291,15 @@ class MagnetometerCalibrator:
             if key in ['center', 'transform_matrix', 'scale_factors', 'A_matrix'] and isinstance(value, list):
                 params[key] = np.array(value)
         
+        # Extract quality metrics if present
+        if 'calibration_quality' in params:
+            self.calibration_quality = params.pop('calibration_quality')
+        
         self.calibration_params = params
         print(f"Calibration loaded from {filename}")
     
-    def visualize_calibration(self):
-        """Plot raw vs calibrated data for visualization"""
+    def visualize_calibration(self, output_dir=None, save_plots=True):
+        """Enhanced visualization with improved plots"""
         if len(self.raw_data) == 0 or self.calibration_params is None:
             print("Need both raw data and calibration to visualize")
             return
@@ -246,37 +307,206 @@ class MagnetometerCalibrator:
         raw_data = np.array(self.raw_data)
         calibrated_data = np.array([self.apply_calibration(point) for point in self.raw_data])
         
-        fig = plt.figure(figsize=(15, 5))
+        # Set up dark theme
+        plt.style.use('dark_background')
+        fig = plt.figure(figsize=(20, 12))
         
-        # Raw data
-        ax1 = fig.add_subplot(131, projection='3d')
-        ax1.scatter(raw_data[:, 0], raw_data[:, 1], raw_data[:, 2], alpha=0.6)
-        ax1.set_title('Raw Magnetometer Data')
-        ax1.set_xlabel('X')
-        ax1.set_ylabel('Y')
-        ax1.set_zlabel('Z')
+        # Raw data 3D plot
+        ax1 = fig.add_subplot(231, projection='3d')
+        ax1.scatter(raw_data[:, 0], raw_data[:, 1], raw_data[:, 2], 
+                   c='red', s=2, alpha=0.7, edgecolors='none')
+        ax1.set_title('Raw Magnetometer Data', fontsize=14, fontweight='bold')
+        ax1.set_xlabel('X (µT)', fontsize=12)
+        ax1.set_ylabel('Y (µT)', fontsize=12)
+        ax1.set_zlabel('Z (µT)', fontsize=12)
         
-        # Calibrated data
-        ax2 = fig.add_subplot(132, projection='3d')
-        ax2.scatter(calibrated_data[:, 0], calibrated_data[:, 1], calibrated_data[:, 2], alpha=0.6, color='red')
-        ax2.set_title('Calibrated Magnetometer Data')
-        ax2.set_xlabel('X')
-        ax2.set_ylabel('Y')
-        ax2.set_zlabel('Z')
+        # Force equal aspect ratio for raw data
+        max_range = np.array([raw_data[:,0].max()-raw_data[:,0].min(),
+                             raw_data[:,1].max()-raw_data[:,1].min(),
+                             raw_data[:,2].max()-raw_data[:,2].min()]).max() / 2.0
+        mid_x = (raw_data[:,0].max()+raw_data[:,0].min()) * 0.5
+        mid_y = (raw_data[:,1].max()+raw_data[:,1].min()) * 0.5
+        mid_z = (raw_data[:,2].max()+raw_data[:,2].min()) * 0.5
+        ax1.set_xlim(mid_x - max_range, mid_x + max_range)
+        ax1.set_ylim(mid_y - max_range, mid_y + max_range)
+        ax1.set_zlim(mid_z - max_range, mid_z + max_range)
+        ax1.set_box_aspect([1,1,1])
         
-        # Comparison of magnitudes
-        ax3 = fig.add_subplot(133)
+        # Calibrated data 3D plot
+        ax2 = fig.add_subplot(232, projection='3d')
+        ax2.scatter(calibrated_data[:, 0], calibrated_data[:, 1], calibrated_data[:, 2],
+                   c='cyan', s=2, alpha=0.7, edgecolors='none')
+        ax2.set_title('Calibrated Magnetometer Data', fontsize=14, fontweight='bold')
+        ax2.set_xlabel('X (µT)', fontsize=12)
+        ax2.set_ylabel('Y (µT)', fontsize=12)
+        ax2.set_zlabel('Z (µT)', fontsize=12)
+        
+        # Force equal aspect ratio for calibrated data
+        cal_max_range = np.array([calibrated_data[:,0].max()-calibrated_data[:,0].min(),
+                                 calibrated_data[:,1].max()-calibrated_data[:,1].min(),
+                                 calibrated_data[:,2].max()-calibrated_data[:,2].min()]).max() / 2.0
+        cal_mid_x = (calibrated_data[:,0].max()+calibrated_data[:,0].min()) * 0.5
+        cal_mid_y = (calibrated_data[:,1].max()+calibrated_data[:,1].min()) * 0.5
+        cal_mid_z = (calibrated_data[:,2].max()+calibrated_data[:,2].min()) * 0.5
+        ax2.set_xlim(cal_mid_x - cal_max_range, cal_mid_x + cal_max_range)
+        ax2.set_ylim(cal_mid_y - cal_max_range, cal_mid_y + cal_max_range)
+        ax2.set_zlim(cal_mid_z - cal_max_range, cal_mid_z + cal_max_range)
+        ax2.set_box_aspect([1,1,1])
+        
+        # Add reference sphere to calibrated plot
+        if self.calibration_quality:
+            u = np.linspace(0, 2 * np.pi, 30)
+            v = np.linspace(0, np.pi, 30)
+            r = self.calibration_quality['mean_radius']
+            x_sphere = r * np.outer(np.cos(u), np.sin(v)) + cal_mid_x
+            y_sphere = r * np.outer(np.sin(u), np.sin(v)) + cal_mid_y
+            z_sphere = r * np.outer(np.ones(np.size(u)), np.cos(v)) + cal_mid_z
+            ax2.plot_surface(x_sphere, y_sphere, z_sphere, alpha=0.2, color='yellow')
+        
+        # Magnitude comparison histogram
+        ax3 = fig.add_subplot(233)
         raw_magnitudes = np.linalg.norm(raw_data, axis=1)
         cal_magnitudes = np.linalg.norm(calibrated_data, axis=1)
-        ax3.hist(raw_magnitudes, alpha=0.5, label='Raw', bins=50)
-        ax3.hist(cal_magnitudes, alpha=0.5, label='Calibrated', bins=50)
-        ax3.set_title('Magnitude Distribution')
-        ax3.set_xlabel('Magnitude')
-        ax3.set_ylabel('Count')
+        ax3.hist(raw_magnitudes, alpha=0.6, label='Raw', bins=50, color='red', density=True)
+        ax3.hist(cal_magnitudes, alpha=0.6, label='Calibrated', bins=50, color='cyan', density=True)
+        ax3.set_title('Magnitude Distribution', fontsize=14, fontweight='bold')
+        ax3.set_xlabel('Magnitude (µT)', fontsize=12)
+        ax3.set_ylabel('Density', fontsize=12)
         ax3.legend()
+        ax3.grid(True, alpha=0.3)
+        
+        # XY plane projections
+        ax4 = fig.add_subplot(234)
+        ax4.scatter(raw_data[:, 0], raw_data[:, 1], c='red', s=1, alpha=0.5, label='Raw')
+        ax4.scatter(calibrated_data[:, 0], calibrated_data[:, 1], c='cyan', s=1, alpha=0.5, label='Calibrated')
+        ax4.set_title('XY Plane Projection', fontsize=14, fontweight='bold')
+        ax4.set_xlabel('X (µT)', fontsize=12)
+        ax4.set_ylabel('Y (µT)', fontsize=12)
+        ax4.legend()
+        ax4.grid(True, alpha=0.3)
+        ax4.set_aspect('equal')
+        
+        # XZ plane projections
+        ax5 = fig.add_subplot(235)
+        ax5.scatter(raw_data[:, 0], raw_data[:, 2], c='red', s=1, alpha=0.5, label='Raw')
+        ax5.scatter(calibrated_data[:, 0], calibrated_data[:, 2], c='cyan', s=1, alpha=0.5, label='Calibrated')
+        ax5.set_title('XZ Plane Projection', fontsize=14, fontweight='bold')
+        ax5.set_xlabel('X (µT)', fontsize=12)
+        ax5.set_ylabel('Z (µT)', fontsize=12)
+        ax5.legend()
+        ax5.grid(True, alpha=0.3)
+        ax5.set_aspect('equal')
+        
+        # Quality metrics text
+        ax6 = fig.add_subplot(236)
+        ax6.axis('off')
+        quality_text = "Calibration Quality Metrics\n\n"
+        if self.calibration_quality:
+            quality_text += f"Method: {self.calibration_params['method'].title()}\n"
+            quality_text += f"Mean Radius: {self.calibration_quality['mean_radius']:.3f} µT\n"
+            quality_text += f"Radius Std Dev: {self.calibration_quality['std_radius']:.3f} µT\n"
+            quality_text += f"Quality Score: {self.calibration_quality['quality_score']:.4f}\n"
+            quality_text += f"Sphericity: {self.calibration_quality['sphericity']:.4f}\n\n"
+            
+            if self.calibration_quality['quality_score'] < 0.05:
+                quality_text += "Status: ✓ Excellent calibration!"
+            elif self.calibration_quality['quality_score'] < 0.1:
+                quality_text += "Status: ✓ Good calibration"
+            elif self.calibration_quality['quality_score'] < 0.2:
+                quality_text += "Status: ⚠ Fair calibration"
+            else:
+                quality_text += "Status: ⚠ Poor calibration"
+        
+        ax6.text(0.1, 0.9, quality_text, transform=ax6.transAxes, fontsize=12,
+                verticalalignment='top', fontfamily='monospace',
+                bbox=dict(boxstyle='round', facecolor='darkgray', alpha=0.8))
         
         plt.tight_layout()
+        
+        # Save plot if requested
+        if save_plots and output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            plot_filename = os.path.join(output_dir, f'magnetometer_calibration_{timestamp}.png')
+            plt.savefig(plot_filename, dpi=150, bbox_inches='tight', facecolor='black')
+            print(f"Calibration plots saved to: {plot_filename}")
+        
         plt.show()
+    
+    def save_calibration_report(self, output_dir="output"):
+        """Save comprehensive calibration report"""
+        if self.calibration_params is None:
+            print("No calibration to save")
+            return
+        
+        os.makedirs(output_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Save as C header file for embedded systems
+        header_filename = os.path.join(output_dir, f'mag_calibration_{timestamp}.h')
+        with open(header_filename, 'w') as f:
+            f.write(f"// Magnetometer Calibration Parameters\n")
+            f.write(f"// Generated on {timestamp}\n")
+            f.write(f"// Method: {self.calibration_params['method']}\n\n")
+            f.write(f"#ifndef MAG_CALIBRATION_H\n")
+            f.write(f"#define MAG_CALIBRATION_H\n\n")
+            
+            if self.calibration_params['method'] == 'sphere':
+                center = self.calibration_params['center']
+                f.write(f"// Hard iron offset (center correction)\n")
+                f.write(f"static const float mag_offset[3] = {{\n")
+                f.write(f"    {center[0]:.6f}f,  // X offset\n")
+                f.write(f"    {center[1]:.6f}f,  // Y offset\n")
+                f.write(f"    {center[2]:.6f}f   // Z offset\n")
+                f.write(f"}};\n\n")
+                
+                f.write(f"// Simple calibration function\n")
+                f.write(f"static inline void apply_mag_calibration(float raw[3], float cal[3]) {{\n")
+                f.write(f"    cal[0] = raw[0] - mag_offset[0];\n")
+                f.write(f"    cal[1] = raw[1] - mag_offset[1];\n")
+                f.write(f"    cal[2] = raw[2] - mag_offset[2];\n")
+                f.write(f"}}\n\n")
+                
+            elif self.calibration_params['method'] == 'ellipsoid':
+                center = self.calibration_params['center']
+                transform = self.calibration_params['transform_matrix']
+                
+                f.write(f"// Hard iron offset\n")
+                f.write(f"static const float mag_offset[3] = {{\n")
+                f.write(f"    {center[0]:.6f}f,  // X offset\n")
+                f.write(f"    {center[1]:.6f}f,  // Y offset\n")
+                f.write(f"    {center[2]:.6f}f   // Z offset\n")
+                f.write(f"}};\n\n")
+                
+                f.write(f"// Soft iron correction matrix\n")
+                f.write(f"static const float mag_transform[3][3] = {{\n")
+                for i in range(3):
+                    f.write(f"    {{")
+                    for j in range(3):
+                        f.write(f"{transform[i,j]:.6f}f")
+                        if j < 2:
+                            f.write(f", ")
+                    f.write(f"}}")
+                    if i < 2:
+                        f.write(f",")
+                    f.write(f"\n")
+                f.write(f"}};\n\n")
+                
+                f.write(f"// Full calibration function\n")
+                f.write(f"static inline void apply_mag_calibration(float raw[3], float cal[3]) {{\n")
+                f.write(f"    float centered[3] = {{\n")
+                f.write(f"        raw[0] - mag_offset[0],\n")
+                f.write(f"        raw[1] - mag_offset[1],\n")
+                f.write(f"        raw[2] - mag_offset[2]\n")
+                f.write(f"    }};\n\n")
+                f.write(f"    cal[0] = mag_transform[0][0] * centered[0] + mag_transform[0][1] * centered[1] + mag_transform[0][2] * centered[2];\n")
+                f.write(f"    cal[1] = mag_transform[1][0] * centered[0] + mag_transform[1][1] * centered[1] + mag_transform[1][2] * centered[2];\n")
+                f.write(f"    cal[2] = mag_transform[2][0] * centered[0] + mag_transform[2][1] * centered[1] + mag_transform[2][2] * centered[2];\n")
+                f.write(f"}}\n\n")
+            
+            f.write(f"#endif // MAG_CALIBRATION_H\n")
+        
+        print(f"Calibration report saved to: {header_filename}")
 
 
 # Example usage
@@ -295,11 +525,14 @@ if __name__ == "__main__":
     cal.calibrate(method='ellipsoid')  # or 'sphere' for simpler calibration
     cal.save_calibration('mag_calibration.json')
     
+    # Generate comprehensive report
+    cal.save_calibration_report('calibration_output')
+    
     # Test calibration on new reading
     # raw_reading = [-47.653, -33.293, -40.227]
     # calibrated = cal.apply_calibration(raw_reading)
     # print(f"Raw: {raw_reading}")
     # print(f"Calibrated: {calibrated}")
     
-    # Visualize results
-    # cal.visualize_calibration()
+    # Enhanced visualization
+    cal.visualize_calibration(output_dir='calibration_output')
