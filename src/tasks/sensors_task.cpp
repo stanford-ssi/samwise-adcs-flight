@@ -232,7 +232,7 @@ void sensors_task_dispatch(slate_t *slate)
 }
 
 sched_task_t sensors_task = {.name = "sensors",
-                             .dispatch_period_ms = 200,
+                             .dispatch_period_ms = 100,
                              .task_init = &sensors_task_init,
                              .task_dispatch = &sensors_task_dispatch,
 
