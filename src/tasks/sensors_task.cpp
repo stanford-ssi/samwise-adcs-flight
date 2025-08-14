@@ -8,14 +8,12 @@
  */
 
 #include "sensors_task.h"
-#include "constants.h"
 #include "macros.h"
 
 #include "drivers/ads7830.h"
 #include "drivers/gps.h"
 #include "drivers/imu.h"
 #include "drivers/magnetometer.h"
-#include "drivers/magnetorquer.h"
 #include "gnc/utils.h"
 #include "pico/time.h"
 
@@ -70,11 +68,6 @@ void sensors_task_init(slate_t *slate)
     slate->sun_sensors_data_valid = false;
     slate->gps_data_valid = false;
 
-    // Initialize magmeter sampling coordination
-    slate->magmeter_sampling_requested = false;
-    slate->magtorqs_disabled_for_sampling = false;
-    slate->magtorqs_disabled_time = nil_time;
-
     LOG_INFO("[sensors] Sensor Initialization Complete! Magmeter alive: %s, "
              "IMU alive: %s",
              "Sun sensors alive: %s, GPS alive: %s",
@@ -88,89 +81,30 @@ void sensors_task_dispatch(slate_t *slate)
 {
     // Read all sensors
 
-    // Magnetometer - state machine coordination with actuators to avoid
-    // interference
+    // Magnetometer
     if (slate->magmeter_alive)
     {
-        absolute_time_t current_time = get_absolute_time();
+        LOG_DEBUG("[sensors] Reading magnetometer...");
+        rm3100_error_t result = rm3100_get_reading(&slate->b_field_local);
+        LOG_DEBUG("[sensors] Magnetometer reading: [%.3f, %.3f, %.3f]",
+                  slate->b_field_local.x, slate->b_field_local.y,
+                  slate->b_field_local.z);
 
-        // Check if enough time has passed since last reading to prevent
-        // excessive sampling
-        uint32_t time_since_last_read =
-            absolute_time_diff_us(slate->b_field_read_time, current_time) /
-            1000;
-        bool enough_time_elapsed =
-            (time_since_last_read >= MAGNETOMETER_MIN_SAMPLE_INTERVAL_MS) ||
-            is_nil_time(slate->b_field_read_time);
+        slate->magmeter_data_valid = (result == RM3100_OK);
+        slate->b_field_read_time = get_absolute_time();
 
-        if (!slate->magmeter_sampling_requested &&
-            !slate->magtorqs_disabled_for_sampling && enough_time_elapsed)
-        {
-            // State 1: Request magtorq-free window (only if enough time has
-            // passed)
-            LOG_DEBUG("[sensors] Requesting magtorq-free window for magmeter "
-                      "reading");
-            slate->magmeter_sampling_requested = true;
-        }
-        else if (slate->magmeter_sampling_requested &&
-                 slate->magtorqs_disabled_for_sampling)
-        {
-            // State 2: Magtorqs are off, check if enough time has elapsed for
-            // clean reading
-            uint32_t time_since_disabled =
-                absolute_time_diff_us(slate->magtorqs_disabled_time,
-                                      current_time) /
-                1000;
-
-            if (time_since_disabled >=
-                MAGNETOMETER_FIELD_SETTLE_TIME_MS) // Wait for field to settle
-            {
-                // State 3: Read magmeter in clean window
-                LOG_DEBUG("[sensors] Reading magmeter in clean window...");
-                rm3100_error_t result =
-                    rm3100_get_reading(&slate->b_field_local);
-                LOG_DEBUG("[sensors] Magmeter reading: [%.3f, %.3f, %.3f]",
-                          slate->b_field_local.x, slate->b_field_local.y,
-                          slate->b_field_local.z);
-
-                slate->magmeter_data_valid = (result == RM3100_OK);
-                slate->b_field_read_time = get_absolute_time();
-                slate->bdot_data_has_updated = true; // Set flag for bdot
-
-                // State 4: Clear the sampling request - magtorqs can resume
-                slate->magmeter_sampling_requested = false;
-                slate->magtorqs_disabled_for_sampling = false;
-                LOG_DEBUG("[sensors] Magmeter sampling complete, magtorqs can "
-                          "resume");
-            }
-            else
-            {
-                LOG_DEBUG("[sensors] Waiting for magnetic field to settle (%d "
-                          "ms elapsed)",
-                          time_since_disabled);
-            }
-        }
-        else if (slate->magmeter_sampling_requested &&
-                 !slate->magtorqs_disabled_for_sampling)
-        {
-            LOG_DEBUG("[sensors] Waiting for actuators to disable magtorqs...");
-        }
-        else if (!enough_time_elapsed)
-        {
-            LOG_DEBUG("[sensors] Magmeter sampling rate limited (%d ms since "
-                      "last read)",
-                      time_since_last_read);
-        }
+        slate->bdot_data_has_updated = true; // Set flag for bdot
     }
     else
     {
-        LOG_DEBUG("[sensors] Skipping magmeter due to invalid initialization!");
+        LOG_DEBUG(
+            "[sensors] Skipping magnetometer due to invalid initialization!");
     }
 
     // GPS
     if (slate->gps_alive)
     {
-        // LOG_DEBUG("[sensors] Reading GPS...");
+        LOG_DEBUG("[sensors] Reading GPS...");
         gps_data_t gps_data;
         bool result =
             gps_get_data(&gps_data); // Only returns true if valid data AND fix
@@ -195,7 +129,7 @@ void sensors_task_dispatch(slate_t *slate)
     // IMU
     if (slate->imu_alive)
     {
-        // LOG_DEBUG("[sensors] Reading IMU...");
+        LOG_DEBUG("[sensors] Reading IMU...");
         bool result = imu_get_rotation(&slate->w_body_raw);
 
         // Apply low pass filter - we run at 10 Hz so this achieves a cutoff of
@@ -220,7 +154,7 @@ void sensors_task_dispatch(slate_t *slate)
     // Sun Sensors
     if (slate->sun_sensors_alive)
     {
-        // LOG_DEBUG("[sensors] Reading sun sensors...");
+        LOG_DEBUG("[sensors] Reading sun sensors...");
         uint8_t adc_values[8];
         float voltages[8];
         bool result = ads7830_read_all_channels(adc_values);
@@ -242,27 +176,25 @@ void sensors_task_dispatch(slate_t *slate)
                 slate->sun_sensors_intensities[i] = 0.0f;
             }
 
-            // LOG_DEBUG("[sensors] Sun sensor readings: [%.1f, %.1f, %.1f,
-            // %.1f, "
-            //           "%.1f, %.1f, %.1f, %.1f]",
-            //           slate->sun_sensors_intensities[0],
-            //           slate->sun_sensors_intensities[1],
-            //           slate->sun_sensors_intensities[2],
-            //           slate->sun_sensors_intensities[3],
-            //           slate->sun_sensors_intensities[4],
-            //           slate->sun_sensors_intensities[5],
-            //           slate->sun_sensors_intensities[6],
-            //           slate->sun_sensors_intensities[7]);
+            LOG_DEBUG("[sensors] Sun sensor readings: [%.1f, %.1f, %.1f, %.1f, "
+                      "%.1f, %.1f, %.1f, %.1f]",
+                      slate->sun_sensors_intensities[0],
+                      slate->sun_sensors_intensities[1],
+                      slate->sun_sensors_intensities[2],
+                      slate->sun_sensors_intensities[3],
+                      slate->sun_sensors_intensities[4],
+                      slate->sun_sensors_intensities[5],
+                      slate->sun_sensors_intensities[6],
+                      slate->sun_sensors_intensities[7]);
         }
 
         if (voltage_result)
         {
-            // LOG_DEBUG(
-            //     "[sensors] Sun sensor voltages: [%.3fV, %.3fV, %.3fV, %.3fV,
-            //     "
-            //     "%.3fV, %.3fV, %.3fV, %.3fV]",
-            //     voltages[0], voltages[1], voltages[2], voltages[3],
-            //     voltages[4], voltages[5], voltages[6], voltages[7]);
+            LOG_DEBUG(
+                "[sensors] Sun sensor voltages: [%.3fV, %.3fV, %.3fV, %.3fV, "
+                "%.3fV, %.3fV, %.3fV, %.3fV]",
+                voltages[0], voltages[1], voltages[2], voltages[3], voltages[4],
+                voltages[5], voltages[6], voltages[7]);
         }
 
         slate->sun_sensors_data_valid = result;
@@ -275,7 +207,7 @@ void sensors_task_dispatch(slate_t *slate)
 }
 
 sched_task_t sensors_task = {.name = "sensors",
-                             .dispatch_period_ms = 10,
+                             .dispatch_period_ms = 100,
                              .task_init = &sensors_task_init,
                              .task_dispatch = &sensors_task_dispatch,
 

@@ -44,14 +44,6 @@ typedef struct samwise_adcs_slate
     bool magmeter_data_valid;
     bool magmeter_alive;
 
-    // Magmeter sampling coordination
-    bool magmeter_sampling_requested;    // Sensors task requests magtorq-free
-                                         // window
-    bool magtorqs_disabled_for_sampling; // Actuators task confirms magtorqs are
-                                         // off
-    absolute_time_t
-        magtorqs_disabled_time; // When magtorqs were actually disabled
-
     // GPS
     float gps_lat; // º (N+ S-)
     float gps_lon; // º (E+ W-)

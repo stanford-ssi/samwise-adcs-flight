@@ -71,9 +71,3 @@ constexpr float3 SATELLITE_INERTIA = {0.01461922201, 0.0412768466,
 // #### DESATURATION GAINS ####
 // Desaturation gains for each reaction wheel
 constexpr float DESATURATION_KP = 0.01; // [1/s]
-
-// #### MAGNETOMETER SAMPLING TIMING ####
-// Time to wait after magnetorquers disabled for magnetic field to settle
-constexpr uint32_t MAGNETOMETER_FIELD_SETTLE_TIME_MS = 5; // [ms]
-// Minimum time between magnetometer readings to prevent excessive sampling
-constexpr uint32_t MAGNETOMETER_MIN_SAMPLE_INTERVAL_MS = 200; // [ms]

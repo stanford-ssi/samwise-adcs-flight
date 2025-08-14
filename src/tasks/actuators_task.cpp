@@ -40,47 +40,18 @@ void actuators_task_init(slate_t *slate)
 
 void actuators_task_dispatch(slate_t *slate)
 {
-    // Check if magmeter sampling is requested - if so, disable magtorqs
-    int8_t x_duty, y_duty, z_duty;
+    // Drive magnetorquers based on slate requests
+    // LOG_DEBUG("[actuators] Driving magnetorquers: X=%.3f, Y=%.3f, Z=%.3f",
+    //           slate->magdrv_x_requested, slate->magdrv_y_requested,
+    //           slate->magdrv_z_requested);
 
-    if (slate->magmeter_sampling_requested &&
-        !slate->magtorqs_disabled_for_sampling)
-    {
-        // Magmeter sampling requested - disable magtorqs and signal completion
-        LOG_DEBUG(
-            "[actuators] Magmeter sampling requested - disabling magtorqs");
-        x_duty = 0;
-        y_duty = 0;
-        z_duty = 0;
+    // Convert from normalized (-1.0 to 1.0) to PWM duty cycle range (-128 to
+    // 128)
+    int8_t x_duty = (int8_t)(slate->magdrv_x_requested * PWM_MAX_DUTY_CYCLE);
+    int8_t y_duty = (int8_t)(slate->magdrv_y_requested * PWM_MAX_DUTY_CYCLE);
+    int8_t z_duty = (int8_t)(slate->magdrv_z_requested * PWM_MAX_DUTY_CYCLE);
 
-        // Signal that magtorqs are now disabled
-        slate->magtorqs_disabled_for_sampling = true;
-        slate->magtorqs_disabled_time = get_absolute_time();
-        LOG_DEBUG("[actuators] Magtorqs disabled for sampling");
-    }
-    else if (slate->magmeter_sampling_requested &&
-             slate->magtorqs_disabled_for_sampling)
-    {
-        // Keep magtorqs disabled while sampling is in progress
-        x_duty = 0;
-        y_duty = 0;
-        z_duty = 0;
-    }
-    else
-    {
-        // Normal operation - drive magtorqs based on slate requests
-        LOG_DEBUG("[actuators] Driving magtorqs: X=%.3f, Y=%.3f, Z=%.3f",
-                  slate->magdrv_x_requested, slate->magdrv_y_requested,
-                  slate->magdrv_z_requested);
-
-        // Convert from normalized (-1.0 to 1.0) to PWM duty cycle range (-128
-        // to 128)
-        x_duty = (int8_t)(slate->magdrv_x_requested * PWM_MAX_DUTY_CYCLE);
-        y_duty = (int8_t)(slate->magdrv_y_requested * PWM_MAX_DUTY_CYCLE);
-        z_duty = (int8_t)(slate->magdrv_z_requested * PWM_MAX_DUTY_CYCLE);
-    }
-
-    // Apply magnetorquer PWM
+    // Apply magnetorquer PWM with default max current limit
     pwm_error_t mag_result = do_magnetorquer_pwm(x_duty, y_duty, z_duty, 1000);
 
     if (mag_result != PWM_OK)
@@ -105,10 +76,11 @@ void actuators_task_dispatch(slate_t *slate)
     }
 }
 
-sched_task_t actuators_task = {.name = "actuators",
-                               .dispatch_period_ms = 10,
-                               .task_init = &actuators_task_init,
-                               .task_dispatch = &actuators_task_dispatch,
+sched_task_t actuators_task = {
+    .name = "actuators",
+    .dispatch_period_ms = 50, // Run at 20 Hz for responsive actuator control
+    .task_init = &actuators_task_init,
+    .task_dispatch = &actuators_task_dispatch,
 
-                               /* Set to an actual value on init */
-                               .next_dispatch = 0};
+    /* Set to an actual value on init */
+    .next_dispatch = 0};
