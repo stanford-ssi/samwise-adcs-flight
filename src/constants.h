@@ -16,6 +16,21 @@ constexpr uint32_t NUM_REACTION_WHEELS = 4;
 // IMU Calibration - zero rotation reading in radians per second
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 
+// #### MAGNETOMETER CALIBRATION ####
+// TODO: UPDATE FOR FLIGHT MODEL
+// Generated on 20250810_213022 using ellipsoid method
+// Hard iron offset correction (in sensor units)
+constexpr float3 MAG_HARD_IRON_OFFSET = {
+    -10.879795f, // X offset
+    4.468930f,   // Y offset
+    -1.344230f   // Z offset
+};
+
+// Soft iron correction matrix (3x3 transformation matrix)
+constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{0.024522f, -0.001219f, -0.000468f},
+                                           {-0.001219f, 0.027507f, 0.000960f},
+                                           {-0.000468f, 0.000960f, 0.028177f}};
+
 // (These are generally useful)
 constexpr float DEG_TO_RAD = 0.01745329251;
 constexpr float RAD_TO_DEG = 57.2957795131;
