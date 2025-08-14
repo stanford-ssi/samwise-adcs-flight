@@ -8,6 +8,7 @@
 #include "detumble_state.h"
 
 #include "constants.h"
+#include "tasks/actuators_task.h"
 #include "tasks/bdot_task.h"
 #include "tasks/sensors_task.h"
 #include "tasks/telemetry_task.h"
@@ -39,6 +40,6 @@ sched_state_t *detumble_get_next_state(slate_t *slate)
 
 sched_state_t detumble_state = {
     .name = "detumble",
-    .num_tasks = 3,
-    .task_list = {&sensors_task, &telemetry_task, &bdot_task},
+    .num_tasks = 4,
+    .task_list = {&sensors_task, &telemetry_task, &bdot_task, &actuators_task},
     .get_next_state = &detumble_get_next_state};
