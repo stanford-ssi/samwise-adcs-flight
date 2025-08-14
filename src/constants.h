@@ -31,6 +31,10 @@ constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{0.024522f, -0.001219f, -0.000468f},
                                            {-0.001219f, 0.027507f, 0.000960f},
                                            {-0.000468f, 0.000960f, 0.028177f}};
 
+// #### MAGNETOMETER SAMPLING ####
+// Time to turn off the magnetorquers so we can measure the magnetometer
+constexpr uint32_t MAGNETOMETER_FIELD_SETTLE_TIME_MS = 20; // [ms]
+
 // (These are generally useful)
 constexpr float DEG_TO_RAD = 0.01745329251;
 constexpr float RAD_TO_DEG = 57.2957795131;

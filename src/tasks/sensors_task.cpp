@@ -14,6 +14,7 @@
 #include "drivers/gps.h"
 #include "drivers/imu.h"
 #include "drivers/magnetometer.h"
+#include "drivers/magnetorquer.h"
 #include "gnc/utils.h"
 #include "pico/time.h"
 
@@ -84,6 +85,18 @@ void sensors_task_dispatch(slate_t *slate)
     // Magnetometer
     if (slate->magmeter_alive)
     {
+        LOG_DEBUG("[sensors] Toggle magnetorquers off for %d ms to read "
+                  "magnetometer...",
+                  MAGNETOMETER_FIELD_SETTLE_TIME_MS);
+        pwm_error_t mag_result = do_magnetorquer_pwm(0, 0, 0, 1000);
+        if (mag_result != PWM_OK)
+        {
+            LOG_ERROR("[sensors] Error deactivating magnetorquers: %d",
+                      mag_result);
+        }
+        // Wait for magnetometer field to settle
+        sleep_ms(MAGNETOMETER_FIELD_SETTLE_TIME_MS);
+
         LOG_DEBUG("[sensors] Reading magnetometer...");
         rm3100_error_t result = rm3100_get_reading(&slate->b_field_local);
         LOG_DEBUG("[sensors] Magnetometer reading: [%.3f, %.3f, %.3f]",
@@ -94,6 +107,18 @@ void sensors_task_dispatch(slate_t *slate)
         slate->b_field_read_time = get_absolute_time();
 
         slate->bdot_data_has_updated = true; // Set flag for bdot
+
+        // Turn magnetorquers back on after reading
+        // TODO: Add current limit to slate
+        mag_result = do_magnetorquer_pwm(
+            slate->magdrv_x_requested * PWM_MAX_DUTY_CYCLE,
+            slate->magdrv_y_requested * PWM_MAX_DUTY_CYCLE,
+            slate->magdrv_z_requested * PWM_MAX_DUTY_CYCLE, 1000);
+        if (mag_result != PWM_OK)
+        {
+            LOG_ERROR("[sensors] Error reactivating magnetorquers: %d",
+                      mag_result);
+        }
     }
     else
     {
@@ -207,7 +232,7 @@ void sensors_task_dispatch(slate_t *slate)
 }
 
 sched_task_t sensors_task = {.name = "sensors",
-                             .dispatch_period_ms = 100,
+                             .dispatch_period_ms = 200,
                              .task_init = &sensors_task_init,
                              .task_dispatch = &sensors_task_dispatch,
 
