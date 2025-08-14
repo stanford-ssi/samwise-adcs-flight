@@ -42,7 +42,7 @@ void telemetry_task_dispatch(slate_t *slate)
 }
 
 sched_task_t telemetry_task = {.name = "telem",
-                               .dispatch_period_ms = 100,
+                               .dispatch_period_ms = 10,
                                .task_init = &telemetry_task_init,
                                .task_dispatch = &telemetry_task_dispatch,
 

@@ -59,7 +59,7 @@ void bdot_task_dispatch(slate_t *slate)
 }
 
 sched_task_t bdot_task = {.name = "bdot",
-                          .dispatch_period_ms = 100,
+                          .dispatch_period_ms = 10,
                           .task_init = &bdot_task_init,
                           .task_dispatch = &bdot_task_dispatch,
 
