@@ -298,8 +298,47 @@ class MagnetometerCalibrator:
         self.calibration_params = params
         print(f"Calibration loaded from {filename}")
     
+    def _set_equal_aspect_3d(self, ax, data):
+        """Set equal aspect ratio for 3D plots - ensures spheres look like spheres"""
+        # Get the range for each axis
+        x_range = data[:, 0].max() - data[:, 0].min()
+        y_range = data[:, 1].max() - data[:, 1].min()
+        z_range = data[:, 2].max() - data[:, 2].min()
+        
+        # Find the maximum range
+        max_range = max(x_range, y_range, z_range)
+        
+        # Get centers
+        x_center = (data[:, 0].max() + data[:, 0].min()) / 2
+        y_center = (data[:, 1].max() + data[:, 1].min()) / 2
+        z_center = (data[:, 2].max() + data[:, 2].min()) / 2
+        
+        # Set equal limits
+        ax.set_xlim(x_center - max_range/2, x_center + max_range/2)
+        ax.set_ylim(y_center - max_range/2, y_center + max_range/2)
+        ax.set_zlim(z_center - max_range/2, z_center + max_range/2)
+        
+        # Force equal aspect ratio
+        ax.set_box_aspect([1,1,1])
+    
+    def _set_equal_aspect_2d(self, ax, x_data, y_data):
+        """Set equal aspect ratio for 2D plots - ensures circles look like circles"""
+        ax.set_aspect('equal', adjustable='box')
+        
+        # Optional: also set equal limits for better visualization
+        x_range = x_data.max() - x_data.min()
+        y_range = y_data.max() - y_data.min()
+        max_range = max(x_range, y_range)
+        
+        x_center = (x_data.max() + x_data.min()) / 2
+        y_center = (y_data.max() + y_data.min()) / 2
+        
+        margin = max_range * 0.05  # 5% margin
+        ax.set_xlim(x_center - max_range/2 - margin, x_center + max_range/2 + margin)
+        ax.set_ylim(y_center - max_range/2 - margin, y_center + max_range/2 + margin)
+    
     def visualize_calibration(self, output_dir=None, save_plots=True):
-        """Enhanced visualization with improved plots"""
+        """Enhanced visualization with properly proportioned plots"""
         if len(self.raw_data) == 0 or self.calibration_params is None:
             print("Need both raw data and calibration to visualize")
             return
@@ -320,17 +359,8 @@ class MagnetometerCalibrator:
         ax1.set_ylabel('Y (µT)', fontsize=12)
         ax1.set_zlabel('Z (µT)', fontsize=12)
         
-        # Force equal aspect ratio for raw data
-        max_range = np.array([raw_data[:,0].max()-raw_data[:,0].min(),
-                             raw_data[:,1].max()-raw_data[:,1].min(),
-                             raw_data[:,2].max()-raw_data[:,2].min()]).max() / 2.0
-        mid_x = (raw_data[:,0].max()+raw_data[:,0].min()) * 0.5
-        mid_y = (raw_data[:,1].max()+raw_data[:,1].min()) * 0.5
-        mid_z = (raw_data[:,2].max()+raw_data[:,2].min()) * 0.5
-        ax1.set_xlim(mid_x - max_range, mid_x + max_range)
-        ax1.set_ylim(mid_y - max_range, mid_y + max_range)
-        ax1.set_zlim(mid_z - max_range, mid_z + max_range)
-        ax1.set_box_aspect([1,1,1])
+        # Apply equal aspect ratio to raw data
+        self._set_equal_aspect_3d(ax1, raw_data)
         
         # Calibrated data 3D plot
         ax2 = fig.add_subplot(232, projection='3d')
@@ -341,26 +371,19 @@ class MagnetometerCalibrator:
         ax2.set_ylabel('Y (µT)', fontsize=12)
         ax2.set_zlabel('Z (µT)', fontsize=12)
         
-        # Force equal aspect ratio for calibrated data
-        cal_max_range = np.array([calibrated_data[:,0].max()-calibrated_data[:,0].min(),
-                                 calibrated_data[:,1].max()-calibrated_data[:,1].min(),
-                                 calibrated_data[:,2].max()-calibrated_data[:,2].min()]).max() / 2.0
-        cal_mid_x = (calibrated_data[:,0].max()+calibrated_data[:,0].min()) * 0.5
-        cal_mid_y = (calibrated_data[:,1].max()+calibrated_data[:,1].min()) * 0.5
-        cal_mid_z = (calibrated_data[:,2].max()+calibrated_data[:,2].min()) * 0.5
-        ax2.set_xlim(cal_mid_x - cal_max_range, cal_mid_x + cal_max_range)
-        ax2.set_ylim(cal_mid_y - cal_max_range, cal_mid_y + cal_max_range)
-        ax2.set_zlim(cal_mid_z - cal_max_range, cal_mid_z + cal_max_range)
-        ax2.set_box_aspect([1,1,1])
+        # Apply equal aspect ratio to calibrated data
+        self._set_equal_aspect_3d(ax2, calibrated_data)
         
         # Add reference sphere to calibrated plot
         if self.calibration_quality:
             u = np.linspace(0, 2 * np.pi, 30)
             v = np.linspace(0, np.pi, 30)
             r = self.calibration_quality['mean_radius']
-            x_sphere = r * np.outer(np.cos(u), np.sin(v)) + cal_mid_x
-            y_sphere = r * np.outer(np.sin(u), np.sin(v)) + cal_mid_y
-            z_sphere = r * np.outer(np.ones(np.size(u)), np.cos(v)) + cal_mid_z
+            
+            # Center the sphere at origin (since calibrated data should be centered)
+            x_sphere = r * np.outer(np.cos(u), np.sin(v))
+            y_sphere = r * np.outer(np.sin(u), np.sin(v))
+            z_sphere = r * np.outer(np.ones(np.size(u)), np.cos(v))
             ax2.plot_surface(x_sphere, y_sphere, z_sphere, alpha=0.2, color='yellow')
         
         # Magnitude comparison histogram
@@ -375,7 +398,7 @@ class MagnetometerCalibrator:
         ax3.legend()
         ax3.grid(True, alpha=0.3)
         
-        # XY plane projections
+        # XY plane projections with equal aspect
         ax4 = fig.add_subplot(234)
         ax4.scatter(raw_data[:, 0], raw_data[:, 1], c='red', s=1, alpha=0.5, label='Raw')
         ax4.scatter(calibrated_data[:, 0], calibrated_data[:, 1], c='cyan', s=1, alpha=0.5, label='Calibrated')
@@ -384,9 +407,13 @@ class MagnetometerCalibrator:
         ax4.set_ylabel('Y (µT)', fontsize=12)
         ax4.legend()
         ax4.grid(True, alpha=0.3)
-        ax4.set_aspect('equal')
         
-        # XZ plane projections
+        # Apply equal aspect to XY projection
+        all_x = np.concatenate([raw_data[:, 0], calibrated_data[:, 0]])
+        all_y = np.concatenate([raw_data[:, 1], calibrated_data[:, 1]])
+        self._set_equal_aspect_2d(ax4, all_x, all_y)
+        
+        # XZ plane projections with equal aspect
         ax5 = fig.add_subplot(235)
         ax5.scatter(raw_data[:, 0], raw_data[:, 2], c='red', s=1, alpha=0.5, label='Raw')
         ax5.scatter(calibrated_data[:, 0], calibrated_data[:, 2], c='cyan', s=1, alpha=0.5, label='Calibrated')
@@ -395,7 +422,11 @@ class MagnetometerCalibrator:
         ax5.set_ylabel('Z (µT)', fontsize=12)
         ax5.legend()
         ax5.grid(True, alpha=0.3)
-        ax5.set_aspect('equal')
+        
+        # Apply equal aspect to XZ projection
+        all_x = np.concatenate([raw_data[:, 0], calibrated_data[:, 0]])
+        all_z = np.concatenate([raw_data[:, 2], calibrated_data[:, 2]])
+        self._set_equal_aspect_2d(ax5, all_x, all_z)
         
         # Quality metrics text
         ax6 = fig.add_subplot(236)
@@ -515,7 +546,7 @@ if __name__ == "__main__":
     cal = MagnetometerCalibrator(port='/dev/tty.usbmodem1101')  # Adjust port as needed
     
     # Option 1: Collect new data
-    # if cal.collect_data(duration_minutes=2, min_samples=1000):
+    # if cal.collect_data(duration_minutes=5, min_samples=1000):
     #     cal.save_data_to_file('mag_cal_data.json')
     
     # Option 2: Load existing data
@@ -534,5 +565,5 @@ if __name__ == "__main__":
     # print(f"Raw: {raw_reading}")
     # print(f"Calibrated: {calibrated}")
     
-    # Enhanced visualization
+    # Enhanced visualization with proper aspect ratios
     cal.visualize_calibration(output_dir='calibration_output')
