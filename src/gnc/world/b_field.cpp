@@ -11,11 +11,11 @@
 
 #define R_E 6378.0f
 #define MAX_ORDER 13
-#define MODEL_ORDER 11
+#define MODEL_ORDER 13
 
 // Forward declare legendre polynomial functions
-float legendre_schmidt(int n, int m, float x);
-float d_legendre_schmidt(int n, int m, float x);
+void compute_legendre_polynomials(int nmax, float theta,
+                                  float Pnm[][MAX_ORDER + 2]);
 
 // IGRF 2025 Coefficients (up to n=6)
 // Indices are n going down and m going left to right
@@ -85,52 +85,8 @@ float h[MAX_ORDER + 1][MAX_ORDER + 1] = {
      -0.5} // n=13
 };
 
-// Pre-computed Schmidt quasi-normalization factors
-// S(n,m) = sqrt((2-delta(0,m))(n-m)!/(n+m)!)
-float SCHMIDT_FACTORS[MAX_ORDER + 1][MAX_ORDER + 1] = {
-    {1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=0
-    {1.000000, 1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=1
-    {1.000000, 0.577350, 0.288675, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=2
-    {1.000000, 0.408248, 0.129099, 0.052705, 0.000000, 0.000000, 0.000000,
-     0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=3
-    {1.000000, 0.316228, 0.074536, 0.019920, 0.007043, 0.000000, 0.000000,
-     0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=4
-    {1.000000, 0.258199, 0.048795, 0.009960, 0.002348, 0.000742, 0.000000,
-     0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=5
-    {1.000000, 0.218218, 0.034503, 0.005751, 0.001050, 0.000224, 0.000065,
-     0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=6
-    {1.000000, 0.188982, 0.025717, 0.003637, 0.000548, 0.000091, 0.000018,
-     0.000005, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=7
-    {1.000000, 0.166667, 0.019920, 0.002452, 0.000317, 0.000044, 0.000007,
-     0.000001, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=8
-    {1.000000, 0.149071, 0.015891, 0.001734, 0.000196, 0.000023, 0.000003,
-     0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=9
-    {1.000000, 0.134840, 0.012975, 0.001272, 0.000129, 0.000014, 0.000002,
-     0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=10
-    {1.000000, 0.123091, 0.010796, 0.000962, 0.000088, 0.000008, 0.000001,
-     0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=11
-    {1.000000, 0.113228, 0.009124, 0.000745, 0.000062, 0.000005, 0.000000,
-     0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000}, // n=12
-    {1.000000, 0.104828, 0.007813, 0.000589, 0.000045, 0.000004, 0.000000,
-     0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-     0.000000} // n=13
-};
+// Dynamic Schmidt normalization - computed at runtime like pyigrf
+float rootn[2 * MAX_ORDER * MAX_ORDER + 1];
 
 void compute_B(slate_t *slate)
 {
@@ -161,7 +117,7 @@ void compute_B(slate_t *slate)
     // Convert to spherical coordinates using math spherical coordinate
     // conventions
     const float theta = (90.0f - lat) * M_PI / 180.0f; // colatitude [0 to π]
-    const float phi = (lon + 180.0f) * M_PI / 180.0f;  // azimuth [-π to π]
+    const float phi = (lon)*M_PI / 180.0f;             // azimuth [-π to π]
 
     float Br = 0.0f;
     float Btheta = 0.0f;
@@ -190,15 +146,21 @@ void compute_B(slate_t *slate)
         cos_mphi[m] = cos(m * phi);
     }
 
+    // Compute Legendre polynomials using pyigrf strategy
+    float Pnm[MAX_ORDER + 1][MAX_ORDER + 2];
+    compute_legendre_polynomials(MODEL_ORDER, theta, Pnm);
+
     // Main field computation loop
-    float r_ratio_n = r_ratio * r_ratio * r_ratio; // Start at n=1 term T
+    float r_ratio_n = r_ratio * r_ratio * r_ratio; // Start at n=1 term
     for (int n = 1; n <= MODEL_ORDER; n++)
     {
         for (int m = 0; m <= n; m++)
         {
-            // Get Schmidt normalized associated Legendre functions
-            const float P = legendre_schmidt(n, m, cos_theta);
-            const float dP = -sin_theta * d_legendre_schmidt(n, m, cos_theta);
+            // Get Schmidt normalized associated Legendre functions and
+            // derivatives
+            const float P = Pnm[n][m];
+            const float dP =
+                Pnm[m][n + 1]; // pyigrf stores derivatives at [m][n+1]
 
             // Compute common term for efficiency
             const float term = (g[n][m] * cos_mphi[m] + h[n][m] * sin_mphi[m]);
@@ -215,7 +177,6 @@ void compute_B(slate_t *slate)
                 const float Bphi_term =
                     (-g[n][m] * sin_mphi[m] + h[n][m] * cos_mphi[m]) *
                     (float)m * P / sin_theta_reg;
-                // (float)m * P / sin_theta_reg *
 
                 // Smooth transition near poles
                 const float pole_factor = (fabs(sin_theta) < POLE_THRESH)
@@ -245,82 +206,71 @@ void compute_B(slate_t *slate)
     slate->B_est = float3(Br, Bphi, Btheta);
 }
 
-// Modified Legendre function using pre-computed factors
-float legendre_schmidt(int n, int m, float x)
+// pyigrf-style Legendre polynomial computation
+void compute_legendre_polynomials(int nmax, float theta,
+                                  float Pnm[][MAX_ORDER + 2])
 {
-    if (n > MODEL_ORDER || m > n)
-        return 0;
-
-    // First compute P_m^m
-    float pmm = 1.0f;
-
-    if (m > 0)
+    // Initialize rootn array like pyigrf
+    for (int i = 0; i <= 2 * nmax * nmax; i++)
     {
-        // Clamp x to valid range to prevent NaN from sqrt
-        float x_clamped = fmax(-1.0f, fmin(1.0f, x));
-        float somx2 = sqrt((1.0f - x_clamped) * (1.0f + x_clamped));
-        float fact = 1.0f;
-        for (int i = 1; i <= m; i++)
+        rootn[i] = sqrt((float)i);
+    }
+
+    float costh = cos(theta);
+    float sinth = sqrt(1.0f - costh * costh);
+
+    // Initialize arrays
+    for (int n = 0; n <= nmax; n++)
+    {
+        for (int m = 0; m <= nmax + 1; m++)
         {
-            pmm *= -fact * somx2; // Add negative sign and alternating factor
-            fact += 2.0f;         // This grows as 1, 3, 5, 7, ...
+            Pnm[n][m] = 0.0f;
         }
     }
 
-    // Apply Schmidt factor from table
-    pmm *= SCHMIDT_FACTORS[m][m];
+    Pnm[0][0] = 1.0f;  // P(0,0) = 1
+    Pnm[1][1] = sinth; // P(1,1) = sin(theta)
 
-    if (n == m)
-        return pmm;
-
-    // Compute P_(m+1)^m
-    float pmmp1 = x * (2.0f * m + 1.0f) * pmm;
-
-    // Apply Schmidt factor for m+1
-    pmmp1 *= SCHMIDT_FACTORS[m + 1][m] / SCHMIDT_FACTORS[m][m];
-
-    if (n == (m + 1))
-        return pmmp1;
-
-    // Use recurrence to get P_n^m
-    float pnm = 0.0f;
-    for (int k = m + 2; k <= n; k++)
+    // Recursion relations after Langel "The Main Field" (1987)
+    for (int m = 0; m < nmax; m++)
     {
-        pnm = ((2.0f * k - 1.0f) * x * pmmp1 / SCHMIDT_FACTORS[k - 1][m] -
-               (k + m - 1.0f) * pmm / SCHMIDT_FACTORS[k - 2][m]) /
-              (k - m);
-        // Apply Schmidt factor ratio for this k
-        pnm *= SCHMIDT_FACTORS[k][m];
-        pmm = pmmp1;
-        pmmp1 = pnm;
+        float Pnm_tmp = rootn[m + m + 1] * Pnm[m][m];
+        Pnm[m + 1][m] = costh * Pnm_tmp;
+
+        if (m > 0)
+        {
+            Pnm[m + 1][m + 1] = sinth * Pnm_tmp / rootn[m + m + 2];
+        }
+
+        for (int n = m + 2; n <= nmax; n++)
+        {
+            int d = n * n - m * m;
+            int e = n + n - 1;
+            Pnm[n][m] = ((float)e * costh * Pnm[n - 1][m] -
+                         rootn[d - e] * Pnm[n - 2][m]) /
+                        rootn[d];
+        }
     }
 
-    return pmmp1; // Return pmmp1 for the final value
-}
+    // Compute derivatives: dP(n,m) = Pnm[m][n+1]
+    Pnm[0][2] = -Pnm[1][1];
+    Pnm[1][2] = Pnm[1][0];
 
-float d_legendre_schmidt(int n, int m, float x)
-{
-    // Special case for poles (x = ±1)
-    if (fabs(x) >= 0.99999f)
-    { // Use float comparison threshold
-        return 0.0f;
-    }
-
-    // Calculate derivative using relationship for Schmidt semi-normalized
-    // functions dP_n^m/dθ = 1/sqrt(1-x^2) * [ n*x*P_n^m - (n+m)*P_(n-1)^m ]
-    const float denominator = (x * x) - 1.0f;
-    if (fabs(denominator) < 1e-10f)
-        return 0.0f; // Handle near-pole case
-    const float factor = 1.0f / denominator;
-
-    if (n == m)
+    for (int n = 2; n <= nmax; n++)
     {
-        return n * x * legendre_schmidt(n, m, x) * factor;
+        Pnm[0][n + 1] = -sqrt((float)(n * n + n) / 2.0f) * Pnm[n][1];
+        Pnm[1][n + 1] = (sqrt(2.0f * (float)(n * n + n)) * Pnm[n][0] -
+                         sqrt((float)(n * n + n - 2)) * Pnm[n][2]) /
+                        2.0f;
+
+        for (int m = 2; m < n; m++)
+        {
+            Pnm[m][n + 1] =
+                0.5f *
+                (sqrt((float)(n + m) * (float)(n - m + 1)) * Pnm[n][m - 1] -
+                 sqrt((float)(n + m + 1) * (float)(n - m)) * Pnm[n][m + 1]);
+        }
+
+        Pnm[n][n + 1] = sqrt(2.0f * (float)n) * Pnm[n][n - 1] / 2.0f;
     }
-
-    // We need both P_n^m and P_(n-1)^m for the derivative
-    const float P_n = legendre_schmidt(n, m, x);
-    const float P_nm1 = legendre_schmidt(n - 1, m, x);
-
-    return (n * x * P_n - (n + m) * P_nm1) * factor;
 }
