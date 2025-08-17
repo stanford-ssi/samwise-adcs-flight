@@ -9,6 +9,7 @@
 #include "../tests/b_field_tests.h"
 #include "../tests/magnetorquer_tests.h"
 #include "macros.h"
+#include "pico/stdlib.h"
 #include "sensors_task.h"
 #include "telemetry_task.h"
 
@@ -26,7 +27,8 @@ void test_task_dispatch(slate_t *slate)
 
     // Run magnetic field tests
     test_b_field_reference_points(slate);
-    test_b_field_mapping(slate);
+    sleep_ms(10000);
+    // test_b_field_mapping(slate);
 
     // Run telemetry task
     // telemetry_task_dispatch(slate);
