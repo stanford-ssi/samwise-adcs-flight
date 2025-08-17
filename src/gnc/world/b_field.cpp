@@ -11,7 +11,7 @@
 
 #define R_E 6378.0f
 #define MAX_ORDER 13
-#define MODEL_ORDER 10
+#define MODEL_ORDER 8
 
 // Forward declare legendre polynomial functions
 float legendre_schmidt(int n, int m, float x);
@@ -138,6 +138,26 @@ void compute_B(slate_t *slate)
     const float lat = slate->geodetic[1]; // latitude (-90 to 90)
     const float lon = slate->geodetic[2]; // longitude (-180 to 180)
 
+    // Input validation to prevent NaN
+    if (alt < -1000.0f || alt > 10000.0f)
+    {
+        LOG_ERROR("Invalid altitude: %f km", alt);
+        slate->B_est[0] = slate->B_est[1] = slate->B_est[2] = 0.0f;
+        return;
+    }
+    if (lat < -90.0f || lat > 90.0f)
+    {
+        LOG_ERROR("Invalid latitude: %f degrees", lat);
+        slate->B_est[0] = slate->B_est[1] = slate->B_est[2] = 0.0f;
+        return;
+    }
+    if (lon < -180.0f || lon > 180.0f)
+    {
+        LOG_ERROR("Invalid longitude: %f degrees", lon);
+        slate->B_est[0] = slate->B_est[1] = slate->B_est[2] = 0.0f;
+        return;
+    }
+
     // Convert to spherical coordinates using math spherical coordinate
     // conventions
     const float theta = (90.0f - lat) * M_PI / 180.0f; // colatitude [0 to π]
@@ -209,6 +229,18 @@ void compute_B(slate_t *slate)
         r_ratio_n *= r_ratio;
     }
 
+    // Check for NaN values before storing
+    if (std::isnan(Br) || std::isnan(Btheta) || std::isnan(Bphi) ||
+        std::isinf(Br) || std::isinf(Btheta) || std::isinf(Bphi))
+    {
+        LOG_ERROR(
+            "NaN/Inf detected in magnetic field: Br=%f, Btheta=%f, Bphi=%f", Br,
+            Btheta, Bphi);
+        LOG_ERROR("Input coordinates: alt=%f, lat=%f, lon=%f", alt, lat, lon);
+        slate->B_est = float3(0.0f, 0.0f, 0.0f);
+        return;
+    }
+
     // Store results
     slate->B_est = float3(Br, Bphi, Btheta);
 }
@@ -224,7 +256,9 @@ float legendre_schmidt(int n, int m, float x)
 
     if (m > 0)
     {
-        float somx2 = sqrt((1.0f - x) * (1.0f + x));
+        // Clamp x to valid range to prevent NaN from sqrt
+        float x_clamped = fmax(-1.0f, fmin(1.0f, x));
+        float somx2 = sqrt((1.0f - x_clamped) * (1.0f + x_clamped));
         float fact = 1.0f;
         for (int i = 1; i <= m; i++)
         {
@@ -274,7 +308,10 @@ float d_legendre_schmidt(int n, int m, float x)
 
     // Calculate derivative using relationship for Schmidt semi-normalized
     // functions dP_n^m/dθ = 1/sqrt(1-x^2) * [ n*x*P_n^m - (n+m)*P_(n-1)^m ]
-    const float factor = 1.0f / ((x * x) - 1.0f);
+    const float denominator = (x * x) - 1.0f;
+    if (fabs(denominator) < 1e-10f)
+        return 0.0f; // Handle near-pole case
+    const float factor = 1.0f / denominator;
 
     if (n == m)
     {
