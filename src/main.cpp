@@ -28,14 +28,6 @@ int main()
 
     sleep_ms(5000);
 
-    // Magnetic field testing
-    while (1)
-    {
-        // test_compute_B(&slate);
-        test_map_compute_B(&slate);
-        // test_legendre_polynomials();
-    }
-
     /*
      * Run global initialization
      */
