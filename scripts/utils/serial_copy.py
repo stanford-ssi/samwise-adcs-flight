@@ -1,6 +1,6 @@
 import serial
 
-ser = serial.Serial("/dev/tty.usbmodem1101", 115200)
+ser = serial.Serial("/dev/tty.usbmodem101", 115200)
 
 with open("serial_output.txt", "w") as file:
     while True:
