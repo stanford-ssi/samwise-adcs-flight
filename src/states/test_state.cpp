@@ -9,9 +9,12 @@
 #include "test_state.h"
 #include "tasks/test_task.h"
 
+#include "../drivers/neopixel.h"
+
 sched_state_t *test_get_next_state(slate_t *slate)
 {
     // Stay in the test state forever
+    neopixel_set_color_rgb(128, 0, 128); // Purple for test state
     return &test_state;
 }
 

@@ -9,25 +9,27 @@
 #include "../tests/b_field_tests.h"
 #include "../tests/magnetorquer_tests.h"
 #include "macros.h"
+#include "sensors_task.h"
 #include "telemetry_task.h"
 
 void test_task_init(slate_t *slate)
 {
     LOG_INFO("[test] Initializing test task!");
-    telemetry_task_init(slate);
+    // sensors_task_init(slate);
+    // telemetry_task_init(slate);
     // magnetorquer_tests_init();
 }
 
 void test_task_dispatch(slate_t *slate)
 {
-    LOG_INFO("[test] Running B field tests");
+    LOG_INFO("[test] TEST TASK IS DISPATCHING");
 
     // Run magnetic field tests
     test_b_field_reference_points(slate);
     test_b_field_mapping(slate);
 
     // Run telemetry task
-    telemetry_task_dispatch(slate);
+    // telemetry_task_dispatch(slate);
     // magnetorquer_tests_dispatch();
 }
 

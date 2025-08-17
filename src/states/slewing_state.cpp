@@ -12,8 +12,11 @@
 
 #include "states/detumble_state.h"
 
+#include "../drivers/neopixel.h"
+
 sched_state_t *slewing_get_next_state(slate_t *slate)
 {
+    neopixel_set_color_rgb(255, 192, 203); // Pink for slewing state
     // This state is currently a no-op and unused
 
     // If angular speed is too high, go back to detumble

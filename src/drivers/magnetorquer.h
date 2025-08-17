@@ -1,6 +1,6 @@
 /**
- * @author Lundeen Cahilly
- * @date 2025-07-14
+ * @author Lundeen Cahilly and Iris Xu
+ * @date 2025-07-31
  *
  * This file contains functions for controlling magnetorquers using PWM
  */
@@ -23,7 +23,7 @@ typedef enum
 #define PWM_DEFAULT_MAX_CURRENT (300)
 
 // Initialize PWM for magnetorquer control
-void init_pwm(void);
+void init_magnetorquer_pwm(void);
 
 /**
  * Set PWM duty cycles for magnetorquer control
@@ -34,9 +34,10 @@ void init_pwm(void);
  * @param max_current Maximum allowed total current (sum of absolute values)
  * @return pwm_error_t Error code (PWM_OK on success)
  */
-pwm_error_t do_pwm(int8_t xdn, int8_t ydn, int8_t zdn, int max_current);
+pwm_error_t do_magnetorquer_pwm(int8_t xdn, int8_t ydn, int8_t zdn,
+                                int max_current);
 
 /**
  * Stop all magnetorquer PWM outputs
  */
-void stop_pwm(void);
+void stop_magnetorquer_pwm(void);

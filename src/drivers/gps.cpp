@@ -204,7 +204,7 @@ bool gps_init(void)
     uint actual_baud = uart_init(SAMWISE_ADCS_GPS_UART, GPS_UART_BAUD);
     if (actual_baud == 0)
     {
-        LOG_ERROR("Failed to initialize GPS UART");
+        LOG_ERROR("[gps] Failed to initialize GPS UART");
         return false;
     }
 
@@ -246,7 +246,7 @@ bool gps_init(void)
     current_gps_data.satellites = 0;
     current_gps_data.timestamp = 0;
 
-    LOG_INFO("GPS UART initialized at %d baud (actual: %d)", GPS_UART_BAUD,
+    LOG_INFO("[gps] UART initialized at %d baud (actual: %d)", GPS_UART_BAUD,
              actual_baud);
 
     return true;
