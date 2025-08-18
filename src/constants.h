@@ -27,8 +27,6 @@ constexpr float W_COOL_DOWN_EXIT_THRESHOLD = (90.0 * DEG_TO_RAD);   // in rad/s
 constexpr float W_ENTER_DETUMBLE_THRESHOLD = (10.0 * DEG_TO_RAD); // in rad/s
 constexpr float W_EXIT_DETUMBLE_THRESHOLD = (1.0 * DEG_TO_RAD);   // in rad/s
 
-#define I2C_TIMEOUT_MS 100 // Timeout for I2C operations in milliseconds
-
 // #### REACTION WHEEL SPECS ####
 // Spec sheet:
 // https://www.faulhaber.com/fileadmin/Import/Media/EN_2610_B_DFF.pdf Reaction

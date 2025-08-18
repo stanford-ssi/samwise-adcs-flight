@@ -6,7 +6,6 @@
  */
 
 #include "adm1176.h"
-#include "constants.h"
 #include "hardware/i2c.h"
 #include "macros.h"
 #include "pico/stdlib.h"
@@ -30,6 +29,9 @@
 static uint8_t _cmd_buf[1];
 static uint8_t _ext_cmd_buf[2];
 static uint8_t _read_buf[3];
+
+constexpr uint32_t TIMEOUT_MS =
+    100; // Timeout for I2C operations in milliseconds
 
 // Static state
 static bool is_initialized = false;
@@ -66,7 +68,7 @@ static bool adm_config(int *mode, int mode_len)
 
     if (i2c_write_blocking_until(SAMWISE_ADCS_PWR_I2C, ADM1176_I2C_ADDR,
                                  _cmd_buf, 1, false,
-                                 make_timeout_time_ms(I2C_TIMEOUT_MS)) != 1)
+                                 make_timeout_time_ms(TIMEOUT_MS)) != 1)
     {
         return false;
     }
@@ -111,7 +113,7 @@ bool adm_power_on(void)
 
     int result = i2c_write_blocking_until(
         SAMWISE_ADCS_PWR_I2C, ADM1176_I2C_ADDR, _ext_cmd_buf, 2, false,
-        make_timeout_time_ms(I2C_TIMEOUT_MS));
+        make_timeout_time_ms(TIMEOUT_MS));
 
     // LOG_DEBUG("[adm1176] I2C write result: %d (expected: 2)",
     // result);
@@ -154,7 +156,7 @@ bool adm_power_off(void)
     _ext_cmd_buf[1] = 1;
     if (i2c_write_blocking_until(SAMWISE_ADCS_PWR_I2C, ADM1176_I2C_ADDR,
                                  _ext_cmd_buf, 2, false,
-                                 make_timeout_time_ms(I2C_TIMEOUT_MS)) < 0)
+                                 make_timeout_time_ms(TIMEOUT_MS)) < 0)
     {
         LOG_ERROR("[adm1176] Failed to turn off ADM1176");
         return false;
@@ -187,7 +189,7 @@ bool adm_get_voltage(float *voltage_out)
     // Read 3 bytes (matches working driver)
     if (i2c_read_blocking_until(SAMWISE_ADCS_PWR_I2C, ADM1176_I2C_ADDR,
                                 _read_buf, 3, false,
-                                make_timeout_time_ms(I2C_TIMEOUT_MS)) != 3)
+                                make_timeout_time_ms(TIMEOUT_MS)) != 3)
     {
         LOG_ERROR("Failed to read voltage data from ADM1176");
         return false;
@@ -225,7 +227,7 @@ bool adm_get_current(float *current_out)
     // Read 3 bytes (matches working driver)
     if (i2c_read_blocking_until(SAMWISE_ADCS_PWR_I2C, ADM1176_I2C_ADDR,
                                 _read_buf, 3, false,
-                                make_timeout_time_ms(I2C_TIMEOUT_MS)) != 3)
+                                make_timeout_time_ms(TIMEOUT_MS)) != 3)
     {
         LOG_ERROR("Failed to read current data from ADM1176");
         return false;
@@ -257,7 +259,7 @@ bool adm_get_status(uint8_t *status_out)
     uint8_t cmd = (1 << 6); // C6 = 1 → STATUS_RD
     if (i2c_write_blocking_until(SAMWISE_ADCS_PWR_I2C, ADM1176_I2C_ADDR, &cmd,
                                  1, false,
-                                 make_timeout_time_ms(I2C_TIMEOUT_MS)) != 1)
+                                 make_timeout_time_ms(TIMEOUT_MS)) != 1)
     {
         LOG_ERROR("Failed to request status from ADM1176");
         return false;
@@ -266,7 +268,7 @@ bool adm_get_status(uint8_t *status_out)
     // Read status byte (matches working driver)
     if (i2c_read_blocking_until(SAMWISE_ADCS_PWR_I2C, ADM1176_I2C_ADDR,
                                 status_out, 1, false,
-                                make_timeout_time_ms(I2C_TIMEOUT_MS)) != 1)
+                                make_timeout_time_ms(TIMEOUT_MS)) != 1)
     {
         LOG_ERROR("Failed to read status from ADM1176");
         return false;
