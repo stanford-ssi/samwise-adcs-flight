@@ -9,6 +9,7 @@
 
 #include "tasks/sensors_task.h"
 #include "tasks/telemetry_task.h"
+#include "tasks/watchdog_task.h"
 
 #include "states/detumble_state.h"
 
