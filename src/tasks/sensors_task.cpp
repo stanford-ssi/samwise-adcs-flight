@@ -10,6 +10,7 @@
 #include "sensors_task.h"
 #include "macros.h"
 
+#include "drivers/adm1176.h"
 #include "drivers/ads7830.h"
 #include "drivers/gps.h"
 #include "drivers/imu.h"
@@ -21,6 +22,18 @@ void sensors_task_init(slate_t *slate)
 {
     // Initialize all sensors
     LOG_INFO("[sensors] Initializing sensors...");
+
+    // ADCS Power Monitor
+    LOG_INFO("[sensors] Initializing ADCS Power Monitor...");
+    bool adm1176_result = adm_init();
+    slate->adm1176_alive = adm1176_result;
+
+    if (!adm1176_result)
+    {
+        LOG_ERROR(
+            "[sensors] Error initializing ADCS Power Monitor - deactivating!");
+        adm_power_off();
+    }
 
     // Magnetometers
     LOG_INFO("[sensors] Initializing magnetometer...");
@@ -80,6 +93,21 @@ void sensors_task_init(slate_t *slate)
 void sensors_task_dispatch(slate_t *slate)
 {
     // Read all sensors
+
+    // ADCS Power Monitor
+    if (slate->adm1176_alive)
+    {
+        LOG_DEBUG("[sensors] Reading ADCS Power Monitor...");
+        bool result = adm_get_power(slate);
+        LOG_DEBUG("[sensors] ADCS Power Monitor [%.3fW, %.3fV, "
+                  "%.3fA]",
+                  slate->adcs_power, slate->adcs_voltage, slate->adcs_current);
+    }
+    else
+    {
+        LOG_DEBUG("[sensors] Skipping ADCS Power Monitor due to invalid "
+                  "initialization!");
+    }
 
     // Magnetometer
     if (slate->magmeter_alive)

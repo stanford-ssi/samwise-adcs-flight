@@ -6,6 +6,7 @@
  */
 
 #include "adm1176.h"
+#include "constants.h"
 #include "hardware/i2c.h"
 #include "macros.h"
 #include "pico/stdlib.h"
@@ -15,7 +16,6 @@
 
 // ADM1176 I2C configuration
 #define ADM1176_I2C_ADDR 0x4A
-#define I2C_TIMEOUT_MS 100 // Add this if not defined elsewhere
 
 // Data masks
 #define DATA_V_MASK 0xF0
@@ -79,18 +79,19 @@ static bool adm_config(int *mode, int mode_len)
  * @param resistor_ohms Sense resistor value in ohms (use 0.0f for default)
  * @return true if initialization successful, false otherwise
  */
-bool adm_init(float resistor_ohms)
+bool adm_init(void)
 {
-    if (resistor_ohms > 0.0f)
+    if (!adm_power_on())
     {
-        sense_resistor = resistor_ohms;
+        LOG_ERROR("[adm1176] Failed to power on ADM1176");
+        is_initialized = false;
+        return false;
     }
-
-    is_initialized = true;
     LOG_INFO(
         "[adm1176] ADM1176 initialized on i2c1 with sense resistor: %.3f ohms",
-        sense_resistor);
+        ADCS_POWER_SENSE_RESISTOR);
 
+    is_initialized = true;
     return true;
 }
 
@@ -100,12 +101,6 @@ bool adm_init(float resistor_ohms)
  */
 bool adm_power_on(void)
 {
-    if (!is_initialized)
-    {
-        LOG_ERROR("[adm1176] ADM1176 not initialized");
-        return false;
-    }
-
     // Extended command to turn on (matches working driver)
     _ext_cmd_buf[0] = 0x83;
     _ext_cmd_buf[1] = 0;
@@ -317,10 +312,10 @@ bool adm_get_power(slate_t *slate)
         return false;
     }
 
+    // Update slate
     slate->adcs_power = voltage * current;
-
-    LOG_INFO("[adm1176] ADCS power consumption: %.3f W (%.3f V × %.3f A)",
-             slate->adcs_power, voltage, current);
+    slate->adcs_voltage = voltage;
+    slate->adcs_current = current;
 
     return true;
 }

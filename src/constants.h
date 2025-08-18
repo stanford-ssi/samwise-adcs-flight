@@ -58,3 +58,6 @@ constexpr float3 SATELLITE_INERTIA = {0.01461922201, 0.0412768466,
 // #### DESATURATION GAINS ####
 // Desaturation gains for each reaction wheel
 constexpr float DESATURATION_KP = 0.01; // [1/s]
+
+// #### ADM1176 POWER MONITORING ####
+constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]

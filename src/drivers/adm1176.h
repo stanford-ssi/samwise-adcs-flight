@@ -14,11 +14,9 @@
 
 /**
  * Initialize ADM1176 power monitor
- * @param resistor_ohms Sense resistor value in ohms (use 0.0f for default 0.1
- * ohm)
  * @return true if initialization successful, false otherwise
  */
-bool adm_init(float resistor_ohms);
+bool adm_init(void);
 
 /**
  * Turn on ADM1176 power monitoring

@@ -64,7 +64,10 @@ typedef struct samwise_adcs_slate
     float imu_alive;
 
     // Power monitoring
-    float adcs_power; // [W] ADCS board power consumption
+    float adcs_power;   // [W] ADCS board power consumption
+    float adcs_voltage; // [V] ADCS board voltage
+    float adcs_current; // [A] ADCS board current
+    bool adm1176_alive; // true if ADM1176 is initialized
 
     // ************************************************************************
     //          ACTUATOR REQUESTS
