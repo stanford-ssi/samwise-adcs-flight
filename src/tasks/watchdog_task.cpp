@@ -11,16 +11,17 @@
 #include "drivers/watchdog.h"
 #include "macros.h"
 #include "pico/time.h"
+#include "slate.h"
 
 void watchdog_task_init(slate_t *slate)
 {
-    watchdog_init();
+    watchdog_init(slate);
 }
 
 void watchdog_task_dispatch(slate_t *slate)
 {
     neopixel_set_color_rgb(255, 0, 0); // Red blink for watchdog task
-    watchdog_feed();
+    watchdog_feed(slate);
     neopixel_set_color_rgb(0, 0, 0);
 }
 

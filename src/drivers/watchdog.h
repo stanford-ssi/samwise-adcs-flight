@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "pico/time.h"
+#include "slate.h"
 
-void watchdog_init(void);
-void watchdog_feed(void);
+bool watchdog_init(slate_t *slate);
+void watchdog_feed(slate_t *slate);

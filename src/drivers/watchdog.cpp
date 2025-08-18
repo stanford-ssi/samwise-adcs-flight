@@ -10,27 +10,26 @@
 #include "macros.h"
 #include "pins.h"
 
-static bool watchdog_initialized = false;
-static bool pin_high = false;
-static absolute_time_t pin_high_time;
-static absolute_time_t last_feed_time;
+constexpr uint32_t watchdog_pin_high_us = 200000;       // 200 ms
+constexpr uint32_t watchdog_feed_interval_us = 2000000; // 2 seconds
 
-void watchdog_init(void)
+bool watchdog_init(slate_t *slate)
 {
     gpio_init(SAMWISE_ADCS_WATCHDOG_FEED);
     gpio_set_dir(SAMWISE_ADCS_WATCHDOG_FEED, GPIO_OUT);
     gpio_put(SAMWISE_ADCS_WATCHDOG_FEED, 0);
 
-    watchdog_initialized = true;
-    pin_high = false;
-    pin_high_time = nil_time;
-    last_feed_time = get_absolute_time();
+    slate->pin_high = false;
+    slate->pin_high_time = nil_time;
+    slate->last_feed_time = get_absolute_time();
+
+    return slate->watchdog_initialized = true;
 }
 
-void watchdog_feed(void)
+void watchdog_feed(slate_t *slate)
 {
     // LOG_DEBUG("[watchdog] Feeding watchdog");
-    if (!watchdog_initialized)
+    if (!slate->watchdog_initialized)
     {
         LOG_ERROR("[watchdog] Watchdog not initialized!");
         return;
@@ -39,21 +38,23 @@ void watchdog_feed(void)
     absolute_time_t now = get_absolute_time();
 
     // Handle pin timing - pull low after 200ms if currently high
-    if (pin_high && absolute_time_diff_us(pin_high_time, now) >= 200000)
+    if (slate->pin_high && absolute_time_diff_us(slate->pin_high_time, now) >=
+                               watchdog_pin_high_us)
     {
         LOG_DEBUG("[watchdog] wdt LOW");
         gpio_put(SAMWISE_ADCS_WATCHDOG_FEED, 0);
-        pin_high = false;
-        pin_high_time = nil_time;
+        slate->pin_high = false;
+        slate->pin_high_time = nil_time;
     }
 
     // Feed watchdog if 2 seconds have passed and pin is not currently high
-    if (!pin_high && absolute_time_diff_us(last_feed_time, now) >= 2000000)
+    if (!slate->pin_high && absolute_time_diff_us(slate->last_feed_time, now) >=
+                                watchdog_feed_interval_us)
     {
         LOG_DEBUG("[watchdog] wdt HIGH");
         gpio_put(SAMWISE_ADCS_WATCHDOG_FEED, 1);
-        pin_high = true;
-        pin_high_time = now;
-        last_feed_time = now;
+        slate->pin_high = true;
+        slate->pin_high_time = now;
+        slate->last_feed_time = now;
     }
 }
