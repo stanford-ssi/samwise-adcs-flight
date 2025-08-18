@@ -6,8 +6,6 @@
 
 #include "pico/stdlib.h"
 
-#include "gnc/world/b_field.h"
-
 #include "init.h"
 #include "macros.h"
 #include "scheduler/scheduler.h"

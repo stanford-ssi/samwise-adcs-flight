@@ -6,33 +6,19 @@
  */
 
 #include "test_task.h"
-#include "../tests/b_field_tests.h"
-#include "../tests/magnetorquer_tests.h"
 #include "macros.h"
-#include "pico/stdlib.h"
 #include "sensors_task.h"
-#include "telemetry_task.h"
 
 void test_task_init(slate_t *slate)
 {
     LOG_INFO("[test] Initializing test task!");
-    // sensors_task_init(slate);
-    // telemetry_task_init(slate);
-    // magnetorquer_tests_init();
+    sensors_task_init(slate);
 }
 
 void test_task_dispatch(slate_t *slate)
 {
     LOG_INFO("[test] TEST TASK IS DISPATCHING");
-
-    // Run magnetic field tests
-    test_b_field_reference_points(slate);
-    sleep_ms(10000);
-    // test_b_field_mapping(slate);
-
-    // Run telemetry task
-    // telemetry_task_dispatch(slate);
-    // magnetorquer_tests_dispatch();
+    sensors_task_dispatch(slate);
 }
 
 sched_task_t test_task = {.name = "test",
