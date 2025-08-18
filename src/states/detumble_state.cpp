@@ -11,6 +11,7 @@
 #include "tasks/bdot_task.h"
 #include "tasks/sensors_task.h"
 #include "tasks/telemetry_task.h"
+#include "tasks/watchdog_task.h"
 
 #include "states/cool_down_state.h"
 #include "states/slewing_state.h"
