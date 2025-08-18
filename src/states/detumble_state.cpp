@@ -39,6 +39,6 @@ sched_state_t *detumble_get_next_state(slate_t *slate)
 
 sched_state_t detumble_state = {
     .name = "detumble",
-    .num_tasks = 4,
-    .task_list = {&sensors_task, &telemetry_task, &bdot_task, &watchdog_task},
+    .num_tasks = 3,
+    .task_list = {&sensors_task, &telemetry_task, &bdot_task},
     .get_next_state = &detumble_get_next_state};

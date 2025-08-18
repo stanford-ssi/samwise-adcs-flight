@@ -28,8 +28,7 @@ sched_state_t *cool_down_get_next_state(slate_t *slate)
     return &cool_down_state;
 }
 
-sched_state_t cool_down_state = {
-    .name = "cool_down",
-    .num_tasks = 3,
-    .task_list = {&sensors_task, &telemetry_task, &watchdog_task},
-    .get_next_state = &cool_down_get_next_state};
+sched_state_t cool_down_state = {.name = "cool_down",
+                                 .num_tasks = 2,
+                                 .task_list = {&sensors_task, &telemetry_task},
+                                 .get_next_state = &cool_down_get_next_state};

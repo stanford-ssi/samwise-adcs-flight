@@ -8,7 +8,6 @@
 
 #include "test_state.h"
 #include "tasks/test_task.h"
-#include "tasks/watchdog_task.h"
 
 #include "../drivers/neopixel.h"
 
@@ -21,6 +20,6 @@ sched_state_t *test_get_next_state(slate_t *slate)
 
 // Add test tasks to the task list
 sched_state_t test_state = {.name = "test",
-                            .num_tasks = 2,
-                            .task_list = {&test_task, &watchdog_task},
+                            .num_tasks = 1,
+                            .task_list = {&test_task},
                             .get_next_state = &test_get_next_state};

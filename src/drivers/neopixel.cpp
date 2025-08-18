@@ -44,11 +44,7 @@ static inline void send_pixel(uint32_t pixel_grb)
  */
 bool neopixel_init(void)
 {
-#ifdef FLIGHT
-    LOG_INFO("[neopixel] Neopixel disabled (FLIGHT mode)");
-    is_initialized = false;
-    return true;
-#else
+#ifndef PICO
     // Initialize GPIO pin
     gpio_init(SAMWISE_ADCS_NEOPIXEL);
     gpio_set_dir(SAMWISE_ADCS_NEOPIXEL, GPIO_OUT);
@@ -70,6 +66,11 @@ bool neopixel_init(void)
              SAMWISE_ADCS_NEOPIXEL, NEOPIXEL_FREQ);
 
     return true;
+#else
+    LOG_INFO("[neopixel] Neopixel driver initialized (simulation mode - PICO "
+             "build)");
+    is_initialized = true;
+    return true;
 #endif
 }
 
@@ -82,9 +83,6 @@ bool neopixel_init(void)
  */
 bool neopixel_set_color_rgb(uint8_t r, uint8_t g, uint8_t b)
 {
-#ifdef FLIGHT
-    return true; // No-op in FLIGHT mode
-#else
     if (!is_initialized)
     {
         LOG_ERROR("[neopixel] Neopixel not initialized");
@@ -107,7 +105,6 @@ bool neopixel_set_color_rgb(uint8_t r, uint8_t g, uint8_t b)
 #endif
 
     return true;
-#endif
 }
 
 /**
@@ -116,11 +113,7 @@ bool neopixel_set_color_rgb(uint8_t r, uint8_t g, uint8_t b)
  */
 bool neopixel_off(void)
 {
-#ifdef FLIGHT
-    return true; // No-op in FLIGHT mode
-#else
     return neopixel_set_color_rgb(0, 0, 0);
-#endif
 }
 
 /**
@@ -129,9 +122,5 @@ bool neopixel_off(void)
  */
 bool neopixel_is_initialized(void)
 {
-#ifdef FLIGHT
-    return false; // Always false in FLIGHT mode
-#else
     return is_initialized;
-#endif
 }
