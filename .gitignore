@@ -2,3 +2,5 @@
 **/.DS_Store
 .vscode
 build
+scripts/igrf/*.csv
+scripts/igrf/*.png
