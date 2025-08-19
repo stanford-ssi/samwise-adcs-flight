@@ -6,7 +6,6 @@
  */
 
 #include "test_task.h"
-#include "../tests/b_field_tests.h"
 #include "macros.h"
 #include "pico/stdlib.h"
 
@@ -18,8 +17,6 @@ void test_task_init(slate_t *slate)
 void test_task_dispatch(slate_t *slate)
 {
     LOG_INFO("[test] TEST TASK IS DISPATCHING");
-    test_b_field_mapping(slate);
-    sleep_ms(60000);
 }
 
 sched_task_t test_task = {.name = "test",
