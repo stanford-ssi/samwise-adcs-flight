@@ -116,6 +116,37 @@ void mram_read(uint32_t address, uint8_t *data, size_t length)
 }
 
 /**
+ * Clear/erase a region of MRAM by writing zeros
+ * @param address 24-bit address to clear
+ * @param length Number of bytes to clear (max 256)
+ */
+void mram_clear(uint32_t address, size_t length)
+{
+    if (length > 256)
+    {
+        LOG_INFO("[mram] Clear failed: length %zu exceeds maximum", length);
+        return;
+    }
+
+    mram_write_enable();
+
+    static uint8_t clear_buf[256 + 4];
+
+    // Set up command and address
+    clear_buf[0] = WRITE_CMD;
+    clear_buf[1] = (address >> 16) & 0xFF;
+    clear_buf[2] = (address >> 8) & 0xFF;
+    clear_buf[3] = address & 0xFF;
+
+    // Fill with zeros
+    memset(&clear_buf[4], 0x00, length);
+
+    uint32_t interrupts = save_and_disable_interrupts();
+    flash_do_cmd(clear_buf, NULL, 4 + length);
+    restore_interrupts(interrupts);
+}
+
+/**
  * Write data to MRAM at specified address
  * @param address 24-bit address to write to
  * @param data Buffer containing data to write

@@ -28,4 +28,20 @@ void mram_test(void)
         LOG_ERROR("[mram_test] FAIL - Wrote 0x%02X, read 0x%02X", test_data,
                   read_data);
     }
+
+    // Test clearing a region
+    mram_clear(0x000000, 1);
+    sleep_ms(1); // Add small delay
+    mram_read(0x000000, &read_data, 1);
+
+    if (read_data == 0x00)
+    {
+        LOG_INFO("[mram_test] PASS - Cleared address 0x000000, read 0x%02X",
+                 read_data);
+    }
+    else
+    {
+        LOG_ERROR("[mram_test] FAIL - Cleared address 0x000000, read 0x%02X",
+                  read_data);
+    }
 }

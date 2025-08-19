@@ -7,6 +7,7 @@
  */
 
 #include <cstddef>
+#include <stdbool.h>
 #include <stdint.h>
 
 /**
@@ -47,6 +48,13 @@ void mram_wake(void);
  * @param length Number of bytes to read (max 256)
  */
 void mram_read(uint32_t address, uint8_t *data, size_t length);
+
+/**
+ * Clear/erase a region of MRAM by writing zeros
+ * @param address 24-bit address to clear
+ * @param length Number of bytes to clear (max 256)
+ */
+void mram_clear(uint32_t address, size_t length);
 
 /**
  * Write data to MRAM at specified address
