@@ -19,6 +19,7 @@ constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 // (These are generally useful)
 constexpr float DEG_TO_RAD = 0.01745329251;
 constexpr float RAD_TO_DEG = 57.2957795131;
+constexpr float SQRT_2_INV = 0.7071067811865476f; // 1 / sqrt(2)
 
 // Rotation thresholds for state transitions - TODO: pick good values!
 constexpr float W_COOL_DOWN_ENTER_THRESHOLD = (100.0 * DEG_TO_RAD); // in rad/s
