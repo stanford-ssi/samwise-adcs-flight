@@ -15,3 +15,4 @@
 #include <stdlib.h>
 
 void mram_test(void);
+void mram_collision_test(void);
