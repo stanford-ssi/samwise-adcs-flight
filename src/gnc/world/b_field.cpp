@@ -65,11 +65,11 @@ bool compute_B(slate_t *slate)
     // Cache trig terms with pole regularization
     const float sin_theta = sinf(theta); // for pole regularization
     const float cos_theta = cosf(theta); // for Legendre polynomials
-    const float sin_theta_reg =
-        (fabsf(sin_theta) < B_FIELD_POLE_THRESH)
-            ? B_FIELD_POLE_THRESH * (sin_theta >= 0.0f ? 1.0f : -1.0f)
-            : sin_theta;
-    // FLAG: IGNORE TRIADS IN THIS CASE
+    if (fabsf(sin_theta) < B_FIELD_POLE_THRESH)
+    {
+        LOG_ERROR("Invalid theta: %f radians (near pole singularity)", theta);
+        return false; // Avoid singularities near poles
+    }
 
     // Pre-compute sin/cos m*phi terms
     float sin_mphi[B_FIELD_MODEL_ORDER + 1];
@@ -111,15 +111,8 @@ bool compute_B(slate_t *slate)
             { // m=0 terms don't contribute to Bphi
                 const float Bphi_term =
                     (-g[n][m] * sin_mphi[m] + h[n][m] * cos_mphi[m]) *
-                    static_cast<float>(m) * P / sin_theta_reg;
-
-                // Smooth transition near poles
-                const float pole_factor =
-                    (fabsf(sin_theta) < B_FIELD_POLE_THRESH)
-                        ? sin_theta / B_FIELD_POLE_THRESH
-                        : 1.0f;
-
-                Bphi -= r_ratio_n * Bphi_term * pole_factor;
+                    static_cast<float>(m) * P / sin_theta;
+                Bphi -= r_ratio_n * Bphi_term;
             }
         }
         // Multiply another ratio before next loop
