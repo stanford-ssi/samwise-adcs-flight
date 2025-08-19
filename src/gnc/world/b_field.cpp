@@ -130,15 +130,17 @@ bool compute_B(slate_t *slate)
         return false;
     }
 
-    // Store results in r, phi, theta frame (for graphing) [Up, East, North]
-    slate->B_est_rpt = float3(Br, Bphi, Btheta);
+    // Store raw results
+    float3 B_rpt_raw = {Br, Bphi,
+                        Btheta}; // R, phi, theta frame [Up, East, North]
+    float3 B_enu_raw = {Bphi, Btheta, Br}; // East-North-Up (ENU) frame
+    float3 B_ecef_raw =
+        enu_to_ecef(B_enu_raw, float3(lat, lon, alt)); // Convert to ECEF frame
 
-    // Store results in East-North-Up (ENU) frame
-    slate->B_est_enu = float3(Bphi, Btheta, Br);
-
-    // Convert to ECEF frame and store
-    slate->B_est_ecef =
-        enu_to_ecef(float3(Bphi, Btheta, Br), float3(lat, lon, alt));
+    // Normalize the vectors
+    slate->B_est_rpt = normalize(B_rpt_raw);
+    slate->B_est_enu = normalize(B_enu_raw);
+    slate->B_est_ecef = normalize(B_ecef_raw);
 
     return true;
 }
