@@ -1,13 +1,16 @@
+/**
+ * @author Lundeen Cahilly
+ * @date 2025-02-10
+ *
+ * This file defines a magnetic field model based on the IGRF-2025 coefficients.
+ * It computes the magnetic field vector in based on the satellite's geodetic
+ * coordinates (altitude, latitude, longitude).
+ */
+
 #pragma once
 
-#include "linalg.h"
 #include "slate.h"
 
 // compute_B computes the magnetic field
-void compute_B(slate_t *slate);
-// tests B field values
-void test_compute_B(slate_t *slate);
-// test_legendre_values
-void test_legendre_polynomials();
-// test B field values everywhere!!!
-void test_map_compute_B(slate_t *slate);
+// returns true if successful, false if there was an error
+bool compute_B(slate_t *slate);

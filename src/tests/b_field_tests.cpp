@@ -40,9 +40,9 @@ void test_b_field_reference_points(slate_t *slate)
 
     for (int i = 0; i < num_tests; i++)
     {
-        slate->geodetic[0] = test_points[i].alt;
-        slate->geodetic[1] = test_points[i].lat;
-        slate->geodetic[2] = test_points[i].lon;
+        slate->geodetic_lat_lon_alt[0] = test_points[i].alt;
+        slate->geodetic_lat_lon_alt[1] = test_points[i].lat;
+        slate->geodetic_lat_lon_alt[2] = test_points[i].lon;
 
         compute_B(slate);
 
@@ -89,9 +89,9 @@ void test_b_field_mapping(slate_t *slate)
     {
         for (float lon = -179.9f; lon <= 179.9f; lon += LON_STEP)
         {
-            slate->geodetic[0] = ALTITUDE;
-            slate->geodetic[1] = lat;
-            slate->geodetic[2] = lon;
+            slate->geodetic_lat_lon_alt[0] = ALTITUDE;
+            slate->geodetic_lat_lon_alt[1] = lat;
+            slate->geodetic_lat_lon_alt[2] = lon;
 
             compute_B(slate);
 

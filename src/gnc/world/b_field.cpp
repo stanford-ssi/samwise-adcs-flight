@@ -1,27 +1,30 @@
 /**
  * @author Lundeen Cahilly
  * @date 2025-02-10
+ *
+ * This file defines a magnetic field model based on the IGRF-2025 coefficients.
+ * It computes the magnetic field vector in based on the satellite's geodetic
+ * coordinates (altitude, latitude, longitude).
  */
 
-#include "gnc/world/b_field.h"
+#include "b_field.h"
+
+#include "constants.h"
+#include "linalg.h"
 #include "macros.h"
+
 #include "pico/stdlib.h"
 #include <cmath>
-// #include "constants.h"
 
-#define R_E 6378.0f
-#define MAX_ORDER 13
-#define MODEL_ORDER 13
-
-// Forward declare legendre polynomial functions
+// Forward declaration
 void compute_legendre_polynomials(int nmax, float theta,
-                                  float Pnm[][MAX_ORDER + 2]);
+                                  float Pnm[][B_FIELD_MODEL_MAX_ORDER + 2],
+                                  float cos_theta, float sin_theta);
 
-// IGRF 2025 Coefficients (up to n=6)
+// IGRF 2025 Coefficients (up to n=13) [nT]
 // Indices are n going down and m going left to right
-// Units in nanotesla
-// There is no n=0 term (that would imply a magnetic monopole)
-float g[MAX_ORDER + 1][MAX_ORDER + 1] = {
+// There is no n=0 term (would imply a magnetic monopole)
+constexpr float g[B_FIELD_MODEL_MAX_ORDER + 1][B_FIELD_MODEL_MAX_ORDER + 1] = {
     {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
      0.0}, // n=0
     {-29350, -1410.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -54,7 +57,7 @@ float g[MAX_ORDER + 1][MAX_ORDER + 1] = {
 
 // There is no m=0 term. In m=0 the sin term is zero and
 // the cosine term is 1 so only the g term matters.
-float h[MAX_ORDER + 1][MAX_ORDER + 1] = {
+constexpr float h[B_FIELD_MODEL_MAX_ORDER + 1][B_FIELD_MODEL_MAX_ORDER + 1] = {
     {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
      0.0}, // n=0
     {0.0, 4545.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -86,38 +89,35 @@ float h[MAX_ORDER + 1][MAX_ORDER + 1] = {
 };
 
 // Dynamic Schmidt normalization - computed at runtime like pyigrf
-float rootn[2 * MAX_ORDER * MAX_ORDER + 1];
+float rootn[2 * B_FIELD_MODEL_MAX_ORDER * B_FIELD_MODEL_MAX_ORDER + 1];
 
-void compute_B(slate_t *slate)
+bool compute_B(slate_t *slate)
 {
-    const float alt = slate->geodetic[0]; // altitude (km)
-    const float lat = slate->geodetic[1]; // latitude (-90 to 90)
-    const float lon = slate->geodetic[2]; // longitude (-180 to 180)
+    const float alt = slate->geodetic_lat_lon_alt[0]; // altitude (km)
+    const float lat = slate->geodetic_lat_lon_alt[1]; // latitude (-90 to 90)
+    const float lon = slate->geodetic_lat_lon_alt[2]; // longitude (-180 to 180)
 
     // Input validation to prevent NaN
-    if (alt < -1000.0f || alt > 10000.0f)
+    if (alt < B_FIELD_LOW_ALTITUDE_THRESH || alt > B_FIELD_HIGH_ALTITUDE_THRESH)
     {
         LOG_ERROR("Invalid altitude: %f km", alt);
-        slate->B_est[0] = slate->B_est[1] = slate->B_est[2] = 0.0f;
-        return;
+        return false;
     }
     if (lat < -90.0f || lat > 90.0f)
     {
         LOG_ERROR("Invalid latitude: %f degrees", lat);
-        slate->B_est[0] = slate->B_est[1] = slate->B_est[2] = 0.0f;
-        return;
+        return false;
     }
     if (lon < -180.0f || lon > 180.0f)
     {
         LOG_ERROR("Invalid longitude: %f degrees", lon);
-        slate->B_est[0] = slate->B_est[1] = slate->B_est[2] = 0.0f;
-        return;
+        return false;
     }
 
     // Convert to spherical coordinates using math spherical coordinate
     // conventions
-    const float theta = (90.0f - lat) * M_PI / 180.0f; // colatitude [0 to π]
-    const float phi = (lon)*M_PI / 180.0f;             // azimuth [-π to π]
+    const float theta = (90.0f - lat) * DEG_TO_RAD; // colatitude [0 to π]
+    const float phi = lon * DEG_TO_RAD;             // azimuth [-π to π]
 
     float Br = 0.0f;
     float Btheta = 0.0f;
@@ -126,33 +126,31 @@ void compute_B(slate_t *slate)
     const float r_ratio = R_E / (R_E + alt);
 
     // Cache trig terms with pole regularization
-    const float sin_theta = sin(theta); // for pole regularization
-    const float cos_theta = cos(theta); // for Legendre polynomials
-
-    // // Regularization for pole proximity (prevents division by zero)
-    const float POLE_THRESH = 1e-7f; // Added missing constant
+    const float sin_theta = sinf(theta); // for pole regularization
+    const float cos_theta = cosf(theta); // for Legendre polynomials
     const float sin_theta_reg =
-        (fabs(sin_theta) < POLE_THRESH)
-            ? POLE_THRESH * (sin_theta >= 0.0f ? 1.0f : -1.0f)
+        (fabsf(sin_theta) < B_FIELD_POLE_THRESH)
+            ? B_FIELD_POLE_THRESH * (sin_theta >= 0.0f ? 1.0f : -1.0f)
             : sin_theta;
     // FLAG: IGNORE TRIADS IN THIS CASE
 
     // Pre-compute sin/cos m*phi terms
-    float sin_mphi[MODEL_ORDER + 1] = {0.0f};
-    float cos_mphi[MODEL_ORDER + 1] = {0.0f};
-    for (int m = 0; m <= MODEL_ORDER; m++)
+    float sin_mphi[B_FIELD_MODEL_ORDER + 1] = {0.0f};
+    float cos_mphi[B_FIELD_MODEL_ORDER + 1] = {0.0f};
+    for (int m = 0; m <= B_FIELD_MODEL_ORDER; m++)
     {
-        sin_mphi[m] = sin(m * phi);
-        cos_mphi[m] = cos(m * phi);
+        sin_mphi[m] = sinf(m * phi);
+        cos_mphi[m] = cosf(m * phi);
     }
 
     // Compute Legendre polynomials using pyigrf strategy
-    float Pnm[MAX_ORDER + 1][MAX_ORDER + 2];
-    compute_legendre_polynomials(MODEL_ORDER, theta, Pnm);
+    float Pnm[B_FIELD_MODEL_MAX_ORDER + 1][B_FIELD_MODEL_MAX_ORDER + 2];
+    compute_legendre_polynomials(B_FIELD_MODEL_ORDER, theta, Pnm, cos_theta,
+                                 sin_theta);
 
     // Main field computation loop
     float r_ratio_n = r_ratio * r_ratio * r_ratio; // Start at n=1 term
-    for (int n = 1; n <= MODEL_ORDER; n++)
+    for (int n = 1; n <= B_FIELD_MODEL_ORDER; n++)
     {
         for (int m = 0; m <= n; m++)
         {
@@ -167,7 +165,7 @@ void compute_B(slate_t *slate)
 
             // Accumulate field components
             // Magnetic field in r direction
-            Br += (float)(n + 1) * r_ratio_n * P * term;
+            Br += static_cast<float>(n + 1) * r_ratio_n * P * term;
             // Magnetic field in latitude direction
             Btheta -= r_ratio_n * dP * term;
 
@@ -176,12 +174,13 @@ void compute_B(slate_t *slate)
             { // m=0 terms don't contribute to Bphi
                 const float Bphi_term =
                     (-g[n][m] * sin_mphi[m] + h[n][m] * cos_mphi[m]) *
-                    (float)m * P / sin_theta_reg;
+                    static_cast<float>(m) * P / sin_theta_reg;
 
                 // Smooth transition near poles
-                const float pole_factor = (fabs(sin_theta) < POLE_THRESH)
-                                              ? sin_theta / POLE_THRESH
-                                              : 1.0f;
+                const float pole_factor =
+                    (fabsf(sin_theta) < B_FIELD_POLE_THRESH)
+                        ? sin_theta / B_FIELD_POLE_THRESH
+                        : 1.0f;
 
                 Bphi -= r_ratio_n * Bphi_term * pole_factor;
             }
@@ -198,26 +197,24 @@ void compute_B(slate_t *slate)
             "NaN/Inf detected in magnetic field: Br=%f, Btheta=%f, Bphi=%f", Br,
             Btheta, Bphi);
         LOG_ERROR("Input coordinates: alt=%f, lat=%f, lon=%f", alt, lat, lon);
-        slate->B_est = float3(0.0f, 0.0f, 0.0f);
-        return;
+        return false;
     }
 
     // Store results
     slate->B_est = float3(Br, Bphi, Btheta);
+    return true;
 }
 
 // pyigrf-style Legendre polynomial computation
 void compute_legendre_polynomials(int nmax, float theta,
-                                  float Pnm[][MAX_ORDER + 2])
+                                  float Pnm[][B_FIELD_MODEL_MAX_ORDER + 2],
+                                  float cos_theta, float sin_theta)
 {
     // Initialize rootn array like pyigrf
     for (int i = 0; i <= 2 * nmax * nmax; i++)
     {
-        rootn[i] = sqrt((float)i);
+        rootn[i] = sqrtf(static_cast<float>(i));
     }
-
-    float costh = cos(theta);
-    float sinth = sqrt(1.0f - costh * costh);
 
     // Initialize arrays
     for (int n = 0; n <= nmax; n++)
@@ -228,25 +225,25 @@ void compute_legendre_polynomials(int nmax, float theta,
         }
     }
 
-    Pnm[0][0] = 1.0f;  // P(0,0) = 1
-    Pnm[1][1] = sinth; // P(1,1) = sin(theta)
+    Pnm[0][0] = 1.0f;      // P(0,0) = 1
+    Pnm[1][1] = sin_theta; // P(1,1) = sin(theta)
 
     // Recursion relations after Langel "The Main Field" (1987)
     for (int m = 0; m < nmax; m++)
     {
         float Pnm_tmp = rootn[m + m + 1] * Pnm[m][m];
-        Pnm[m + 1][m] = costh * Pnm_tmp;
+        Pnm[m + 1][m] = cos_theta * Pnm_tmp;
 
         if (m > 0)
         {
-            Pnm[m + 1][m + 1] = sinth * Pnm_tmp / rootn[m + m + 2];
+            Pnm[m + 1][m + 1] = sin_theta * Pnm_tmp / rootn[m + m + 2];
         }
 
         for (int n = m + 2; n <= nmax; n++)
         {
             int d = n * n - m * m;
             int e = n + n - 1;
-            Pnm[n][m] = ((float)e * costh * Pnm[n - 1][m] -
+            Pnm[n][m] = (static_cast<float>(e) * cos_theta * Pnm[n - 1][m] -
                          rootn[d - e] * Pnm[n - 2][m]) /
                         rootn[d];
         }
@@ -258,19 +255,24 @@ void compute_legendre_polynomials(int nmax, float theta,
 
     for (int n = 2; n <= nmax; n++)
     {
-        Pnm[0][n + 1] = -sqrt((float)(n * n + n) / 2.0f) * Pnm[n][1];
-        Pnm[1][n + 1] = (sqrt(2.0f * (float)(n * n + n)) * Pnm[n][0] -
-                         sqrt((float)(n * n + n - 2)) * Pnm[n][2]) /
-                        2.0f;
+        Pnm[0][n + 1] =
+            -sqrtf(static_cast<float>(n * n + n) / 2.0f) * Pnm[n][1];
+        Pnm[1][n + 1] =
+            (sqrtf(2.0f * static_cast<float>(n * n + n)) * Pnm[n][0] -
+             sqrtf(static_cast<float>(n * n + n - 2)) * Pnm[n][2]) /
+            2.0f;
 
         for (int m = 2; m < n; m++)
         {
-            Pnm[m][n + 1] =
-                0.5f *
-                (sqrt((float)(n + m) * (float)(n - m + 1)) * Pnm[n][m - 1] -
-                 sqrt((float)(n + m + 1) * (float)(n - m)) * Pnm[n][m + 1]);
+            Pnm[m][n + 1] = 0.5f * (sqrtf(static_cast<float>(n + m) *
+                                          static_cast<float>(n - m + 1)) *
+                                        Pnm[n][m - 1] -
+                                    sqrtf(static_cast<float>(n + m + 1) *
+                                          static_cast<float>(n - m)) *
+                                        Pnm[n][m + 1]);
         }
 
-        Pnm[n][n + 1] = sqrt(2.0f * (float)n) * Pnm[n][n - 1] / 2.0f;
+        Pnm[n][n + 1] =
+            sqrtf(2.0f * static_cast<float>(n)) * Pnm[n][n - 1] / 2.0f;
     }
 }

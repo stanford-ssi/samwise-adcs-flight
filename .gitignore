@@ -4,3 +4,11 @@
 build
 scripts/igrf/*.csv
 scripts/igrf/*.png
+*.csv
+*.png
+*.csv
+scripts/igrf/magnetic_data.csv
+scripts/igrf/output/igrf_comparison_results.csv
+scripts/igrf/output/magnetic_direction_error_contours.png
+scripts/igrf/output/magnetic_field_contours.png
+scripts/igrf/magnetic_data.csv
