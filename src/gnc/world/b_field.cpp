@@ -9,12 +9,13 @@
 
 #include "b_field.h"
 
+#include "pico/stdlib.h"
+#include <cmath>
+
+#include "../frame_transforms.h"
 #include "constants.h"
 #include "linalg.h"
 #include "macros.h"
-
-#include "pico/stdlib.h"
-#include <cmath>
 
 // Forward declaration
 void compute_legendre_polynomials(int nmax, float theta,
@@ -93,9 +94,9 @@ float rootn[2 * B_FIELD_MODEL_MAX_ORDER * B_FIELD_MODEL_MAX_ORDER + 1];
 
 bool compute_B(slate_t *slate)
 {
-    const float alt = slate->geodetic_lat_lon_alt[0]; // altitude (km)
-    const float lat = slate->geodetic_lat_lon_alt[1]; // latitude (-90 to 90)
-    const float lon = slate->geodetic_lat_lon_alt[2]; // longitude (-180 to 180)
+    const float lat = slate->lla[0]; // latitude (-90 to 90)
+    const float lon = slate->lla[1]; // longitude (-180 to 180)
+    const float alt = slate->lla[2]; // altitude (km)
 
     // Input validation to prevent NaN
     if (alt < B_FIELD_LOW_ALTITUDE_THRESH || alt > B_FIELD_HIGH_ALTITUDE_THRESH)
@@ -200,8 +201,16 @@ bool compute_B(slate_t *slate)
         return false;
     }
 
-    // Store results
-    slate->B_est = float3(Br, Bphi, Btheta);
+    // Store results in r, phi, theta frame (for graphing) [Up, East, North]
+    slate->B_est_rpt = float3(Br, Bphi, Btheta);
+
+    // Store results in East-North-Up (ENU) frame
+    slate->B_est_enu = float3(Bphi, Btheta, Br);
+
+    // Convert to ECEF frame and store
+    slate->B_est_ecef =
+        enu_to_ecef(float3(Bphi, Btheta, Br), float3(lat, lon, alt));
+
     return true;
 }
 

@@ -18,8 +18,8 @@ void test_b_field_reference_points(slate_t *slate)
 
     struct TestPoint
     {
-        float alt, lat, lon;
         float expected_Br, expected_Bphi, expected_Btheta, expected_mag;
+        float lat, lon, alt;
         const char *name;
     };
 
@@ -40,20 +40,20 @@ void test_b_field_reference_points(slate_t *slate)
 
     for (int i = 0; i < num_tests; i++)
     {
-        slate->geodetic_lat_lon_alt[0] = test_points[i].alt;
-        slate->geodetic_lat_lon_alt[1] = test_points[i].lat;
-        slate->geodetic_lat_lon_alt[2] = test_points[i].lon;
+        slate->lla =
+            float3(test_points[i].lat, test_points[i].lon, test_points[i].alt);
 
         compute_B(slate);
 
-        float magnitude = sqrt(slate->B_est[0] * slate->B_est[0] +
-                               slate->B_est[1] * slate->B_est[1] +
-                               slate->B_est[2] * slate->B_est[2]);
+        float magnitude = sqrt(slate->B_est_rpt[0] * slate->B_est_rpt[0] +
+                               slate->B_est_rpt[1] * slate->B_est_rpt[1] +
+                               slate->B_est_rpt[2] * slate->B_est_rpt[2]);
 
-        float diff_Br = fabs(slate->B_est[0] - test_points[i].expected_Br);
-        float diff_Bphi = fabs(slate->B_est[1] - test_points[i].expected_Bphi);
+        float diff_Br = fabs(slate->B_est_rpt[0] - test_points[i].expected_Br);
+        float diff_Bphi =
+            fabs(slate->B_est_rpt[1] - test_points[i].expected_Bphi);
         float diff_Btheta =
-            fabs(slate->B_est[2] - test_points[i].expected_Btheta);
+            fabs(slate->B_est_rpt[2] - test_points[i].expected_Btheta);
         float diff_mag = fabs(magnitude - test_points[i].expected_mag);
 
         bool test_passed = (diff_Br < EPSILON) && (diff_Bphi < EPSILON) &&
@@ -61,7 +61,8 @@ void test_b_field_reference_points(slate_t *slate)
 
         LOG_INFO("%s: %s", test_points[i].name, test_passed ? "PASS" : "FAIL");
         LOG_INFO("  Computed: Br=%.1f, Bphi=%.1f, Btheta=%.1f, Mag=%.1f",
-                 slate->B_est[0], slate->B_est[1], slate->B_est[2], magnitude);
+                 slate->B_est_rpt[0], slate->B_est_rpt[1], slate->B_est_rpt[2],
+                 magnitude);
         LOG_INFO("  Expected: Br=%.1f, Bphi=%.1f, Btheta=%.1f, Mag=%.1f",
                  test_points[i].expected_Br, test_points[i].expected_Bphi,
                  test_points[i].expected_Btheta, test_points[i].expected_mag);
@@ -89,21 +90,54 @@ void test_b_field_mapping(slate_t *slate)
     {
         for (float lon = -179.9f; lon <= 179.9f; lon += LON_STEP)
         {
-            slate->geodetic_lat_lon_alt[0] = ALTITUDE;
-            slate->geodetic_lat_lon_alt[1] = lat;
-            slate->geodetic_lat_lon_alt[2] = lon;
+            slate->lla = float3(lat, lon, ALTITUDE);
 
             compute_B(slate);
 
-            float magnitude = sqrt(slate->B_est[0] * slate->B_est[0] +
-                                   slate->B_est[1] * slate->B_est[1] +
-                                   slate->B_est[2] * slate->B_est[2]);
+            float magnitude = sqrt(slate->B_est_rpt[0] * slate->B_est_rpt[0] +
+                                   slate->B_est_rpt[1] * slate->B_est_rpt[1] +
+                                   slate->B_est_rpt[2] * slate->B_est_rpt[2]);
 
             printf("%.1f,%.1f,%.1f,%.2f,%.2f,%.2f,%.2f\n", ALTITUDE, lat, lon,
-                   slate->B_est[0], slate->B_est[1], slate->B_est[2],
-                   magnitude);
+                   slate->B_est_rpt[0], slate->B_est_rpt[1],
+                   slate->B_est_rpt[2], magnitude);
         }
     }
 
     LOG_INFO("B field mapping complete");
+}
+
+void test_b_field_ecef_conversion(slate_t *slate)
+{
+    LOG_INFO("Testing B field ECEF conversion...");
+
+    // Test point: North Pole, 400 km altitude
+    slate->lla = float3(89.9f, 0.0f, 400.0f);
+
+    compute_B(slate);
+
+    // Check that both RTP and ECEF fields are populated
+    float rtp_magnitude = sqrtf(slate->B_est_rpt[0] * slate->B_est_rpt[0] +
+                                slate->B_est_rpt[1] * slate->B_est_rpt[1] +
+                                slate->B_est_rpt[2] * slate->B_est_rpt[2]);
+
+    float ecef_magnitude = sqrtf(slate->B_est_ecef[0] * slate->B_est_ecef[0] +
+                                 slate->B_est_ecef[1] * slate->B_est_ecef[1] +
+                                 slate->B_est_ecef[2] * slate->B_est_ecef[2]);
+
+    // Magnitudes should be approximately equal (coordinate transformation
+    // preserves magnitude)
+    float magnitude_diff = fabsf(rtp_magnitude - ecef_magnitude);
+    bool magnitude_test_passed = magnitude_diff < 10.0f; // 10 nT tolerance
+
+    LOG_INFO("RTP magnitude: %.2f nT", rtp_magnitude);
+    LOG_INFO("ECEF magnitude: %.2f nT", ecef_magnitude);
+    LOG_INFO("Magnitude difference: %.2f nT", magnitude_diff);
+    LOG_INFO("ECEF conversion test: %s",
+             magnitude_test_passed ? "PASS" : "FAIL");
+
+    LOG_INFO("B_est_rpt:  [%.2f, %.2f, %.2f]", slate->B_est_rpt[0],
+             slate->B_est_rpt[1], slate->B_est_rpt[2]);
+    LOG_INFO("B_est_ecef: [%.2f, %.2f, %.2f]", slate->B_est_ecef[0],
+             slate->B_est_ecef[1], slate->B_est_ecef[2]);
 }

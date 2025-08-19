@@ -11,3 +11,4 @@
 
 void test_b_field_reference_points(slate_t *slate);
 void test_b_field_mapping(slate_t *slate);
+void test_b_field_ecef_conversion(slate_t *slate);
