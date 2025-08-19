@@ -60,14 +60,3 @@ constexpr float DESATURATION_KP = 0.01; // [1/s]
 
 // ### WORLD CONSTANTS ###
 constexpr float R_E = 6378.0f; // Earth radius in km
-
-// #### B FIELD MODEL ####
-constexpr int B_FIELD_MODEL_MAX_ORDER =
-    13; // Maximum order of the magnetic field model
-constexpr int B_FIELD_MODEL_ORDER = 13; // The order we use in the field model
-constexpr float B_FIELD_POLE_THRESH =
-    1e-7f; // Threshold for pole regularization
-constexpr float B_FIELD_LOW_ALTITUDE_THRESH =
-    0.0f; // Threshold for low altitude (km)
-constexpr float B_FIELD_HIGH_ALTITUDE_THRESH =
-    1000.0f; // Threshold for high altitude (km)
