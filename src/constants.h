@@ -16,6 +16,9 @@ constexpr uint32_t NUM_REACTION_WHEELS = 4;
 // IMU Calibration - zero rotation reading in radians per second
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 
+// ### WORLD CONSTANTS ###
+constexpr float R_E = 6378.0f; // Earth radius in km
+
 // (These are generally useful)
 constexpr float DEG_TO_RAD = 0.01745329251;
 constexpr float RAD_TO_DEG = 57.2957795131;
@@ -58,5 +61,5 @@ constexpr float3 SATELLITE_INERTIA = {0.01461922201, 0.0412768466,
 // Desaturation gains for each reaction wheel
 constexpr float DESATURATION_KP = 0.01; // [1/s]
 
-// ### WORLD CONSTANTS ###
-constexpr float R_E = 6378.0f; // Earth radius in km
+// #### ADM1176 POWER MONITORING ####
+constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]

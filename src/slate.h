@@ -34,6 +34,12 @@ typedef struct samwise_adcs_slate
     // Telemetry
     adcs_packet_t telem;
 
+    // Watchdog
+    bool watchdog_initialized;
+    bool pin_high;
+    absolute_time_t pin_high_time;
+    absolute_time_t last_feed_time;
+
     // ************************************************************************
     //          SENSOR DATA
     // ************************************************************************
@@ -62,6 +68,12 @@ typedef struct samwise_adcs_slate
     float w_mag;            // [rad/s] overall magnitude in body frame
     float imu_data_valid;
     float imu_alive;
+
+    // Power monitoring
+    float adcs_power;   // [W] ADCS board power consumption
+    float adcs_voltage; // [V] ADCS board voltage
+    float adcs_current; // [A] ADCS board current
+    bool adm1176_alive; // true if ADM1176 is initialized
 
     // ************************************************************************
     //          ACTUATOR REQUESTS

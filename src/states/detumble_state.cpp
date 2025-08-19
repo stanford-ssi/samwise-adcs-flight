@@ -11,6 +11,7 @@
 #include "tasks/bdot_task.h"
 #include "tasks/sensors_task.h"
 #include "tasks/telemetry_task.h"
+#include "tasks/watchdog_task.h"
 
 #include "states/cool_down_state.h"
 #include "states/slewing_state.h"
@@ -39,6 +40,6 @@ sched_state_t *detumble_get_next_state(slate_t *slate)
 
 sched_state_t detumble_state = {
     .name = "detumble",
-    .num_tasks = 3,
-    .task_list = {&sensors_task, &telemetry_task, &bdot_task},
+    .num_tasks = 4,
+    .task_list = {&sensors_task, &telemetry_task, &bdot_task, &watchdog_task},
     .get_next_state = &detumble_get_next_state};
