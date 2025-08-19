@@ -18,21 +18,21 @@ void test_b_field_reference_points(slate_t *slate)
 
     struct TestPoint
     {
-        float expected_Br, expected_Bphi, expected_Btheta, expected_mag;
         float lat, lon, alt;
+        float expected_Br, expected_Bphi, expected_Btheta, expected_mag;
         const char *name;
     };
 
     // Reference values from IGRF calculator
-    TestPoint test_points[] = {{0.0f, 89.9f, 0.0f, -56835.0f, 439.0f, -1783.0f,
+    TestPoint test_points[] = {{89.9f, 0.0f, 0.0f, -56835.0f, 439.0f, -1783.0f,
                                 56864.0f, "North Pole"},
-                               {0.0f, -89.9f, 0.0f, 51612.0f, -8771.0f,
+                               {-89.9f, 0.0f, 0.0f, 51612.0f, -8771.0f,
                                 -14391.0f, 54294.0f, "South Pole"},
                                {0.0f, 0.0f, 0.0f, 15997.0f, -1926.0f, -27457.0f,
                                 31835.0f, "Equator at Greenwich"},
-                               {300.0f, 45.0f, -75.0f, -42838.0f, -3417.0f,
+                               {45.0f, -75.0f, 300.0f, -42838.0f, -3417.0f,
                                 -15976.0f, 45848.0f, "Mid-latitude point"},
-                               {0.0f, -30.0f, -45.0f, 16572.0f, -5499.0f,
+                               {-30.0f, -45.0f, 0.0f, 16572.0f, -5499.0f,
                                 -14603.0f, 22762.0f, "South Atlantic Anomaly"}};
 
     int num_tests = sizeof(test_points) / sizeof(TestPoint);
