@@ -135,8 +135,8 @@ bool compute_B(slate_t *slate)
     // FLAG: IGNORE TRIADS IN THIS CASE
 
     // Pre-compute sin/cos m*phi terms
-    float sin_mphi[B_FIELD_MODEL_ORDER + 1] = {0.0f};
-    float cos_mphi[B_FIELD_MODEL_ORDER + 1] = {0.0f};
+    float sin_mphi[B_FIELD_MODEL_ORDER + 1];
+    float cos_mphi[B_FIELD_MODEL_ORDER + 1];
     for (int m = 0; m <= B_FIELD_MODEL_ORDER; m++)
     {
         sin_mphi[m] = sinf(m * phi);
