@@ -8,14 +8,15 @@
  */
 
 #include "sensors_task.h"
+#include "constants.h"
 #include "macros.h"
 
 #include "drivers/adm1176.h"
 #include "drivers/gps.h"
 #include "drivers/imu.h"
 #include "drivers/magnetometer.h"
+#include "drivers/photodiodes_yz.h"
 #include "drivers/sun_pyramids.h"
-#include "drivers/sun_sensors_yz.h"
 #include "gnc/utils.h"
 #include "pico/time.h"
 
@@ -195,10 +196,13 @@ void sensors_task_dispatch(slate_t *slate)
 
         if (result)
         {
-            // Convert 8-bit ADC values to float intensities
             for (int i = 0; i < 8; i++)
             {
-                slate->sun_sensors_intensities[i] = (float)adc_values[i];
+                // Scale to 12-bit range (0-4095) for consistency
+                uint16_t normalized_intensity =
+                    static_cast<uint16_t>(adc_values[i]) *
+                    SUN_SENSOR_CLIP_VALUE / MAX_VALUE_ADS7830;
+                slate->sun_sensors_intensities[i] = normalized_intensity;
             }
 
             // Set remaining sun sensor values to 0 if not connected
@@ -233,10 +237,12 @@ void sensors_task_dispatch(slate_t *slate)
 
         if (result)
         {
-            // Convert 12-bit ADC values to float intensities
             for (int i = 0; i < 8; i++)
             {
-                slate->sun_sensors_intensities[i + 8] = (float)adc_values[i];
+                // Clip to 2.5V max value for consistency
+                uint16_t normalized_intensity =
+                    min(adc_values[i], SUN_SENSOR_CLIP_VALUE);
+                slate->sun_sensors_intensities[i + 8] = normalized_intensity;
             }
         }
 
@@ -252,24 +258,18 @@ void sensors_task_dispatch(slate_t *slate)
     }
 
     // Log all sun sensor readings after collecting all data
-    // LOG_DEBUG("[sensors] Sun sensor readings: [%.1f, %.1f, %.1f, %.1f, "
-    //           "%.1f, %.1f, %.1f, %.1f, %.1f, %.1f, %.1f, %.1f, %.1f, %.1f,
-    //           %.1f, %.1f]", slate->sun_sensors_intensities[0],
-    //           slate->sun_sensors_intensities[1],
-    //           slate->sun_sensors_intensities[2],
-    //           slate->sun_sensors_intensities[3],
-    //           slate->sun_sensors_intensities[4],
-    //           slate->sun_sensors_intensities[5],
-    //           slate->sun_sensors_intensities[6],
-    //           slate->sun_sensors_intensities[7],
-    //           slate->sun_sensors_intensities[8],
-    //           slate->sun_sensors_intensities[9],
-    //           slate->sun_sensors_intensities[10],
-    //           slate->sun_sensors_intensities[11],
-    //           slate->sun_sensors_intensities[12],
-    //           slate->sun_sensors_intensities[13],
-    //           slate->sun_sensors_intensities[14],
-    //           slate->sun_sensors_intensities[15]);
+    LOG_DEBUG(
+        "[sensors] Sun sensor readings: [%u, %u, %u, %u, "
+        "%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, "
+        "%u, %u]",
+        slate->sun_sensors_intensities[0], slate->sun_sensors_intensities[1],
+        slate->sun_sensors_intensities[2], slate->sun_sensors_intensities[3],
+        slate->sun_sensors_intensities[4], slate->sun_sensors_intensities[5],
+        slate->sun_sensors_intensities[6], slate->sun_sensors_intensities[7],
+        slate->sun_sensors_intensities[8], slate->sun_sensors_intensities[9],
+        slate->sun_sensors_intensities[10], slate->sun_sensors_intensities[11],
+        slate->sun_sensors_intensities[12], slate->sun_sensors_intensities[13],
+        slate->sun_sensors_intensities[14], slate->sun_sensors_intensities[15]);
 
     LOG_DEBUG("[sensors] Sun sensor voltages: [%.2f, %.2f, %.2f, %.2f, "
               "%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, "

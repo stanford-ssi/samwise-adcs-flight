@@ -58,9 +58,9 @@ typedef struct samwise_adcs_slate
     bool gps_alive;
 
     // Sun sensors
-    float sun_sensors_intensities
-        [NUM_SUN_SENSORS]; // arbitrary units (0-255) TODO: make sure sun
-                           // pyramids and sun sensors yz match
+    uint16_t sun_sensors_intensities
+        [NUM_SUN_SENSORS]; // [0-3102] clipped to (2.5V / 3.3V) * 4095 due to
+                           // differing reference voltages
     float sun_sensors_voltages[NUM_SUN_SENSORS]; // [V] voltage readings from
                                                  // sensors
     bool sun_pyramids_data_valid; // include bc ADC chip could fail
