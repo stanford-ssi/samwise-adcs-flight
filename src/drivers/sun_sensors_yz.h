@@ -24,7 +24,7 @@ bool sun_sensors_yz_init(void);
  * @param value Pointer to store the 12-bit ADC value (0-4095)
  * @return true if reading successful, false otherwise
  */
-bool sun_sensors_yz_get_reading(uint8_t channel, uint8_t *value);
+bool sun_sensors_yz_get_reading(uint8_t channel, uint16_t *value);
 
 /**
  * Get a voltage reading from a specific sun sensor channel
@@ -36,10 +36,10 @@ bool sun_sensors_yz_get_voltage(uint8_t channel, float *voltage);
 
 /**
  * Read all 8 sun sensor channels and return raw ADC values
- * @param values_out Array to store 8-bit ADC values for all channels
+ * @param values_out Array to store 12-bit ADC values for all channels
  * @return true if all readings successful, false otherwise
  */
-bool sun_sensors_yz_read_all_channels(uint8_t values_out[8]);
+bool sun_sensors_yz_read_all_channels(uint16_t values_out[8]);
 
 /**
  * Read all 8 sun sensor channels and return voltage values

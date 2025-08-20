@@ -54,7 +54,7 @@ bool sun_sensors_yz_init(void)
  * @param value Pointer to store the 12-bit ADC value (0-4095)
  * @return true if reading successful, false otherwise
  */
-bool sun_sensors_yz_get_reading(uint8_t channel, uint8_t *value)
+bool sun_sensors_yz_get_reading(uint8_t channel, uint16_t *value)
 {
     if (channel >= 8 || value == NULL)
     {
@@ -65,15 +65,11 @@ bool sun_sensors_yz_get_reading(uint8_t channel, uint8_t *value)
     // Select ADC channel
     adc_select_input(channel);
 
-    // Read the ADC value
-    const float conversion_factor =
-        VREF_YZ / ADC_MAX_VALUE;  // NOTE: 12-bit ADC resolution (vs. 8-bit in
-                                  // sun_pyramids)
-    uint16_t result = adc_read(); // and VREF = 3.3V (vs. 2.5V in sun_pyramids)
-    *value = static_cast<uint8_t>(
-        result * conversion_factor); // Output as a 12-bit value
+    // Read the ADC value - return full 12-bit resolution
+    uint16_t result = adc_read();
+    *value = result;
 
-    if (*value > 255 || *value < 0)
+    if (*value > ADC_MAX_VALUE)
     {
         LOG_ERROR("[sun_sensors_yz] ADC value out of range: %d", *value);
         return false;
@@ -97,7 +93,7 @@ bool sun_sensors_yz_get_voltage(uint8_t channel, float *voltage)
         return false;
     }
 
-    uint8_t value;
+    uint16_t value;
     if (!sun_sensors_yz_get_reading(channel, &value))
     {
         LOG_ERROR("[sun_sensors_yz] Failed to get reading for channel %d",
@@ -106,7 +102,8 @@ bool sun_sensors_yz_get_voltage(uint8_t channel, float *voltage)
     }
 
     // Convert 12-bit ADC value to voltage
-    *voltage = ((float)value / ADC_MAX_VALUE) * VREF_YZ; // Scale to 0-3.3V
+    *voltage =
+        ((float)value / (float)ADC_MAX_VALUE) * VREF_YZ; // Scale to 0-3.3V
 
     if (*voltage < 0.0f || *voltage > VREF_YZ)
     {
@@ -122,7 +119,7 @@ bool sun_sensors_yz_get_voltage(uint8_t channel, float *voltage)
  * @param values_out Array to store 8-bit ADC values for all channels
  * @return true if all readings successful, false otherwise
  */
-bool sun_sensors_yz_read_all_channels(uint8_t values_out[8])
+bool sun_sensors_yz_read_all_channels(uint16_t values_out[8])
 {
     if (values_out == NULL)
     {
