@@ -65,6 +65,9 @@ bool photodiodes_yz_get_reading(uint8_t channel, uint16_t *value)
     // Select ADC channel
     adc_select_input(channel);
 
+    // Add small delay for ADC settling
+    // sleep_us(10);
+
     // Read the ADC value - return full 12-bit resolution
     uint16_t result = adc_read();
     *value = result;
@@ -136,6 +139,9 @@ bool photodiodes_yz_read_all_channels(uint16_t values_out[8])
                       channel);
             return false;
         }
+
+        // Add small delay between channels to prevent potential ADC issues
+        // sleep_us(100);
     }
 
     return true;
@@ -162,6 +168,9 @@ bool photodiodes_yz_read_all_voltages(float voltages_out[8])
                       channel);
             return false;
         }
+
+        // Add small delay between voltage reads
+        // sleep_us(10);
     }
 
     return true;

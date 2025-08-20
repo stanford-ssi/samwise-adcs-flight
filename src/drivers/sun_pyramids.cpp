@@ -162,7 +162,7 @@ bool sun_pyramids_init(void)
     }
 
     // Small delay to allow ADC to settle
-    sleep_ms(1);
+    // sleep_us(10);
 
     // Try to read a value to verify communication
     uint8_t dummy_value;
@@ -211,7 +211,7 @@ bool sun_pyramids_read_channel(uint8_t channel, uint8_t *value_out)
     }
 
     // Allow ADC conversion time
-    sleep_ms(1);
+    // sleep_us(10);
 
     // Read the converted value
     result = sun_pyramids_read_i2c(value_out, 1);
@@ -276,7 +276,7 @@ bool sun_pyramids_read_all_channels(uint8_t values_out[ADS7830_MAX_CHANNELS])
         }
 
         // Small delay between channel reads
-        sleep_us(500);
+        // sleep_us(10);
     }
 
     return true;
@@ -306,7 +306,7 @@ bool sun_pyramids_read_all_voltages(float voltages_out[ADS7830_MAX_CHANNELS])
         }
 
         // Small delay between channel reads
-        sleep_us(500);
+        // sleep_us(10);
     }
 
     return true;
