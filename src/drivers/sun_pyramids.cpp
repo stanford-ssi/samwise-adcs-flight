@@ -124,7 +124,7 @@ static void sun_pyramids_print_result(int8_t rslt, const char *operation)
 /**
  * Initialize I2C pins for ADS7830 communication
  */
-static void sun_pyramids_init_pins()
+static void sun_pyramids_init_pins(void)
 {
     // Enable photodiode
     gpio_init(SAMWISE_ADCS_EN_PD);
@@ -143,7 +143,7 @@ static void sun_pyramids_init_pins()
 /**
  * Initialize the ADS7830 ADC
  */
-bool sun_pyramids_init()
+bool sun_pyramids_init(void)
 {
     // Initialize I2C pins
     sun_pyramids_init_pins();

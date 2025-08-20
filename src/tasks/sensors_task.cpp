@@ -65,14 +65,14 @@ void sensors_task_init(slate_t *slate)
         LOG_ERROR("[sensors] Error initializing sun pyramids - deactivating!");
     }
 
-    LOG_INFO("[sensors] Initializing sun sensors yz...");
-    bool sun_sensors_yz_result = sun_sensors_yz_init();
-    slate->sun_sensors_yz_alive = sun_sensors_yz_result;
+    LOG_INFO("[sensors] Initializing photodiodes_yz...");
+    bool photodiodes_yz_result = photodiodes_yz_init();
+    slate->photodiodes_yz_alive = photodiodes_yz_result;
 
-    if (!sun_sensors_yz_result)
+    if (!photodiodes_yz_result)
     {
         LOG_ERROR(
-            "[sensors] Error initializing sun sensors yz - deactivating!");
+            "[sensors] Error initializing photodiodes_yz - deactivating!");
     }
 
     // --- IMU --- //
@@ -196,8 +196,6 @@ void sensors_task_dispatch(slate_t *slate)
         if (result)
         {
             // Convert 8-bit ADC values to float intensities
-            // ADC has 8 channels, but we have 10 sun sensors in the slate
-            // Map the 8 ADC channels to the first 8 sun sensor positions
             for (int i = 0; i < 8; i++)
             {
                 slate->sun_sensors_intensities[i] = (float)adc_values[i];
@@ -226,12 +224,12 @@ void sensors_task_dispatch(slate_t *slate)
             "[sensors] Skipping sun pyramids due to invalid initialization!");
     }
 
-    if (slate->sun_sensors_yz_alive)
+    if (slate->photodiodes_yz_alive)
     {
         uint16_t adc_values[8];
         float voltages[8];
-        bool result = sun_sensors_yz_read_all_channels(adc_values);
-        bool voltage_result = sun_sensors_yz_read_all_voltages(voltages);
+        bool result = photodiodes_yz_read_all_channels(adc_values);
+        bool voltage_result = photodiodes_yz_read_all_voltages(voltages);
 
         if (result)
         {
@@ -250,7 +248,7 @@ void sensors_task_dispatch(slate_t *slate)
                 slate->sun_sensors_voltages[i + 8] = voltages[i];
             }
         }
-        slate->sun_sensors_yz_data_valid = result;
+        slate->photodiodes_yz_data_valid = result;
     }
 
     // Log all sun sensor readings after collecting all data

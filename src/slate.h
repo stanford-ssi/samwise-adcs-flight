@@ -65,8 +65,8 @@ typedef struct samwise_adcs_slate
                                                  // sensors
     bool sun_pyramids_data_valid; // include bc ADC chip could fail
     bool sun_pyramids_alive;
-    bool sun_sensors_yz_data_valid;
-    bool sun_sensors_yz_alive;
+    bool photodiodes_yz_data_valid;
+    bool photodiodes_yz_alive;
 
     // IMU
     float3 w_body_raw;      // [rad/s] in body frame

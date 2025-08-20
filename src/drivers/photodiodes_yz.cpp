@@ -2,12 +2,12 @@
  * @author Lundeen Cahilly
  * @date 2025-08-20
  *
- * This file reads data from the YZ (+-) sun sensors
+ * This file reads data from the YZ (+-) photodiodes
  * using the ADC pins on a RP2350b chip. These support
  * 12-bit ADC resolution and a reference voltage of 3.3V.
  */
 
-#include "sun_sensors_yz.h"
+#include "photodiodes_yz.h"
 
 #include "constants.h"
 #include "macros.h"
@@ -30,7 +30,7 @@ constexpr uint16_t ADC_MAX_VALUE = (1 << ADC_RESOLUTION); // 4095 for 12-bit ADC
  * Initialize the YZ sun sensors by setting up the ADC hardware
  * @return true if initialization successful, false otherwise
  */
-bool sun_sensors_yz_init(void)
+bool photodiodes_yz_init(void)
 {
     // Make sure photodiodes are enabled
     gpio_init(SAMWISE_ADCS_EN_PD);
@@ -54,11 +54,11 @@ bool sun_sensors_yz_init(void)
  * @param value Pointer to store the 12-bit ADC value (0-4095)
  * @return true if reading successful, false otherwise
  */
-bool sun_sensors_yz_get_reading(uint8_t channel, uint16_t *value)
+bool photodiodes_yz_get_reading(uint8_t channel, uint16_t *value)
 {
     if (channel >= 8 || value == NULL)
     {
-        LOG_ERROR("[sun_sensors_yz] Invalid channel or null pointer for value");
+        LOG_ERROR("[photodiodes_yz] Invalid channel or null pointer for value");
         return false;
     }
 
@@ -71,7 +71,7 @@ bool sun_sensors_yz_get_reading(uint8_t channel, uint16_t *value)
 
     if (*value > ADC_MAX_VALUE)
     {
-        LOG_ERROR("[sun_sensors_yz] ADC value out of range: %d", *value);
+        LOG_ERROR("[photodiodes_yz] ADC value out of range: %d", *value);
         return false;
     }
 
@@ -84,19 +84,19 @@ bool sun_sensors_yz_get_reading(uint8_t channel, uint16_t *value)
  * @param voltage Pointer to store the calculated voltage
  * @return true if reading successful, false otherwise
  */
-bool sun_sensors_yz_get_voltage(uint8_t channel, float *voltage)
+bool photodiodes_yz_get_voltage(uint8_t channel, float *voltage)
 {
     if (channel >= 8 || voltage == NULL)
     {
         LOG_ERROR(
-            "[sun_sensors_yz] Invalid channel or null pointer for voltage");
+            "[photodiodes_yz] Invalid channel or null pointer for voltage");
         return false;
     }
 
     uint16_t value;
-    if (!sun_sensors_yz_get_reading(channel, &value))
+    if (!photodiodes_yz_get_reading(channel, &value))
     {
-        LOG_ERROR("[sun_sensors_yz] Failed to get reading for channel %d",
+        LOG_ERROR("[photodiodes_yz] Failed to get reading for channel %d",
                   channel);
         return false;
     }
@@ -107,7 +107,7 @@ bool sun_sensors_yz_get_voltage(uint8_t channel, float *voltage)
 
     if (*voltage < 0.0f || *voltage > VREF_YZ)
     {
-        LOG_ERROR("[sun_sensors_yz] Voltage out of range: %f", *voltage);
+        LOG_ERROR("[photodiodes_yz] Voltage out of range: %f", *voltage);
         return false;
     }
 
@@ -119,20 +119,20 @@ bool sun_sensors_yz_get_voltage(uint8_t channel, float *voltage)
  * @param values_out Array to store 8-bit ADC values for all channels
  * @return true if all readings successful, false otherwise
  */
-bool sun_sensors_yz_read_all_channels(uint16_t values_out[8])
+bool photodiodes_yz_read_all_channels(uint16_t values_out[8])
 {
     if (values_out == NULL)
     {
         LOG_ERROR(
-            "[sun_sensors_yz] Null pointer provided for ADC values array");
+            "[photodiodes_yz] Null pointer provided for ADC values array");
         return false;
     }
 
     for (uint8_t channel = 0; channel < 8; channel++)
     {
-        if (!sun_sensors_yz_get_reading(channel, &values_out[channel]))
+        if (!photodiodes_yz_get_reading(channel, &values_out[channel]))
         {
-            LOG_ERROR("[sun_sensors_yz] Failed to read ADC channel %d",
+            LOG_ERROR("[photodiodes_yz] Failed to read ADC channel %d",
                       channel);
             return false;
         }
@@ -146,19 +146,19 @@ bool sun_sensors_yz_read_all_channels(uint16_t values_out[8])
  * @param voltages_out Array to store voltage values for all channels
  * @return true if all readings successful, false otherwise
  */
-bool sun_sensors_yz_read_all_voltages(float voltages_out[8])
+bool photodiodes_yz_read_all_voltages(float voltages_out[8])
 {
     if (voltages_out == NULL)
     {
-        LOG_ERROR("[sun_sensors_yz] Null pointer provided for voltage array");
+        LOG_ERROR("[photodiodes_yz] Null pointer provided for voltage array");
         return false;
     }
 
     for (uint8_t channel = 0; channel < 8; channel++)
     {
-        if (!sun_sensors_yz_get_voltage(channel, &voltages_out[channel]))
+        if (!photodiodes_yz_get_voltage(channel, &voltages_out[channel]))
         {
-            LOG_ERROR("[sun_sensors_yz] Failed to read voltage for channel %d",
+            LOG_ERROR("[photodiodes_yz] Failed to read voltage for channel %d",
                       channel);
             return false;
         }
