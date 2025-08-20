@@ -4,11 +4,11 @@
  *
  * This file defines utilities for controlling the ADS7830 ADC.
  *
- * ADS7830 is an 8-bit, 8-channel ADC with I2C interface for sun sensor
+ * ADS7830 is an 8-bit, 8-channel ADC with I2C interface for sun pyramids
  * readings.
  */
 
-#include "ads7830.h"
+#include "sun_pyramids.h"
 
 #include "constants.h"
 #include "macros.h"
@@ -65,7 +65,7 @@ static i2c_inst_t *ads7830_i2c_inst = i2c1;
 /**
  * Thin wrapper around writing to the I2C bus
  */
-static int8_t ads7830_write_i2c(uint8_t *data, uint16_t count)
+static int8_t sun_pyramids_write_i2c(uint8_t *data, uint16_t count)
 {
     if (count < 1)
     {
@@ -87,7 +87,7 @@ static int8_t ads7830_write_i2c(uint8_t *data, uint16_t count)
 /**
  * Thin wrapper around reading from the I2C bus
  */
-static int8_t ads7830_read_i2c(uint8_t *data, uint16_t count)
+static int8_t sun_pyramids_read_i2c(uint8_t *data, uint16_t count)
 {
     if (count < 1)
     {
@@ -109,7 +109,7 @@ static int8_t ads7830_read_i2c(uint8_t *data, uint16_t count)
 /*!
  *  @brief Prints the execution status of ADC operations.
  */
-static void ads7830_print_result(int8_t rslt, const char *operation)
+static void sun_pyramids_print_result(int8_t rslt, const char *operation)
 {
     if (rslt != 0)
     {
@@ -124,7 +124,7 @@ static void ads7830_print_result(int8_t rslt, const char *operation)
 /**
  * Initialize I2C pins for ADS7830 communication
  */
-static void ads7830_init_pins()
+static void sun_pyramids_init_pins()
 {
     // Enable photodiode
     gpio_init(SAMWISE_ADCS_EN_PD);
@@ -143,21 +143,21 @@ static void ads7830_init_pins()
 /**
  * Initialize the ADS7830 ADC
  */
-bool ads7830_init()
+bool sun_pyramids_init()
 {
     // Initialize I2C pins
-    ads7830_init_pins();
+    sun_pyramids_init_pins();
 
     // Initialize I2C at 400kHz
     i2c_init(ads7830_i2c_inst, 400 * 1000);
 
     // Test communication by performing a dummy read on channel 0
     uint8_t command = ads7830_channel_commands[0];
-    int8_t result = ads7830_write_i2c(&command, 1);
+    int8_t result = sun_pyramids_write_i2c(&command, 1);
 
     if (result != 0)
     {
-        ads7830_print_result(result, "initialization");
+        sun_pyramids_print_result(result, "initialization");
         return false;
     }
 
@@ -166,15 +166,15 @@ bool ads7830_init()
 
     // Try to read a value to verify communication
     uint8_t dummy_value;
-    result = ads7830_read_i2c(&dummy_value, 1);
+    result = sun_pyramids_read_i2c(&dummy_value, 1);
 
     if (result != 0)
     {
-        ads7830_print_result(result, "initialization read test");
+        sun_pyramids_print_result(result, "initialization read test");
         return false;
     }
 
-    LOG_INFO("[ads7830] ADS7830 ADC initialized successfully");
+    LOG_INFO("[sun_pyramids] ADS7830 ADC initialized successfully");
     return true;
 }
 
@@ -185,27 +185,28 @@ bool ads7830_init()
  * @param value_out Pointer to store the 8-bit ADC reading
  * @return true if successful, false otherwise
  */
-bool ads7830_read_channel(uint8_t channel, uint8_t *value_out)
+bool sun_pyramids_read_channel(uint8_t channel, uint8_t *value_out)
 {
     if (channel >= ADS7830_MAX_CHANNELS)
     {
-        LOG_ERROR("[ads7830] Invalid ADC channel %d (must be 0-7)", channel);
+        LOG_ERROR("[sun_pyramids] Invalid ADC channel %d (must be 0-7)",
+                  channel);
         return false;
     }
 
     if (value_out == NULL)
     {
-        LOG_ERROR("[ads7830] Null pointer provided for ADC value output");
+        LOG_ERROR("[sun_pyramids] Null pointer provided for ADC value output");
         return false;
     }
 
     // Send channel selection command
     uint8_t command = ads7830_channel_commands[channel];
-    int8_t result = ads7830_write_i2c(&command, 1);
+    int8_t result = sun_pyramids_write_i2c(&command, 1);
 
     if (result != 0)
     {
-        ads7830_print_result(result, "channel selection");
+        sun_pyramids_print_result(result, "channel selection");
         return false;
     }
 
@@ -213,11 +214,11 @@ bool ads7830_read_channel(uint8_t channel, uint8_t *value_out)
     sleep_ms(1);
 
     // Read the converted value
-    result = ads7830_read_i2c(value_out, 1);
+    result = sun_pyramids_read_i2c(value_out, 1);
 
     if (result != 0)
     {
-        ads7830_print_result(result, "value read");
+        sun_pyramids_print_result(result, "value read");
         return false;
     }
 
@@ -232,16 +233,16 @@ bool ads7830_read_channel(uint8_t channel, uint8_t *value_out)
  * @param vref        Reference voltage (typically 3.3V)
  * @return true if successful, false otherwise
  */
-bool ads7830_read_voltage(uint8_t channel, float *voltage_out, float vref)
+bool sun_pyramids_read_voltage(uint8_t channel, float *voltage_out, float vref)
 {
     if (voltage_out == NULL)
     {
-        LOG_ERROR("[ads7830] Null pointer provided for voltage output");
+        LOG_ERROR("[sun_pyramids] Null pointer provided for voltage output");
         return false;
     }
 
     uint8_t raw_value;
-    if (!ads7830_read_channel(channel, &raw_value))
+    if (!sun_pyramids_read_channel(channel, &raw_value))
     {
         return false;
     }
@@ -258,19 +259,19 @@ bool ads7830_read_voltage(uint8_t channel, float *voltage_out, float vref)
  * @param values_out Array to store 8 ADC readings
  * @return true if all channels read successfully, false otherwise
  */
-bool ads7830_read_all_channels(uint8_t values_out[ADS7830_MAX_CHANNELS])
+bool sun_pyramids_read_all_channels(uint8_t values_out[ADS7830_MAX_CHANNELS])
 {
     if (values_out == NULL)
     {
-        LOG_ERROR("[ads7830] Null pointer provided for ADC values array");
+        LOG_ERROR("[sun_pyramids] Null pointer provided for ADC values array");
         return false;
     }
 
     for (uint8_t channel = 0; channel < ADS7830_MAX_CHANNELS; channel++)
     {
-        if (!ads7830_read_channel(channel, &values_out[channel]))
+        if (!sun_pyramids_read_channel(channel, &values_out[channel]))
         {
-            LOG_ERROR("[ads7830] Failed to read ADC channel %d", channel);
+            LOG_ERROR("[sun_pyramids] Failed to read ADC channel %d", channel);
             return false;
         }
 
@@ -287,19 +288,19 @@ bool ads7830_read_all_channels(uint8_t values_out[ADS7830_MAX_CHANNELS])
  * @param voltages_out Array to store 8 voltage readings (in volts)
  * @return true if all channels read successfully, false otherwise
  */
-bool ads7830_read_all_voltages(float voltages_out[ADS7830_MAX_CHANNELS])
+bool sun_pyramids_read_all_voltages(float voltages_out[ADS7830_MAX_CHANNELS])
 {
     if (voltages_out == NULL)
     {
-        LOG_ERROR("[ads7830] Null pointer provided for voltages array");
+        LOG_ERROR("[sun_pyramids] Null pointer provided for voltages array");
         return false;
     }
 
     for (uint8_t channel = 0; channel < ADS7830_MAX_CHANNELS; channel++)
     {
-        if (!ads7830_read_voltage(channel, &voltages_out[channel], VREF))
+        if (!sun_pyramids_read_voltage(channel, &voltages_out[channel], VREF))
         {
-            LOG_ERROR("[ads7830] Failed to read voltage on channel %d",
+            LOG_ERROR("[sun_pyramids] Failed to read voltage on channel %d",
                       channel);
             return false;
         }

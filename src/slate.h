@@ -58,9 +58,13 @@ typedef struct samwise_adcs_slate
     bool gps_alive;
 
     // Sun sensors
-    float sun_sensors_intensities[NUM_SUN_SENSORS]; // arbitrary units
-    bool sun_sensors_data_valid;
-    bool sun_sensors_alive;
+    float sun_sensors_intensities
+        [NUM_SUN_SENSORS];        // arbitrary units (0-255) TODO: make sure sun
+                                  // pyramids and sun sensors yz match
+    bool sun_pyramids_data_valid; // include bc ADC chip could fail
+    bool sun_pyramids_alive;
+    bool sun_sensors_yz_data_valid;
+    bool sun_sensors_yz_alive;
 
     // IMU
     float3 w_body_raw;      // [rad/s] in body frame

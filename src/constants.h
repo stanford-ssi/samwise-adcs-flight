@@ -10,7 +10,7 @@ using namespace linalg::aliases;
 #pragma once
 
 // General specifications
-constexpr uint32_t NUM_SUN_SENSORS = 10;
+constexpr uint32_t NUM_SUN_SENSORS = 16; // 8 pyramid, 8 yz (+-)
 constexpr uint32_t NUM_REACTION_WHEELS = 4;
 
 // IMU Calibration - zero rotation reading in radians per second

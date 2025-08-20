@@ -11,19 +11,18 @@
 #include "macros.h"
 
 #include "drivers/adm1176.h"
-#include "drivers/ads7830.h"
 #include "drivers/gps.h"
 #include "drivers/imu.h"
 #include "drivers/magnetometer.h"
+#include "drivers/sun_pyramids.h"
 #include "gnc/utils.h"
 #include "pico/time.h"
 
 void sensors_task_init(slate_t *slate)
 {
-    // Initialize all sensors
     LOG_INFO("[sensors] Initializing sensors...");
 
-    // ADCS Power Monitor
+    // --- ADCS Power Monitor --- //
     LOG_INFO("[sensors] Initializing ADCS Power Monitor...");
     bool adm1176_result = adm_init();
     slate->adm1176_alive = adm1176_result;
@@ -35,7 +34,7 @@ void sensors_task_init(slate_t *slate)
         adm_power_off();
     }
 
-    // Magnetometers
+    // --- Magnetometer --- //
     LOG_INFO("[sensors] Initializing magnetometer...");
     rm3100_error_t magmeter_result = rm3100_init();
     slate->magmeter_alive = (magmeter_result == RM3100_OK);
@@ -45,7 +44,7 @@ void sensors_task_init(slate_t *slate)
         LOG_ERROR("[sensors] Error initializing magnetometer - deactivating!");
     }
 
-    // GPS
+    // --- GPS --- //
     LOG_INFO("[sensors] Initializing GPS...");
     bool gps_result = gps_init();
     slate->gps_alive = gps_result;
@@ -55,17 +54,19 @@ void sensors_task_init(slate_t *slate)
         LOG_ERROR("[sensors] Error initializing GPS - deactivating!");
     }
 
-    // Sun Sensors
-    LOG_INFO("[sensors] Initializing sun sensors...");
-    bool sun_sensors_result = ads7830_init();
-    slate->sun_sensors_alive = sun_sensors_result;
+    // --- Sun Sensors --- //
+    LOG_INFO("[sensors] Initializing sun pyramids...");
+    bool sun_pyramids_result = sun_pyramids_init();
+    slate->sun_pyramids_alive = sun_pyramids_result;
 
-    if (!sun_sensors_result)
+    // TODO: add yz sun sensors
+
+    if (!sun_pyramids_result)
     {
-        LOG_ERROR("[sensors] Error initializing sun sensors - deactivating!");
+        LOG_ERROR("[sensors] Error initializing sun pyramids - deactivating!");
     }
 
-    // IMU
+    // --- IMU --- //
     LOG_INFO("[sensors] Initializing IMU...");
     bool imu_result = imu_init();
     slate->imu_alive = imu_result;
@@ -78,15 +79,15 @@ void sensors_task_init(slate_t *slate)
     // Ensure all sensor data valid flags are false
     slate->magmeter_data_valid = false;
     slate->imu_data_valid = false;
-    slate->sun_sensors_data_valid = false;
+    slate->sun_pyramids_data_valid = false;
     slate->gps_data_valid = false;
 
     LOG_INFO("[sensors] Sensor Initialization Complete! Magmeter alive: %s, "
              "IMU alive: %s",
-             "Sun sensors alive: %s, GPS alive: %s",
+             "Sun pyramids alive: %s, GPS alive: %s",
              slate->magmeter_alive ? "true" : "false",
              slate->imu_alive ? "true" : "false",
-             slate->sun_sensors_alive ? "true" : "false",
+             slate->sun_pyramids_alive ? "true" : "false",
              slate->gps_alive ? "true" : "false");
 }
 
@@ -94,7 +95,7 @@ void sensors_task_dispatch(slate_t *slate)
 {
     // Read all sensors
 
-    // ADCS Power Monitor
+    // --- ADCS Power Monitor --- //
     if (slate->adm1176_alive)
     {
         LOG_DEBUG("[sensors] Reading ADCS Power Monitor...");
@@ -109,7 +110,7 @@ void sensors_task_dispatch(slate_t *slate)
                   "initialization!");
     }
 
-    // Magnetometer
+    // --- Magnetometer --- //
     if (slate->magmeter_alive)
     {
         LOG_DEBUG("[sensors] Reading magnetometer...");
@@ -129,7 +130,7 @@ void sensors_task_dispatch(slate_t *slate)
             "[sensors] Skipping magnetometer due to invalid initialization!");
     }
 
-    // GPS
+    // --- GPS --- //
     if (slate->gps_alive)
     {
         LOG_DEBUG("[sensors] Reading GPS...");
@@ -154,7 +155,7 @@ void sensors_task_dispatch(slate_t *slate)
         LOG_DEBUG("[sensors] Skipping GPS due to invalid initialization!");
     }
 
-    // IMU
+    // --- IMU --- //
     if (slate->imu_alive)
     {
         LOG_DEBUG("[sensors] Reading IMU...");
@@ -179,14 +180,14 @@ void sensors_task_dispatch(slate_t *slate)
         LOG_DEBUG("[sensors] Skipping IMU due to invalid initialization!");
     }
 
-    // Sun Sensors
-    if (slate->sun_sensors_alive)
+    // --- Sun Sensors --- //
+    LOG_DEBUG("[sensors] Reading sun sensors...");
+    if (slate->sun_pyramids_alive)
     {
-        LOG_DEBUG("[sensors] Reading sun sensors...");
         uint8_t adc_values[8];
         float voltages[8];
-        bool result = ads7830_read_all_channels(adc_values);
-        bool voltage_result = ads7830_read_all_voltages(voltages);
+        bool result = sun_pyramids_read_all_channels(adc_values);
+        bool voltage_result = sun_pyramids_read_all_voltages(voltages);
 
         if (result)
         {
@@ -225,12 +226,12 @@ void sensors_task_dispatch(slate_t *slate)
                 voltages[5], voltages[6], voltages[7]);
         }
 
-        slate->sun_sensors_data_valid = result;
+        slate->sun_pyramids_data_valid = result;
     }
     else
     {
         LOG_DEBUG(
-            "[sensors] Skipping sun sensors due to invalid initialization!");
+            "[sensors] Skipping sun pyramids due to invalid initialization!");
     }
 }
 
