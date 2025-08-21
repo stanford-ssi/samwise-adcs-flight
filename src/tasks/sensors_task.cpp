@@ -136,7 +136,7 @@ void sensors_task_dispatch(slate_t *slate)
             // Wait for magnetometer field to settle
             sleep_ms(MAGNETOMETER_FIELD_SETTLE_TIME_MS);
 
-            LOG_DEBUG("[sensors] Reading magnetometer...");
+            // Read magnetometer
             result = rm3100_get_reading(&slate->b_field_local);
 
             // Turn magnetorquers back on after reading
@@ -148,7 +148,7 @@ void sensors_task_dispatch(slate_t *slate)
         }
         else
         {
-            LOG_DEBUG("[sensors] Reading magnetometer (magnetorquers off)...");
+            // Magnetorquers not running, read directly
             result = rm3100_get_reading(&slate->b_field_local);
         }
         LOG_DEBUG("[sensors] Magnetometer reading: [%.3f, %.3f, %.3f]",
