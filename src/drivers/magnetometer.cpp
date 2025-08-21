@@ -267,7 +267,10 @@ rm3100_error_t rm3100_get_reading(float3 *mag_field)
 
     // Convert to microTesla using scale factor
     const float scale = 1.0f / RM3100_LSB_PER_UT;
-    float3 raw_reading = {raw_x * scale, raw_y * scale, raw_z * scale};
+
+    // Adjust for satellite body frame convention: magnetometer reads (+x, -y,
+    // -z) but body frame expects (+x, +y, +z)
+    float3 raw_reading = {raw_x * scale, -raw_y * scale, -raw_z * scale};
 
     // Apply calibration to get final corrected reading
     rm3100_apply_calibration(raw_reading, mag_field);
