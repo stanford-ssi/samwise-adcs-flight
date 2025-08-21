@@ -50,9 +50,7 @@ void bdot_task_dispatch(slate_t *slate)
     LOG_DEBUG("[bdot] Requesting moments: x=%1.3f, y=%1.3f, z=%1.3f", moments.x,
               moments.y, moments.z);
 
-    slate->magdrv_x_requested = moments.x;
-    slate->magdrv_y_requested = moments.y;
-    slate->magdrv_z_requested = moments.z;
+    slate->magdrv_requested = moments;
 
     // Bookmark flags and return
     slate->bdot_data_has_updated = false;

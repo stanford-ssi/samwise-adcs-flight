@@ -21,14 +21,11 @@ void actuators_task_init(slate_t *slate)
     LOG_INFO("[actuators] Initializing magnetorquer PWM...");
     init_magnetorquer_pwm();
 
-    // Initialize reaction wheels (no specific driver found, assuming they're
-    // controlled via another interface)
+    // TODO: Initialize reaction wheels
     LOG_INFO("[actuators] Reaction wheel control ready");
 
     // Initialize actuator request values to safe defaults
-    slate->magdrv_x_requested = 0.0f;
-    slate->magdrv_y_requested = 0.0f;
-    slate->magdrv_z_requested = 0.0f;
+    slate->magdrv_requested = float3(0.0f, 0.0f, 0.0f);
 
     for (int i = 0; i < NUM_REACTION_WHEELS; i++)
     {
@@ -41,22 +38,12 @@ void actuators_task_init(slate_t *slate)
 void actuators_task_dispatch(slate_t *slate)
 {
     // Drive magnetorquers based on slate requests
-    // LOG_DEBUG("[actuators] Driving magnetorquers: X=%.3f, Y=%.3f, Z=%.3f",
-    //           slate->magdrv_x_requested, slate->magdrv_y_requested,
-    //           slate->magdrv_z_requested);
+    bool mag_result = do_magnetorquer_pwm(slate->magdrv_requested);
+    slate->magnetorquers_running = mag_result;
 
-    // Convert from normalized (-1.0 to 1.0) to PWM duty cycle range (-128 to
-    // 128)
-    int8_t x_duty = (int8_t)(slate->magdrv_x_requested * PWM_MAX_DUTY_CYCLE);
-    int8_t y_duty = (int8_t)(slate->magdrv_y_requested * PWM_MAX_DUTY_CYCLE);
-    int8_t z_duty = (int8_t)(slate->magdrv_z_requested * PWM_MAX_DUTY_CYCLE);
-
-    // Apply magnetorquer PWM with default max current limit
-    pwm_error_t mag_result = do_magnetorquer_pwm(x_duty, y_duty, z_duty, 1000);
-
-    if (mag_result != PWM_OK)
+    if (!mag_result)
     {
-        LOG_ERROR("[actuators] Magnetorquer PWM error: %d", mag_result);
+        LOG_ERROR("[actuators] Magnetorquer PWM error");
     }
 
     // Drive reaction wheels based on slate requests
@@ -70,6 +57,7 @@ void actuators_task_dispatch(slate_t *slate)
     // TODO: Implement reaction wheel driver interface
     // For now, just copy the requested speeds to the actual speeds in the slate
     // This should be replaced with actual hardware driver calls
+
     for (int i = 0; i < NUM_REACTION_WHEELS; i++)
     {
         slate->reaction_wheel_speeds[i] = slate->reaction_wheels_w_requested[i];

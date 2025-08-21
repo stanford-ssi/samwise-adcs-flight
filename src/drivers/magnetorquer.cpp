@@ -6,24 +6,24 @@
  *
  */
 
+#include "magnetorquer.h"
+
 #include "hardware/pwm.h"
 #include "pico/stdlib.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "macros.h"
 #include "pins.h"
+#include "slate.h"
 
 // PWM Configuration Constants
 #define PWM_WRAP_VALUE (128)
 #define PWM_CLOCK_DIV (15625)
 #define PWM_MAX_DUTY_CYCLE (127)
 #define PWM_MIN_DUTY_CYCLE (-128)
-
-// Error codes
-#define PWM_OK (0)
-#define PWM_ERROR_OUT_OF_RANGE (1)
-#define PWM_ERROR_CURRENT_EXCEEDED (2)
+#define PWM_DEFAULT_MAX_CURRENT (384)
 
 /**
  * Initialize PWM for magnetorquers
@@ -69,18 +69,17 @@ void init_magnetorquer_pwm()
 /**
  * Set PWM duty cycles for magnetorquer control
  *
- * This function sets the PWM duty cycles for all three magnetorquer axes.
- * Positive values drive current in one direction, negative values in the
- * opposite direction. Uses current limiting.
- *
- * @param xdn x-axis duty cycle (-128 to 127)
- * @param ydn y-axis duty cycle (-128 to 127)
- * @param zdn z-axis duty cycle (-128 to 127)
- * @param max_current maximum allowed total current (sum of absolute values)
- * @return uint8_t error code (PWM_OK on success)
+ * @param float3 magdrv_requested [-1, 1] in principal axes frame
+ * @param slate_t *slate Pointer to the slate structure for state management
+ * @return true if success, false if error
  */
-uint8_t do_magnetorquer_pwm(int8_t xdn, int8_t ydn, int8_t zdn, int max_current)
+bool do_magnetorquer_pwm(float3 magdrv_requested)
 {
+    // Set magnetorquer PWM duty cycles
+    int8_t xdn = static_cast<int8_t>(magdrv_requested[0] * PWM_MAX_DUTY_CYCLE);
+    int8_t ydn = static_cast<int8_t>(magdrv_requested[1] * PWM_MAX_DUTY_CYCLE);
+    int8_t zdn = static_cast<int8_t>(magdrv_requested[2] * PWM_MAX_DUTY_CYCLE);
+
     // Validate input ranges
     if ((xdn > PWM_MAX_DUTY_CYCLE || xdn < PWM_MIN_DUTY_CYCLE) ||
         (ydn > PWM_MAX_DUTY_CYCLE || ydn < PWM_MIN_DUTY_CYCLE) ||
@@ -88,16 +87,16 @@ uint8_t do_magnetorquer_pwm(int8_t xdn, int8_t ydn, int8_t zdn, int max_current)
     {
         LOG_ERROR(
             "[magnetorquer] Duty cycle values out of range (-128 to 127)");
-        return PWM_ERROR_OUT_OF_RANGE;
+        return false;
     }
 
     // Check total current consumption
     int total_current = abs(xdn) + abs(ydn) + abs(zdn);
-    if (total_current > max_current)
+    if (total_current > PWM_DEFAULT_MAX_CURRENT)
     {
         LOG_ERROR("[magnetorquer] Total current (%d) exceeds maximum (%d)",
-                  total_current, max_current);
-        return PWM_ERROR_CURRENT_EXCEEDED;
+                  total_current, PWM_DEFAULT_MAX_CURRENT);
+        return false;
     }
 
     // Get PWM slices for each axis
@@ -114,40 +113,16 @@ uint8_t do_magnetorquer_pwm(int8_t xdn, int8_t ydn, int8_t zdn, int max_current)
     }
 
     // Set PWM levels for X-axis based on direction
-    if (xdn >= 0)
-    {
-        pwm_set_gpio_level(SAMWISE_ADCS_X_MAGDRV_IN1, xdn);
-        pwm_set_gpio_level(SAMWISE_ADCS_X_MAGDRV_IN2, 0);
-    }
-    else
-    {
-        pwm_set_gpio_level(SAMWISE_ADCS_X_MAGDRV_IN1, 0);
-        pwm_set_gpio_level(SAMWISE_ADCS_X_MAGDRV_IN2, -xdn);
-    }
+    pwm_set_gpio_level(SAMWISE_ADCS_X_MAGDRV_IN1, xdn >= 0 ? xdn : 0);
+    pwm_set_gpio_level(SAMWISE_ADCS_X_MAGDRV_IN2, xdn < 0 ? -xdn : 0);
 
     // Set PWM levels for Y-axis based on direction
-    if (ydn >= 0)
-    {
-        pwm_set_gpio_level(SAMWISE_ADCS_Y_MAGDRV_IN1, ydn);
-        pwm_set_gpio_level(SAMWISE_ADCS_Y_MAGDRV_IN2, 0);
-    }
-    else
-    {
-        pwm_set_gpio_level(SAMWISE_ADCS_Y_MAGDRV_IN1, 0);
-        pwm_set_gpio_level(SAMWISE_ADCS_Y_MAGDRV_IN2, -ydn);
-    }
+    pwm_set_gpio_level(SAMWISE_ADCS_Y_MAGDRV_IN1, ydn >= 0 ? ydn : 0);
+    pwm_set_gpio_level(SAMWISE_ADCS_Y_MAGDRV_IN2, ydn < 0 ? -ydn : 0);
 
     // Set PWM levels for Z-axis based on direction
-    if (zdn >= 0)
-    {
-        pwm_set_gpio_level(SAMWISE_ADCS_Z_MAGDRV_IN1, zdn);
-        pwm_set_gpio_level(SAMWISE_ADCS_Z_MAGDRV_IN2, 0);
-    }
-    else
-    {
-        pwm_set_gpio_level(SAMWISE_ADCS_Z_MAGDRV_IN1, 0);
-        pwm_set_gpio_level(SAMWISE_ADCS_Z_MAGDRV_IN2, -zdn);
-    }
+    pwm_set_gpio_level(SAMWISE_ADCS_Z_MAGDRV_IN1, zdn >= 0 ? zdn : 0);
+    pwm_set_gpio_level(SAMWISE_ADCS_Z_MAGDRV_IN2, zdn < 0 ? -zdn : 0);
 
     // Enable PWM slices
     for (int i = 0; i < 3; i++)
@@ -155,7 +130,8 @@ uint8_t do_magnetorquer_pwm(int8_t xdn, int8_t ydn, int8_t zdn, int max_current)
         pwm_set_enabled(slices[i], true);
     }
 
-    return PWM_OK;
+    // Return true to indicate success (and write to slate)
+    return true;
 }
 
 /**
