@@ -272,5 +272,8 @@ rm3100_error_t rm3100_get_reading(float3 *mag_field)
     // Apply calibration to get final corrected reading
     rm3100_apply_calibration(raw_reading, mag_field);
 
+    // Normalize the reading to unit vector
+    *mag_field = normalize(*mag_field);
+
     return RM3100_OK;
 }
