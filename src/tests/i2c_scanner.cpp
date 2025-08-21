@@ -16,41 +16,48 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define I2C_TIMEOUT_MS 100 // Timeout for I2C operations in milliseconds
-
-// Read the I2C bus for devices
-// function protype below
-void i2c_scanner(void)
+/**
+ * Scan I2C bus for responding devices
+ * @param i2c_inst The I2C instance to scan
+ * @param bus_name Name for logging (e.g., "I2C0", "I2C1")
+ */
+void scan_i2c_bus(i2c_inst_t *i2c_inst, const char *bus_name)
 {
-    LOG_INFO("[i2c_scanner] Starting I2C scanner...");
+    LOG_INFO("Scanning %s bus for devices...", bus_name);
 
     bool found_device = false;
-    for (uint8_t addr = 0x08; addr < 0x78; ++addr)
-    { // Valid 7-bit I2C addresses
-        uint8_t rxdata;
-        // try_lock equivalent: i2c_read_blocking checks for ACK
-        // A read of 1 byte is a common way to check for a device
-        // For some devices, a write is better. LT8491 should respond to a read
-        // attempt to a valid address. However, a more robust check might
-        // involve trying to read a known register. For a simple scan, we just
-        // see if we get an ACK. The SDK functions return PICO_ERROR_GENERIC if
-        // no device responds.
-        LOG_INFO("Scanning IMU address 0x%02X", addr);
-        int ret = i2c_read_blocking_until(SAMWISE_ADCS_IMU_I2C, addr, &rxdata,
-                                          1, false,
-                                          make_timeout_time_ms(I2C_TIMEOUT_MS));
-        if (ret >= 0)
-        { // If ret is not an error code (i.e., ACK received)
-            LOG_INFO("IMU Device found at 0x%02X", addr);
-            found_device = true;
-        }
-        else
+    uint8_t test_data = 0x00;
+
+    for (uint8_t addr = 0x08; addr <= 0x77; addr++)
+    {
+        // Try to write 1 byte and read back - more reliable test
+        int result =
+            i2c_write_blocking_until(i2c_inst, addr, &test_data, 1, true,
+                                     make_timeout_time_ms(10)); // Short timeout
+
+        if (result == 1)
         {
-            LOG_INFO("No device at 0x%02X", addr);
+            // Try to read back to confirm it's a real device
+            uint8_t read_back;
+            int read_result = i2c_read_blocking_until(
+                i2c_inst, addr, &read_back, 1, false, make_timeout_time_ms(10));
+
+            if (read_result == 1)
+            {
+                LOG_INFO("Confirmed device at address 0x%02X", addr);
+                found_device = true;
+            }
         }
     }
+
     if (!found_device)
     {
-        LOG_ERROR("No I2C devices found.\n");
+        LOG_INFO("No devices found on %s bus - checking bus health...");
+
+        // Test if SDA/SCL are stuck
+        LOG_INFO(
+            "I2C%d SDA pin %d, SCL pin %d", i2c_inst == i2c0 ? 0 : 1,
+            i2c_inst == i2c0 ? SAMWISE_ADCS_I2C0_SDA : SAMWISE_ADCS_I2C1_SDA,
+            i2c_inst == i2c0 ? SAMWISE_ADCS_I2C0_SCL : SAMWISE_ADCS_I2C1_SCL);
     }
 }

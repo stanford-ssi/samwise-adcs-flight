@@ -61,6 +61,7 @@ target_link_libraries(samwise-adcs
   hardware_uart
   hardware_flash
   hardware_pwm
+  hardware_adc
   pico_stdlib 
   hardware_pio
 )

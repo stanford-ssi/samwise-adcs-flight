@@ -34,6 +34,12 @@ typedef struct samwise_adcs_slate
     // Telemetry
     adcs_packet_t telem;
 
+    // Watchdog
+    bool watchdog_initialized;
+    bool pin_high;
+    absolute_time_t pin_high_time;
+    absolute_time_t last_feed_time;
+
     // ************************************************************************
     //          SENSOR DATA
     // ************************************************************************
@@ -52,9 +58,15 @@ typedef struct samwise_adcs_slate
     bool gps_alive;
 
     // Sun sensors
-    float sun_sensors_intensities[NUM_SUN_SENSORS]; // arbitrary units
-    bool sun_sensors_data_valid;
-    bool sun_sensors_alive;
+    uint16_t sun_sensors_intensities
+        [NUM_SUN_SENSORS]; // [0-3102] clipped to (2.5V / 3.3V) * 4095 due to
+                           // differing reference voltages
+    float sun_sensors_voltages[NUM_SUN_SENSORS]; // [V] voltage readings from
+                                                 // sensors
+    bool sun_pyramids_data_valid; // include bc ADC chip could fail
+    bool sun_pyramids_alive;
+    bool photodiodes_yz_data_valid;
+    bool photodiodes_yz_alive;
 
     // IMU
     float3 w_body_raw;      // [rad/s] in body frame
@@ -63,13 +75,18 @@ typedef struct samwise_adcs_slate
     float imu_data_valid;
     float imu_alive;
 
+    // Power monitoring
+    float adcs_power;   // [W] ADCS board power consumption
+    float adcs_voltage; // [V] ADCS board voltage
+    float adcs_current; // [A] ADCS board current
+    bool adm1176_alive; // true if ADM1176 is initialized
+
     // ************************************************************************
     //          ACTUATOR REQUESTS
     // ************************************************************************
     // Magnetorquer drivers
-    float magdrv_x_requested; // -1.0 to 1.0
-    float magdrv_y_requested; // -1.0 to 1.0
-    float magdrv_z_requested; // -1.0 to 1.0
+    float3 magdrv_requested;    // [-1.0 to 1.0] in principal axes frame
+    bool magnetorquers_running; // true if magnetorquers are currently active
 
     // Reaction wheels
     float reaction_wheels_w_requested[NUM_REACTION_WHEELS]; // [rad/s]

@@ -10,7 +10,7 @@ using namespace linalg::aliases;
 #pragma once
 
 // General specifications
-constexpr uint32_t NUM_SUN_SENSORS = 10;
+constexpr uint32_t NUM_SUN_SENSORS = 16; // 8 pyramid, 8 yz (+-)
 constexpr uint32_t NUM_REACTION_WHEELS = 4;
 
 // IMU Calibration - zero rotation reading in radians per second
@@ -75,3 +75,14 @@ constexpr float3 SATELLITE_INERTIA = {0.01461922201, 0.0412768466,
 // #### DESATURATION GAINS ####
 // Desaturation gains for each reaction wheel
 constexpr float DESATURATION_KP = 0.01; // [1/s]
+
+// #### ADM1176 POWER MONITORING ####
+constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
+
+// #### SUN SENSOR NORMALIZATION ####
+constexpr float VREF_ADS7830 = 2.5f;
+constexpr float VREF_RP2350B_ADC = 3.3f;
+constexpr uint16_t MAX_VALUE_RP2350B_ADC = 4095; // 12-bit ADC max value
+constexpr uint16_t MAX_VALUE_ADS7830 = 255;      // 8-bit ADC max value
+constexpr uint16_t SUN_SENSOR_CLIP_VALUE = static_cast<uint16_t>(
+    VREF_ADS7830 / VREF_RP2350B_ADC * MAX_VALUE_RP2350B_ADC);
