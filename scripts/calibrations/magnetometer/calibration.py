@@ -11,7 +11,7 @@ from datetime import datetime
 import threading
 
 class MagnetometerCalibrator:
-    def __init__(self, port='/dev/tty.usbmodem1101', baudrate=115200):
+    def __init__(self, port='/dev/tty.usbmodem101', baudrate=115200):
         self.port = port
         self.baudrate = baudrate
         self.raw_data = []
@@ -82,21 +82,11 @@ class MagnetometerCalibrator:
                 sphericity = 1.0 - quality_score
                 
                 sphericity_text = f" | Sphericity: {sphericity:.3f}"
-                
-                # Draw wireframe sphere
-                u = np.linspace(0, 2 * np.pi, 15)
-                v = np.linspace(0, np.pi, 15)
-                x_sphere = center[0] + mean_distance * np.outer(np.cos(u), np.sin(v))
-                y_sphere = center[1] + mean_distance * np.outer(np.sin(u), np.sin(v))
-                z_sphere = center[2] + mean_distance * np.outer(np.ones(np.size(u)), np.cos(v))
-                
-                self.ax.plot_wireframe(x_sphere, y_sphere, z_sphere, 
-                                     alpha=0.2, color='red', linewidth=0.5)
             
             self.ax.set_title(f'Magnetometer Data ({len(data)} points){sphericity_text}')
             
             plt.draw()
-            plt.pause(0.01)
+            plt.pause(0.001)  # Reduced pause time
             
         except Exception as e:
             print(f"Plot update error: {e}")
@@ -132,8 +122,8 @@ class MagnetometerCalibrator:
                     self.raw_data.append([x, y, z])
                     sample_count += 1
                     
-                    # Update plot every 10 samples to avoid slowing down data collection
-                    if self.plot_enabled and sample_count % 10 == 0:
+                    # Update plot every 25 samples to avoid slowing down data collection
+                    if self.plot_enabled and sample_count % 25 == 0:
                         self.update_plot()
                     
                     # Print progress
@@ -194,6 +184,32 @@ class MagnetometerCalibrator:
         print(f"Saved {len(self.raw_data)} samples to {filename}")
         return filename
     
+    def sphere_fit(self, data):
+        """Simple sphere calibration: only corrects hard iron effects (offset)"""
+        # Find center that minimizes variance in distances from center
+        center = np.mean(data, axis=0)
+        
+        # Iteratively refine center to minimize distance variance
+        for _ in range(10):
+            distances = np.linalg.norm(data - center, axis=1)
+            mean_radius = np.mean(distances)
+            
+            # Adjust center towards points that are too far/close
+            for i, point in enumerate(data):
+                error = distances[i] - mean_radius
+                direction = (point - center) / distances[i] if distances[i] > 0 else 0
+                center += 0.001 * error * direction
+        
+        # Final radius calculation
+        distances = np.linalg.norm(data - center, axis=1)
+        radius = np.mean(distances)
+        
+        return {
+            'center': center,
+            'radius': radius,
+            'transform_matrix': np.eye(3)  # Identity matrix - no scaling/rotation correction
+        }
+    
     def ellipsoid_fit(self, data):
         """Advanced calibration: fit ellipsoid to correct for both hard iron and soft iron effects"""
         # Center the data
@@ -240,17 +256,21 @@ class MagnetometerCalibrator:
             'A_matrix': A
         }
     
-    def calibrate(self):
+    def calibrate(self, method='ellipsoid'):
         """Perform calibration using specified method"""
         if len(self.raw_data) < 500:
             raise Exception("Need at least 500 samples for calibration")
         
         data = np.array(self.raw_data)
     
-        self.calibration_params = self.ellipsoid_fit(data)
-        self.calibration_params['method'] = 'ellipsoid'
-        
-        print(f"Calibration complete using ellipsoid method")
+        if method == 'sphere':
+            self.calibration_params = self.sphere_fit(data)
+            self.calibration_params['method'] = 'sphere'
+            print(f"Calibration complete using sphere method (hard iron correction only)")
+        else:
+            self.calibration_params = self.ellipsoid_fit(data)
+            self.calibration_params['method'] = 'ellipsoid'
+            print(f"Calibration complete using ellipsoid method (hard + soft iron correction)")
         
         # Calculate calibration quality
         self._evaluate_calibration_quality()
@@ -325,13 +345,22 @@ class MagnetometerCalibrator:
         # Save as C header file for embedded systems
         header_filename = os.path.join(output_dir, f'mag_calibration_{timestamp}.h')
         with open(header_filename, 'w') as f:
-            f.write(f"// Magnetometer Calibration Parameters\n")
-            f.write(f"// Generated on {timestamp}\n")
-            f.write(f"// Method: {self.calibration_params['method']}\n\n")
+            f.write(f"/**\n")
+            f.write(f" * mag_calibration_{timestamp}.h\n")
+            f.write(f" * \n")
+            f.write(f" * Method: {self.calibration_params['method']}\n")
+            f.write(f" * Samples: {len(self.raw_data)}\n")
+            if self.calibration_quality:
+                f.write(f" * Sphericity: {self.calibration_quality['sphericity']:.4f}\n")
+                f.write(f" * Mean Radius: {self.calibration_quality['mean_radius']:.3f} µT\n")
+                f.write(f" * Radius Std Dev: {self.calibration_quality['std_radius']:.3f} µT\n")
+            f.write(f" */\n\n")
             f.write(f"// Hard iron offset correction (sensor units)\n")
+            f.write(f"// Set to zeros during calibration\n")
             f.write(f"constexpr float3 MAG_HARD_IRON_OFFSET = float3{{{self.calibration_params['center'][0]:.6f}, {self.calibration_params['center'][1]:.6f}, {self.calibration_params['center'][2]:.6f}}};\n\n")
 
             f.write(f"// Soft iron matrix correction (in sensor units)\n")
+            f.write(f"// Set to identity during calibration\n")
             f.write(f"constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{\n")
             transform = self.calibration_params['transform_matrix']
             for i in range(3):
@@ -350,8 +379,19 @@ class MagnetometerCalibrator:
 
 # Example usage
 if __name__ == "__main__":
+    print("=" * 60)
+    print("MAGNETOMETER CALIBRATION SCRIPT")
+    print("=" * 60)
+    print("\nIMPORTANT: Before starting calibration:")
+    print("1. Go to src/drivers/magnetometer.cpp")
+    print("2. Comment out the normalization line in rm3100_get_reading()")
+    print("3. Flash the updated firmware to your device")
+    print("4. We need raw magnetometer values, not normalized ones!")
+    print("\nPress Enter when ready to continue...")
+    input()
+    
     # Initialize calibrator
-    cal = MagnetometerCalibrator(port='/dev/tty.usbmodem1101')  # Adjust port as needed
+    cal = MagnetometerCalibrator(port='/dev/tty.usbmodem101')  # Adjust port as needed
     
     # Collect new data and save it
     if cal.collect_data(min_samples=10000):
@@ -359,8 +399,8 @@ if __name__ == "__main__":
         # Load the data we just saved (demonstrates the load functionality)
         cal.load_data_from_file(json_filename)
     
-    # Perform calibration
-    cal.calibrate()
+    # Perform calibration (choose method)
+    cal.calibrate(method='sphere') 
     
     # Generate comprehensive report
     cal.save_calibration()

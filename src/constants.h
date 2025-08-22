@@ -20,13 +20,12 @@ constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 // TODO: Update with FLIGHT model (see scripts/calibrations/magnetometer)
 
 // Hard iron offset correction (sensor units)
-// Set to zeros during calibration
-constexpr float3 MAG_HARD_IRON_OFFSET = float3{0.0f, 0.0f, 0.0f};
+constexpr float3 MAG_HARD_IRON_OFFSET = float3{-0.647650, 1.238939, -0.935132};
 
 // Soft iron matrix correction (in sensor units)
-// Set to identity matrix during calibration
-constexpr float3x3 MAG_SOFT_IRON_MATRIX = {
-    {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}};
+constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.000000f, 0.000000f, 0.000000f},
+                                           {0.000000f, 1.000000f, 0.000000f},
+                                           {0.000000f, 0.000000f, 1.000000f}};
 
 // #### MAGNETOMETER SAMPLING ####
 // Time to turn off the magnetorquers so we can measure the magnetometer

@@ -277,7 +277,7 @@ rm3100_error_t rm3100_get_reading(float3 *mag_field)
 
     // Normalize the reading to unit vector
     // Comment out during calibration to keep raw values
-    // *mag_field = normalize(*mag_field);
+    *mag_field = normalize(*mag_field);
 
     return RM3100_OK;
 }
