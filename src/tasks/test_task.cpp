@@ -17,7 +17,7 @@ void test_task_init(slate_t *slate)
 
 void test_task_dispatch(slate_t *slate)
 {
-    LOG_INFO("[test] TEST TASK IS DISPATCHING");
+    LOG_INFO("[test] Test task dispatching...");
     sensors_task_dispatch(slate);
 }
 

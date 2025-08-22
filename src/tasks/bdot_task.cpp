@@ -13,6 +13,7 @@
 
 void bdot_task_init(slate_t *slate)
 {
+    LOG_INFO("[bdot] Init Bdot task");
     // Reset flags
     slate->bdot_has_prev_data = false;
     slate->bdot_data_has_updated = false;
@@ -20,6 +21,7 @@ void bdot_task_init(slate_t *slate)
 
 void bdot_task_dispatch(slate_t *slate)
 {
+    LOG_INFO("[bdot] Bdot task dispatching...");
     // If no new data flagged by sensor task, do nothing
     if (!(slate->bdot_data_has_updated && slate->magmeter_data_valid))
     {

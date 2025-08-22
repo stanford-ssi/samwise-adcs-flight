@@ -159,5 +159,5 @@ void stop_magnetorquer_pwm(void)
     pwm_set_enabled(slice_y, false);
     pwm_set_enabled(slice_z, false);
 
-    LOG_INFO("[magnetorquer] All magnetorquer outputs stopped");
+    LOG_DEBUG("[magnetorquer] All magnetorquer outputs stopped");
 }

@@ -24,7 +24,7 @@
 
 void sensors_task_init(slate_t *slate)
 {
-    LOG_INFO("[sensors] Initializing sensors...");
+    LOG_INFO("[sensors] Initializing sensors");
 
     // --- ADCS Power Monitor --- //
     LOG_INFO("[sensors] Initializing ADCS Power Monitor...");
@@ -106,6 +106,7 @@ void sensors_task_init(slate_t *slate)
 void sensors_task_dispatch(slate_t *slate)
 {
     // Read all sensors
+    LOG_INFO("[sensors] Sensors task dispatching...");
 
     // --- ADCS Power Monitor --- //
     if (slate->adm1176_alive)
