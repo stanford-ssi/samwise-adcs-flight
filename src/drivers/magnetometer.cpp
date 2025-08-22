@@ -10,6 +10,7 @@
 #include "hardware/spi.h"
 #include "pico/stdlib.h"
 
+#include "constants.h"
 #include "macros.h"
 #include "magnetometer.h"
 #include "pins.h"
@@ -93,6 +94,31 @@ static bool rm3100_spi_read_reg(uint8_t reg, uint8_t *data, size_t len)
     rm3100_cs_deselect();
 
     return ret == (int)len;
+}
+
+/**
+ * Apply magnetometer calibration
+ *
+ * This function applies hard iron offset correction and soft iron matrix
+ * transformation to raw magnetometer readings. The calibration compensates
+ * for magnetic distortions in the sensor environment.
+ *
+ * @param raw_reading Raw magnetometer reading
+ * @param calibrated_reading Pointer to store calibrated result in microTesla
+ */
+static void rm3100_apply_calibration(const float3 &raw_reading,
+                                     float3 *calibrated_reading)
+{
+    if (calibrated_reading == NULL)
+    {
+        return;
+    }
+
+    // Step 1: Apply hard iron offset correction
+    float3 centered = raw_reading - MAG_HARD_IRON_OFFSET;
+
+    // Step 2: Apply soft iron correction matrix transformation
+    *calibrated_reading = mul(MAG_SOFT_IRON_MATRIX, centered);
 }
 
 /**
@@ -190,11 +216,11 @@ rm3100_error_t rm3100_init(void)
  * Get magnetometer reading
  *
  * This function reads the latest magnetometer data from the RM3100.
- * It checks if new data is available and converts raw readings to
- * engineering units (microTesla).
+ * It checks if new data is available, converts raw readings to
+ * engineering units (microTesla), and applies calibration corrections.
  *
- * @param mag_field Pointer to float3 vector to store magnetic field in
- * microTesla
+ * @param mag_field Pointer to float3 vector to store calibrated magnetic field
+ * in microTesla
  * @return rm3100_error_t Error code (RM3100_OK on success)
  */
 rm3100_error_t rm3100_get_reading(float3 *mag_field)
@@ -239,11 +265,19 @@ rm3100_error_t rm3100_get_reading(float3 *mag_field)
     if (raw_z & 0x800000)
         raw_z |= 0xFF000000;
 
-    // Convert to microTesla using calibrated scale factor
+    // Convert to microTesla using scale factor
     const float scale = 1.0f / RM3100_LSB_PER_UT;
-    mag_field->x = raw_x * scale;
-    mag_field->y = raw_y * scale;
-    mag_field->z = raw_z * scale;
+
+    // Adjust for satellite body frame convention: magnetometer reads (+x, -y,
+    // -z) but body frame expects (+x, +y, +z)
+    float3 raw_reading = {raw_x * scale, -raw_y * scale, -raw_z * scale};
+
+    // Apply calibration to get final corrected reading
+    rm3100_apply_calibration(raw_reading, mag_field);
+
+    // Normalize the reading to unit vector
+    // Comment out during calibration to keep raw values
+    *mag_field = normalize(*mag_field);
 
     return RM3100_OK;
 }

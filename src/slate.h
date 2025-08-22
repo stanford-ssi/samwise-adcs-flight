@@ -85,9 +85,8 @@ typedef struct samwise_adcs_slate
     //          ACTUATOR REQUESTS
     // ************************************************************************
     // Magnetorquer drivers
-    float magdrv_x_requested; // -1.0 to 1.0
-    float magdrv_y_requested; // -1.0 to 1.0
-    float magdrv_z_requested; // -1.0 to 1.0
+    float3 magdrv_requested;    // [-1.0 to 1.0] in principal axes frame
+    bool magnetorquers_running; // true if magnetorquers are currently active
 
     // Reaction wheels
     float reaction_wheels_w_requested[NUM_REACTION_WHEELS]; // [rad/s]

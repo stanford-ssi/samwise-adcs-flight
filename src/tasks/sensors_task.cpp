@@ -2,7 +2,7 @@
  * @author Niklas Vainio
  * @date 2025-06-02
  *
- * This task is responsible for reasding data from sensors (magmeter, IMU, GPS,
+ * This task is responsible for reading data from sensors (magmeter, IMU, GPS,
  * sun sensors) and putting in in the slate. It runs in all states.
  *
  */
@@ -15,14 +15,16 @@
 #include "drivers/gps.h"
 #include "drivers/imu.h"
 #include "drivers/magnetometer.h"
+#include "drivers/magnetorquer.h"
 #include "drivers/photodiodes_yz.h"
 #include "drivers/sun_pyramids.h"
 #include "gnc/utils.h"
 #include "pico/time.h"
+#include <cmath>
 
 void sensors_task_init(slate_t *slate)
 {
-    LOG_INFO("[sensors] Initializing sensors...");
+    LOG_INFO("[sensors] Initializing sensors");
 
     // --- ADCS Power Monitor --- //
     LOG_INFO("[sensors] Initializing ADCS Power Monitor...");
@@ -104,6 +106,7 @@ void sensors_task_init(slate_t *slate)
 void sensors_task_dispatch(slate_t *slate)
 {
     // Read all sensors
+    LOG_INFO("[sensors] Sensors task dispatching...");
 
     // --- ADCS Power Monitor --- //
     if (slate->adm1176_alive)
@@ -122,10 +125,52 @@ void sensors_task_dispatch(slate_t *slate)
     // --- Magnetometer --- //
     if (slate->magmeter_alive)
     {
-        rm3100_error_t result = rm3100_get_reading(&slate->b_field_local);
-        LOG_DEBUG("[sensors] Magnetometer reading: [%.3f, %.3f, %.3f]",
+        rm3100_error_t result;
+
+        // If magnetorquers are running, we need to turn them off for some
+        // settle time to read the magnetometer to avoid interference
+        if (slate->magnetorquers_running)
+        {
+            // Toggle magnetorquers off temporarily
+            stop_magnetorquer_pwm();
+            slate->magnetorquers_running = false;
+
+            // Wait for magnetometer field to settle
+            sleep_ms(MAGNETOMETER_FIELD_SETTLE_TIME_MS);
+
+            // Read magnetometer
+            result = rm3100_get_reading(&slate->b_field_local);
+
+            // Turn magnetorquers back on after reading
+            bool mag_result = do_magnetorquer_pwm(slate->magdrv_requested);
+            if (!mag_result)
+            {
+                LOG_ERROR("[sensors] Error reactivating magnetorquers");
+            }
+        }
+        else
+        {
+            // Magnetorquers not running, read directly
+            result = rm3100_get_reading(&slate->b_field_local);
+        }
+        // Calculate compass bearing and inclination
+        // +X = North, +Y = West, -Z = Down
+        float bearing_deg =
+            atan2f(-slate->b_field_local.y, slate->b_field_local.x) * 180.0f /
+            M_PI;
+        if (bearing_deg < 0)
+            bearing_deg += 360.0f;
+
+        float inclination_deg =
+            atan2f(-slate->b_field_local.z,
+                   sqrtf(slate->b_field_local.x * slate->b_field_local.x +
+                         slate->b_field_local.y * slate->b_field_local.y)) *
+            180.0f / M_PI;
+
+        LOG_DEBUG("[sensors] Magnetometer reading: [%.3f, %.3f, %.3f] | "
+                  "Bearing: %.1f° | Inclination: %.1f°",
                   slate->b_field_local.x, slate->b_field_local.y,
-                  slate->b_field_local.z);
+                  slate->b_field_local.z, bearing_deg, inclination_deg);
 
         slate->magmeter_data_valid = (result == RM3100_OK);
         slate->b_field_read_time = get_absolute_time();
@@ -258,18 +303,21 @@ void sensors_task_dispatch(slate_t *slate)
     }
 
     // Log all sun sensor readings after collecting all data
-    LOG_DEBUG(
-        "[sensors] Sun sensor readings: [%u, %u, %u, %u, "
-        "%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, "
-        "%u, %u]",
-        slate->sun_sensors_intensities[0], slate->sun_sensors_intensities[1],
-        slate->sun_sensors_intensities[2], slate->sun_sensors_intensities[3],
-        slate->sun_sensors_intensities[4], slate->sun_sensors_intensities[5],
-        slate->sun_sensors_intensities[6], slate->sun_sensors_intensities[7],
-        slate->sun_sensors_intensities[8], slate->sun_sensors_intensities[9],
-        slate->sun_sensors_intensities[10], slate->sun_sensors_intensities[11],
-        slate->sun_sensors_intensities[12], slate->sun_sensors_intensities[13],
-        slate->sun_sensors_intensities[14], slate->sun_sensors_intensities[15]);
+    // LOG_DEBUG(
+    //     "[sensors] Sun sensor readings: [%u, %u, %u, %u, "
+    //     "%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, "
+    //     "%u, %u]",
+    //     slate->sun_sensors_intensities[0], slate->sun_sensors_intensities[1],
+    //     slate->sun_sensors_intensities[2], slate->sun_sensors_intensities[3],
+    //     slate->sun_sensors_intensities[4], slate->sun_sensors_intensities[5],
+    //     slate->sun_sensors_intensities[6], slate->sun_sensors_intensities[7],
+    //     slate->sun_sensors_intensities[8], slate->sun_sensors_intensities[9],
+    //     slate->sun_sensors_intensities[10],
+    //     slate->sun_sensors_intensities[11],
+    //     slate->sun_sensors_intensities[12],
+    //     slate->sun_sensors_intensities[13],
+    //     slate->sun_sensors_intensities[14],
+    //     slate->sun_sensors_intensities[15]);
 
     LOG_DEBUG("[sensors] Sun sensor voltages: [%.2f, %.2f, %.2f, %.2f, "
               "%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, "
