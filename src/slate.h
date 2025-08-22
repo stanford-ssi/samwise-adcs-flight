@@ -98,6 +98,10 @@ typedef struct samwise_adcs_slate
     // General world state
     float3 sun_vector_eci; // (unit vector)
 
+    float3 B_est_rpt;  // R, phi, theta frame (unit vector) [Up, East, North]
+    float3 B_est_enu;  // East-North-Up frame (unit vector)
+    float3 B_est_ecef; // ECEF frame (unit vector)
+
     float MJD;
 
     // Bdot
@@ -116,5 +120,12 @@ typedef struct samwise_adcs_slate
     // Attituide control
     float3 control_torque;
     float3 reaction_wheel_speeds;
+
+    float3 r_ecef;
+    float3 r_eci;
+
+    // LLA coordinates in latitude (degrees) [-90 to 90], longitude (degrees)
+    // [-180, 180], altitude (km) [0, 1000]
+    float3 lla;
 
 } slate_t;
