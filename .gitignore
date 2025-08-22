@@ -5,3 +5,4 @@ build
 *.csv
 *.png
 *.json
+/scripts/calibrations/magnetometer/output

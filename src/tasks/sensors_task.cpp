@@ -20,6 +20,7 @@
 #include "drivers/sun_pyramids.h"
 #include "gnc/utils.h"
 #include "pico/time.h"
+#include <cmath>
 
 void sensors_task_init(slate_t *slate)
 {
@@ -151,9 +152,24 @@ void sensors_task_dispatch(slate_t *slate)
             // Magnetorquers not running, read directly
             result = rm3100_get_reading(&slate->b_field_local);
         }
-        LOG_DEBUG("[sensors] Magnetometer reading: [%.10f, %.10f, %.10f]",
+        // Calculate compass bearing and inclination
+        // +X = North, +Y = West, -Z = Down
+        float bearing_deg =
+            atan2f(-slate->b_field_local.y, slate->b_field_local.x) * 180.0f /
+            M_PI;
+        if (bearing_deg < 0)
+            bearing_deg += 360.0f;
+
+        float inclination_deg =
+            atan2f(-slate->b_field_local.z,
+                   sqrtf(slate->b_field_local.x * slate->b_field_local.x +
+                         slate->b_field_local.y * slate->b_field_local.y)) *
+            180.0f / M_PI;
+
+        LOG_DEBUG("[sensors] Magnetometer reading: [%.3f, %.3f, %.3f] | "
+                  "Bearing: %.1f° | Inclination: %.1f°",
                   slate->b_field_local.x, slate->b_field_local.y,
-                  slate->b_field_local.z);
+                  slate->b_field_local.z, bearing_deg, inclination_deg);
 
         slate->magmeter_data_valid = (result == RM3100_OK);
         slate->b_field_read_time = get_absolute_time();
