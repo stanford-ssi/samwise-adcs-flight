@@ -3,7 +3,7 @@
  * @date 2025-06-03
  *
  * This file contains functions for reading ADC data from the ADS7830
- * using I2C on a RP2350 chip for sun sensor voltage measurements
+ * using I2C on a RP2350 chip for sun pyramids voltage measurements
  */
 #pragma once
 
@@ -18,7 +18,7 @@ using namespace linalg::aliases;
  *
  * @return bool True on success, false on failure
  */
-bool ads7830_init(void);
+bool sun_pyramids_init(void);
 
 /**
  * Get ADC reading from specified channel
@@ -30,7 +30,7 @@ bool ads7830_init(void);
  * @param value Pointer to store the 8-bit ADC reading
  * @return bool True on success, false on failure
  */
-bool ads7830_get_reading(uint8_t channel, uint8_t *value);
+bool sun_pyramids_get_reading(uint8_t channel, uint8_t *value);
 
 /**
  * Get voltage reading from specified channel
@@ -43,7 +43,7 @@ bool ads7830_get_reading(uint8_t channel, uint8_t *value);
  * @param vref Reference voltage in volts
  * @return bool True on success, false on failure
  */
-bool ads7830_get_voltage(uint8_t channel, float *voltage, float vref);
+bool sun_pyramids_get_voltage(uint8_t channel, float *voltage, float vref);
 
 /**
  * Read all 8 ADC channels
@@ -53,7 +53,7 @@ bool ads7830_get_voltage(uint8_t channel, float *voltage, float vref);
  * @param values_out Array to store 8 ADC readings (0-255)
  * @return bool True if all channels read successfully, false otherwise
  */
-bool ads7830_read_all_channels(uint8_t values_out[8]);
+bool sun_pyramids_read_all_channels(uint8_t values_out[8]);
 
 /**
  * Read all 8 ADC channels and convert to voltages
@@ -64,4 +64,4 @@ bool ads7830_read_all_channels(uint8_t values_out[8]);
  * @param voltages_out Array to store 8 voltage readings (in volts)
  * @return bool True if all channels read successfully, false otherwise
  */
-bool ads7830_read_all_voltages(float voltages_out[8]);
+bool sun_pyramids_read_all_voltages(float voltages_out[8]);
