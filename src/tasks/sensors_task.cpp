@@ -151,7 +151,7 @@ void sensors_task_dispatch(slate_t *slate)
             // Magnetorquers not running, read directly
             result = rm3100_get_reading(&slate->b_field_local);
         }
-        LOG_DEBUG("[sensors] Magnetometer reading: [%.3f, %.3f, %.3f]",
+        LOG_DEBUG("[sensors] Magnetometer reading: [%.10f, %.10f, %.10f]",
                   slate->b_field_local.x, slate->b_field_local.y,
                   slate->b_field_local.z);
 
@@ -286,18 +286,21 @@ void sensors_task_dispatch(slate_t *slate)
     }
 
     // Log all sun sensor readings after collecting all data
-    LOG_DEBUG(
-        "[sensors] Sun sensor readings: [%u, %u, %u, %u, "
-        "%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, "
-        "%u, %u]",
-        slate->sun_sensors_intensities[0], slate->sun_sensors_intensities[1],
-        slate->sun_sensors_intensities[2], slate->sun_sensors_intensities[3],
-        slate->sun_sensors_intensities[4], slate->sun_sensors_intensities[5],
-        slate->sun_sensors_intensities[6], slate->sun_sensors_intensities[7],
-        slate->sun_sensors_intensities[8], slate->sun_sensors_intensities[9],
-        slate->sun_sensors_intensities[10], slate->sun_sensors_intensities[11],
-        slate->sun_sensors_intensities[12], slate->sun_sensors_intensities[13],
-        slate->sun_sensors_intensities[14], slate->sun_sensors_intensities[15]);
+    // LOG_DEBUG(
+    //     "[sensors] Sun sensor readings: [%u, %u, %u, %u, "
+    //     "%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, "
+    //     "%u, %u]",
+    //     slate->sun_sensors_intensities[0], slate->sun_sensors_intensities[1],
+    //     slate->sun_sensors_intensities[2], slate->sun_sensors_intensities[3],
+    //     slate->sun_sensors_intensities[4], slate->sun_sensors_intensities[5],
+    //     slate->sun_sensors_intensities[6], slate->sun_sensors_intensities[7],
+    //     slate->sun_sensors_intensities[8], slate->sun_sensors_intensities[9],
+    //     slate->sun_sensors_intensities[10],
+    //     slate->sun_sensors_intensities[11],
+    //     slate->sun_sensors_intensities[12],
+    //     slate->sun_sensors_intensities[13],
+    //     slate->sun_sensors_intensities[14],
+    //     slate->sun_sensors_intensities[15]);
 
     LOG_DEBUG("[sensors] Sun sensor voltages: [%.2f, %.2f, %.2f, %.2f, "
               "%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, "

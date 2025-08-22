@@ -17,22 +17,20 @@ constexpr uint32_t NUM_REACTION_WHEELS = 4;
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 
 // #### MAGNETOMETER CALIBRATION ####
-// TODO: UPDATE FOR FLIGHT MODEL
-// Generated on 20250810_213022 using ellipsoid method
-// Hard iron offset correction (in sensor units)
-constexpr float3 MAG_HARD_IRON_OFFSET = {
-    -10.879795f, // X offset
-    4.468930f,   // Y offset
-    -1.344230f   // Z offset
-};
+// TODO: Update with FLIGHT model (see scripts/calibrations/magnetometer)
 
-// Soft iron correction matrix (3x3 transformation matrix)
-constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{0.024522f, -0.001219f, -0.000468f},
-                                           {-0.001219f, 0.027507f, 0.000960f},
-                                           {-0.000468f, 0.000960f, 0.028177f}};
+// Hard iron offset correction (sensor units)
+// Set to zeros during calibration
+constexpr float3 MAG_HARD_IRON_OFFSET = float3{0.0f, 0.0f, 0.0f};
+
+// Soft iron matrix correction (in sensor units)
+// Set to identity matrix during calibration
+constexpr float3x3 MAG_SOFT_IRON_MATRIX = {
+    {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}};
 
 // #### MAGNETOMETER SAMPLING ####
 // Time to turn off the magnetorquers so we can measure the magnetometer
+// TODO: test on FLIGHT model
 constexpr uint32_t MAGNETOMETER_FIELD_SETTLE_TIME_MS = 20; // [ms]
 
 // (These are generally useful)

@@ -2,3 +2,6 @@
 **/.DS_Store
 .vscode
 build
+*.csv
+*.png
+*.json

@@ -103,7 +103,7 @@ static bool rm3100_spi_read_reg(uint8_t reg, uint8_t *data, size_t len)
  * transformation to raw magnetometer readings. The calibration compensates
  * for magnetic distortions in the sensor environment.
  *
- * @param raw_reading Raw magnetometer reading in microTesla
+ * @param raw_reading Raw magnetometer reading
  * @param calibrated_reading Pointer to store calibrated result in microTesla
  */
 static void rm3100_apply_calibration(const float3 &raw_reading,
@@ -276,7 +276,8 @@ rm3100_error_t rm3100_get_reading(float3 *mag_field)
     rm3100_apply_calibration(raw_reading, mag_field);
 
     // Normalize the reading to unit vector
-    *mag_field = normalize(*mag_field);
+    // Comment out during calibration to keep raw values
+    // *mag_field = normalize(*mag_field);
 
     return RM3100_OK;
 }
