@@ -43,7 +43,7 @@ void sun_sensors_to_vector(slate_t *slate)
             static_cast<float>(slate->sun_sensors_intensities[i]);
     }
 
-    // Find max intensity for threshold checking
+    // Find max intensity for threshold checks
     float I_max = sensor_readings[0];
     for (int i = 1; i < 8; i++)
     {
@@ -56,10 +56,18 @@ void sun_sensors_to_vector(slate_t *slate)
     // Check if we have enough light to make a measurement
     if (I_max < 1e-6f)
     {
-        // No sun detected - set sun vector to zero
-        slate->sun_vector_body.x = 0.0f;
-        slate->sun_vector_body.y = 0.0f;
-        slate->sun_vector_body.z = 0.0f;
+        // No sun detected - set sun vector to zero and flag as invalid
+        slate->sun_vector_body = {0, 0, 0};
+        slate->sun_vector_valid = false;
+        return;
+    }
+
+    // Check for saturation
+    if (I_max == SUN_SENSOR_CLIP_VALUE)
+    {
+        // Saturation detected - set sun vector to zero and flag as invalid
+        slate->sun_vector_body = {0, 0, 0};
+        slate->sun_vector_valid = false;
         return;
     }
 
