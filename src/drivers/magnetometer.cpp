@@ -83,6 +83,7 @@ static bool rm3100_spi_read_reg(uint8_t reg, uint8_t *data, size_t len)
     int ret = spi_write_blocking(SAMWISE_ADCS_MAGMETER_SPI, &cmd, 1);
     if (ret != 1)
     {
+        LOG_DEBUG("[rm3100] Failed to send read command");
         rm3100_cs_deselect();
         return false;
     }
@@ -105,6 +106,14 @@ static bool rm3100_spi_read_reg(uint8_t reg, uint8_t *data, size_t len)
  */
 rm3100_error_t rm3100_init(void)
 {
+    // Enable magnetometer power FIRST
+    gpio_init(SAMWISE_ADCS_EN_MAGMETER);
+    gpio_set_dir(SAMWISE_ADCS_EN_MAGMETER, GPIO_OUT);
+    gpio_put(SAMWISE_ADCS_EN_MAGMETER, 0); // Enable power
+
+    // Give it time to power up
+    sleep_ms(100);
+
     // Initialize SPI interface
     spi_init(SAMWISE_ADCS_MAGMETER_SPI, RM3100_SPI_FREQ);
     spi_set_format(SAMWISE_ADCS_MAGMETER_SPI, 8, SPI_CPOL_0, SPI_CPHA_0,
@@ -120,25 +129,22 @@ rm3100_error_t rm3100_init(void)
     gpio_set_dir(SAMWISE_ADCS_SCS_MAGMETER, GPIO_OUT);
     gpio_put(SAMWISE_ADCS_SCS_MAGMETER, 1); // Start deselected
 
-    // Small delay for SPI to stabilize
-    sleep_ms(10);
-
     // Verify chip presence by reading revision ID
     uint8_t revision_id;
     if (!rm3100_spi_read_reg(RM3100_REG_REVID, &revision_id, 1))
     {
-        LOG_INFO("RM3100: SPI communication failed during chip ID read");
+        LOG_INFO("[rm3100] SPI communication failed during chip ID read");
         return RM3100_ERROR_SPI_COMM;
     }
 
     if (revision_id != RM3100_REVID)
     {
-        LOG_INFO("RM3100: Wrong chip ID. Expected 0x%02X, got 0x%02X",
+        LOG_INFO("[rm3100] Wrong chip ID. Expected 0x%02X, got 0x%02X",
                  RM3100_REVID, revision_id);
         return RM3100_ERROR_WRONG_CHIP_ID;
     }
 
-    LOG_INFO("RM3100: Chip ID verified (0x%02X)", revision_id);
+    LOG_INFO("[rm3100] Chip ID verified (0x%02X)", revision_id);
 
     // Configure cycle counts for all axes (affects resolution and measurement
     // time)
@@ -150,7 +156,7 @@ rm3100_error_t rm3100_init(void)
 
     if (!rm3100_spi_write_reg(RM3100_REG_CCX, cycle_counts, 6))
     {
-        LOG_INFO("RM3100: Failed to configure cycle counts");
+        LOG_INFO("[rm3100] Failed to configure cycle counts");
         return RM3100_ERROR_CONFIG_FAILED;
     }
 
@@ -158,7 +164,7 @@ rm3100_error_t rm3100_init(void)
     uint8_t data_rate = RM3100_CMM_RATE_75_HZ | RM3100_CMM_RATE_MSB;
     if (!rm3100_spi_write_reg(RM3100_REG_TMRC, &data_rate, 1))
     {
-        LOG_INFO("RM3100: Failed to configure data rate");
+        LOG_INFO("[rm3100] Failed to configure data rate");
         return RM3100_ERROR_CONFIG_FAILED;
     }
 
@@ -171,12 +177,12 @@ rm3100_error_t rm3100_init(void)
 
     if (!rm3100_spi_write_reg(RM3100_REG_CMM, &cmm_config, 1))
     {
-        LOG_INFO("RM3100: Failed to enable continuous measurement mode");
+        LOG_INFO("[rm3100] Failed to enable continuous measurement mode");
         return RM3100_ERROR_CONFIG_FAILED;
     }
 
     LOG_INFO(
-        "RM3100: Initialization successful, continuous mode enabled at 75 Hz");
+        "[rm3100] Initialization successful, continuous mode enabled at 75 Hz");
     return RM3100_OK;
 }
 

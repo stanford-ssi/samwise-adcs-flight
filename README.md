@@ -39,6 +39,7 @@ make -j8
 **Only on Mac:**
 ```
 cp samwise-adcs.uf2 /Volumes/RP2350 
+picotool load samwise-adcs.uf2 -f
 ```
 
 Follow instructions [here](https://www.raspberrypi.com/documentation/microcontrollers/c_sdk.html#blink-an-led) for how to drag the `.uf2` file onto your device.
