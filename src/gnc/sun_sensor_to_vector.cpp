@@ -35,7 +35,7 @@ void sun_sensors_to_attitude(slate_t *slate)
 
     for (int i = 0; i < 3; ++i)
     {
-        slate->sun_vector_principal[i] = temp[i] / I_max;
+        slate->sun_vector_body[i] = temp[i] / I_max;
     }
 
     // if (I_max > 1e-6f) {
@@ -65,9 +65,8 @@ void test_sun_pyramid_reading(slate_t *slate)
     // 0.0f, 0.0f, 0.0f, 0.0f};
 
     sun_sensors_to_attitude(slate);
-    LOG_INFO("Sun vector in principal frame: %f, %f, %f",
-             slate->sun_vector_principal[0], slate->sun_vector_principal[1],
-             slate->sun_vector_principal[2]);
+    LOG_INFO("Sun vector in body frame: %f, %f, %f", slate->sun_vector_body[0],
+             slate->sun_vector_body[1], slate->sun_vector_body[2]);
     // should be [1 0 0]
     LOG_INFO("sun_pyramid_reading testing successful! :)");
 }

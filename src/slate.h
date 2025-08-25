@@ -67,7 +67,8 @@ typedef struct samwise_adcs_slate
     bool sun_pyramids_alive;
     bool photodiodes_yz_data_valid;
     bool photodiodes_yz_alive;
-    float3 sun_vector_principal;
+    float3 sun_vector_body;      // (unit vector) in body frame
+    float3 sun_vector_principal; // (unit vector) in principal axes frame
 
     // IMU
     float3 w_body_raw;      // [rad/s] in body frame
