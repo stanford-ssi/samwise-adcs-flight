@@ -8,5 +8,5 @@
 #include "linalg.h"
 #include "slate.h"
 
-void sun_sensors_to_attitude(slate_t *slate);
+void sun_sensors_to_vector(slate_t *slate);
 void test_sun_pyramid_reading(slate_t *slate);

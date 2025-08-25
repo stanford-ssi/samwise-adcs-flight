@@ -30,7 +30,7 @@ const float sensor_normals[8][3] = {
 
 void compute_sensor_pseudoinverse();
 
-void sun_sensors_to_attitude(slate_t *slate)
+void sun_sensors_to_vector(slate_t *slate)
 {
     // Ensure pseudoinverse is computed
     compute_sensor_pseudoinverse();
@@ -64,7 +64,7 @@ void sun_sensors_to_attitude(slate_t *slate)
     }
 
     // Compute sun vector using pseudoinverse: sun_vector = A+ * sensor_readings
-    float sun_vector_raw[3] = {0, 0, 0};
+    float3 sun_vector_raw = {0, 0, 0};
     for (int i = 0; i < 3; i++)
     {
         for (int j = 0; j < 8; j++)
@@ -75,22 +75,22 @@ void sun_sensors_to_attitude(slate_t *slate)
     }
 
     // Normalize to unit vector
-    float magnitude = sqrtf(sun_vector_raw[0] * sun_vector_raw[0] +
-                            sun_vector_raw[1] * sun_vector_raw[1] +
-                            sun_vector_raw[2] * sun_vector_raw[2]);
+    float3 sun_vector = normalize(sun_vector_raw);
+    float magnitude = length(sun_vector_raw);
 
     if (magnitude > 1e-6f)
     {
-        slate->sun_vector_body.x = sun_vector_raw[0] / magnitude;
-        slate->sun_vector_body.y = sun_vector_raw[1] / magnitude;
-        slate->sun_vector_body.z = sun_vector_raw[2] / magnitude;
+        slate->sun_vector_body = sun_vector;
+        slate->sun_vector_valid = true;
+        return;
     }
     else
     {
         // Degenerate case - set to zero
-        slate->sun_vector_body.x = 0.0f;
-        slate->sun_vector_body.y = 0.0f;
-        slate->sun_vector_body.z = 0.0f;
+        // and flag as invalid
+        slate->sun_vector_body = {0.0f, 0.0f, 0.0f};
+        slate->sun_vector_valid = false;
+        return;
     }
 }
 

@@ -27,7 +27,7 @@ void test_sun_pyramid_reading(slate_t *slate)
     // slate->sun_sensors_intensities[0] = {1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
     // 0.0f, 0.0f, 0.0f, 0.0f};
 
-    sun_sensors_to_attitude(slate);
+    sun_sensors_to_vector(slate);
     LOG_INFO("Sun vector in body frame: %f, %f, %f", slate->sun_vector_body[0],
              slate->sun_vector_body[1], slate->sun_vector_body[2]);
     // should be [1 0 0]
@@ -37,7 +37,7 @@ void test_sun_pyramid_reading(slate_t *slate)
 void test_sun_sensor_real_values(slate_t *slate)
 {
     // Compute sun vector from current sensor readings
-    sun_sensors_to_attitude(slate);
+    sun_sensors_to_vector(slate);
 
     // Log computed sun vector
     LOG_DEBUG("Sun vector: [%.6f, %.6f, %.6f]", slate->sun_vector_body.x,
