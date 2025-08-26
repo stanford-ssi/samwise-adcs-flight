@@ -34,6 +34,10 @@ typedef struct samwise_adcs_slate
     // Telemetry
     adcs_packet_t telem;
 
+    // Scheduler metrics
+    uint32_t
+        scheduler_loop_iterations; // total loop iterations since last telemetry
+
     // Watchdog
     bool watchdog_initialized;
     bool pin_high;

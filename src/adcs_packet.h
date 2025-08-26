@@ -26,4 +26,7 @@ typedef struct __attribute__((packed))
     char state;
     uint32_t boot_count;
 
+    // Idle loop metric
+    // uint32_t loop_iterations;
+
 } adcs_packet_t;

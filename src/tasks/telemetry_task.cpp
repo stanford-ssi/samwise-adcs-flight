@@ -23,6 +23,10 @@ static void populate_telemetry(slate_t *slate)
                     .q3 = 0.4f,
                     .state = 'X',
                     .boot_count = 42};
+    // .loop_iterations = slate->scheduler_loop_iterations};
+
+    // Reset the counter after including it in telemetry
+    // slate->scheduler_loop_iterations = 0;
 }
 
 void telemetry_task_init(slate_t *slate)

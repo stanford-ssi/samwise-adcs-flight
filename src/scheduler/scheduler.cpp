@@ -94,6 +94,13 @@ void sched_dispatch(slate_t *slate)
     sched_state_t *current_state_info = slate->current_state;
 
     /*
+     * Track scheduler loop iterations (Apollo 11 style overload monitoring)
+     * When this drops to zero between telemetry periods, processor has no idle
+     * time
+     */
+    slate->scheduler_loop_iterations++;
+
+    /*
      * Loop through all of this state's tasks
      */
     for (size_t i = 0; i < current_state_info->num_tasks; i++)
