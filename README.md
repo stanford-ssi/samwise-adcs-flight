@@ -8,7 +8,7 @@
 This repo contains the Flight Software for the SAMWISE Attitude Determination and Control System (ADCS) board. This system determines and controls the SAMWISE's attitude in space.
 
 <div align="center">
-  <img src="docs/images/samwise-adcs-board-design.png" alt="ADCS Board" width="200">
+  <img src="docs/images/samwise-adcs-board-design.png" alt="ADCS Board" width="300">
   <p><em>ADCS flight board v1.7</em></p>
 </div>
 
