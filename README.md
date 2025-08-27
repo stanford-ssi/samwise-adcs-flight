@@ -1,14 +1,14 @@
 # SAMWISE ADCS Flight Software
 
 <div align="center">
-  <img src="docs/images/samwise-vibe-check.jpg" alt="SAMWISE Satellite" width="400">
+  <img src="documentation/docs/img/samwise-vibe-check.jpg" alt="SAMWISE Satellite" width="400">
   <p><em>SAMWISE at its vibe test in June 2025</em></p>
 </div>
 
 This repo contains the Flight Software for the SAMWISE Attitude Determination and Control System (ADCS) board. This system determines and controls the SAMWISE's attitude in space.
 
 <div align="center">
-  <img src="docs/images/samwise-adcs-board-design.png" alt="ADCS Board" width="300">
+  <img src="documentation/docs/img/samwise-adcs-board-design.png" alt="ADCS Board" width="300">
   <p><em>ADCS flight board v1.7</em></p>
 </div>
 
@@ -19,7 +19,7 @@ The ADCS flight software is built around a **task-based state machine** that man
 ### Core Architecture
 
 <div align="center">
-  <img src="docs/images/system-architecture-diagram.png" alt="System Architecture" width="700">
+  <img src="documentation/docs/images/system-architecture-diagram.png" alt="System Architecture" width="700">
   <p><em>ADCS Flight Software Architecture Overview</em></p>
 </div>
 
@@ -51,7 +51,7 @@ Task execution and state management - orchestrates when and how things happen.
 ### ADCS Control Hierarchy (Priority Order)
 
 <div align="center">
-  <img src="docs/images/state-machine-diagram.png" alt="State Machine Flow" width="600">
+  <img src="documentation/docs/img/state-machine-diagram.png" alt="State Machine Flow" width="600">
   <p><em>ADCS State Machine: Priority-based transitions ensure safe operation</em></p>
 </div>
 
