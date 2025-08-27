@@ -1,3 +1,10 @@
+---
+title: "Software Onboarding"
+owner: "@SSI-Team"
+status: "active"
+order: 1
+---
+
 # Sat Software Onboarding
 
 Welcome to software! We put code **in space**!!

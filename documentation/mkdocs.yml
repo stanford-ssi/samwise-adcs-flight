@@ -1,0 +1,9 @@
+site_name: SAMWISE ADCS Flight 
+site_description: Documentation for the SAMWISE ADCS Flight Software
+site_author: Lundeen Cahilly and ADCS Team
+theme:
+  name: shadcn
+
+nav:
+  - "Home": "index.md"
+  - "Architecture": "architecture.md"
