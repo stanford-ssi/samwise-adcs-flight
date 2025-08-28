@@ -10,7 +10,7 @@
 #include "pico/printf.h"
 #include <math.h>
 
-#define IDX(row, col, ncols) (((row) * ncols) + col)
+#define IDX(row, col, ncols) (((row)*ncols) + col)
 
 /**
  * Multiply to NxN matrices, storing the result in out. Assumes

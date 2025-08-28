@@ -9,6 +9,24 @@ using namespace linalg::aliases;
 
 #pragma once
 
+// General specifications
+constexpr uint32_t NUM_SUN_SENSORS = 16; // 8 pyramid, 8 yz (+-)
+constexpr uint32_t NUM_REACTION_WHEELS = 4;
+
+// IMU Calibration - zero rotation reading in radians per second
+constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
+
+// (These are generally useful)
+constexpr float DEG_TO_RAD = 0.01745329251;
+constexpr float RAD_TO_DEG = 57.2957795131;
+
+// Rotation thresholds for state transitions - TODO: pick good values!
+constexpr float W_COOL_DOWN_ENTER_THRESHOLD = (100.0 * DEG_TO_RAD); // in rad/s
+constexpr float W_COOL_DOWN_EXIT_THRESHOLD = (90.0 * DEG_TO_RAD);   // in rad/s
+
+constexpr float W_ENTER_DETUMBLE_THRESHOLD = (10.0 * DEG_TO_RAD); // in rad/s
+constexpr float W_EXIT_DETUMBLE_THRESHOLD = (1.0 * DEG_TO_RAD);   // in rad/s
+
 // #### REACTION WHEEL SPECS ####
 // Spec sheet:
 // https://www.faulhaber.com/fileadmin/Import/Media/EN_2610_B_DFF.pdf Reaction
@@ -49,3 +67,14 @@ constexpr float MAG_SENSOR_STD = 0.01;
 // #### DESATURATION GAINS ####
 // Desaturation gains for each reaction wheel
 constexpr float DESATURATION_KP = 0.01; // [1/s]
+
+// #### ADM1176 POWER MONITORING ####
+constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
+
+// #### SUN SENSOR NORMALIZATION ####
+constexpr float VREF_ADS7830 = 2.5f;
+constexpr float VREF_RP2350B_ADC = 3.3f;
+constexpr uint16_t MAX_VALUE_RP2350B_ADC = 4095; // 12-bit ADC max value
+constexpr uint16_t MAX_VALUE_ADS7830 = 255;      // 8-bit ADC max value
+constexpr uint16_t SUN_SENSOR_CLIP_VALUE = static_cast<uint16_t>(
+    VREF_ADS7830 / VREF_RP2350B_ADC * MAX_VALUE_RP2350B_ADC);

@@ -1,6 +1,15 @@
 # SAMWISE ADCS Flight Software
 Flight Software for the SAMWISE ADCS board
 
+# Directory Structure
+* **Top Level**: Main file and general utilities (type definitions, macros, linear algebra library, etc.)
+* `drivers`: Functions for interacting directly with hardware (IMU, GPS, magmetometers, etc.)
+* `gnc`: Math routines for control functions (attitute estimation, control, etc.)
+* `scheduler`: Core of the software called directly by `main` - handles state transitions and dispatches tasks
+### State Machine:
+* `states`: Contains `.cpp` and `.h` files for each state that the board can be in. Each state contains a list of tasks to dispatch and a transition function to determine the next state.
+* `tasks`: Contains `.cpp` and `.h` files for each task - tasks are dispatched by the scheduler depending on the current state
+
 ## Build Products
 For the latest build products, check `actions -> C build -> samwise-adcs-products.zip`.
 
@@ -30,6 +39,7 @@ make -j8
 **Only on Mac:**
 ```
 cp samwise-adcs.uf2 /Volumes/RP2350 
+picotool load samwise-adcs.uf2 -f
 ```
 
 Follow instructions [here](https://www.raspberrypi.com/documentation/microcontrollers/c_sdk.html#blink-an-led) for how to drag the `.uf2` file onto your device.
