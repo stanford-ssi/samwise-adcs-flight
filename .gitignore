@@ -2,4 +2,7 @@
 **/.DS_Store
 .vscode
 build
+*.csv
+*.png
+*.csv
 documentation/site

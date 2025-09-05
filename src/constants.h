@@ -16,9 +16,13 @@ constexpr uint32_t NUM_REACTION_WHEELS = 4;
 // IMU Calibration - zero rotation reading in radians per second
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 
+// ### WORLD CONSTANTS ###
+constexpr float R_E = 6378.0f; // Earth radius in km
+
 // (These are generally useful)
 constexpr float DEG_TO_RAD = 0.01745329251;
 constexpr float RAD_TO_DEG = 57.2957795131;
+constexpr float SQRT_2_INV = 0.7071067811865476f; // 1 / sqrt(2)
 
 // Rotation thresholds for state transitions - TODO: pick good values!
 constexpr float W_COOL_DOWN_ENTER_THRESHOLD = (100.0 * DEG_TO_RAD); // in rad/s
