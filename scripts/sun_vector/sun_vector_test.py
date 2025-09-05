@@ -28,32 +28,26 @@ class SunVectorValidator:
             self.data = pd.read_csv(self.csv_file)
             
             # Check if headers exist or if first row is data
-            if self.data.columns[0].replace('.', '').replace('-', '').isdigit():
+            if self.data.columns[0].replace('.', '').replace('-', '').replace(' ', '').replace(':', '').isdigit():
                 # First row is data, reload without headers
                 self.data = pd.read_csv(self.csv_file, header=None, 
-                                      names=['date', 'x', 'y', 'z'])
+                                      names=['datetime', 'x', 'y', 'z'])
             else:
                 # Ensure columns are named correctly
-                self.data.columns = ['date', 'x', 'y', 'z']
+                self.data.columns = ['datetime', 'x', 'y', 'z']
                 
             print(f"Loaded {len(self.data)} sun vector measurements")
             
-            # Parse dates and add time information from row position
-            self.data['datetime'] = pd.to_datetime(self.data['date'])
+            # Parse datetime - now includes full timestamp
+            self.data['datetime'] = pd.to_datetime(self.data['datetime'])
             
-            # Infer time of day from repeated dates
-            # Group by date and add hours based on occurrence
-            date_groups = self.data.groupby('date').cumcount()
-            samples_per_day = self.data.groupby('date').size().max()
-            hours_between_samples = 24 / samples_per_day if samples_per_day > 1 else 0
-            
-            # Add inferred hours to datetime
-            self.data['datetime'] = self.data['datetime'] + pd.to_timedelta(
-                date_groups * hours_between_samples, unit='hours'
-            )
-            
-            print(f"Detected {samples_per_day} samples per day")
-            print(f"Time step: {hours_between_samples:.1f} hours")
+            # Calculate time step from actual data
+            if len(self.data) > 1:
+                time_diff = self.data['datetime'].iloc[1] - self.data['datetime'].iloc[0]
+                hours_between_samples = time_diff.total_seconds() / 3600
+                print(f"Time step: {hours_between_samples:.1f} hours")
+            else:
+                print("Single measurement")
                 
         except Exception as e:
             print(f"Error loading CSV file: {e}")
