@@ -1,73 +1,153 @@
 /**
- * @author Chen Li
- * @date 2025-07-16
+ * @author Chen Li and Lundeen Cahilly
+ * @date 2025-08-24
  */
 
-#include "gnc/sun_pyramid_reading.h"
 #include "constants.h"
 #include "gnc/matrix_utils.h"
+#include "gnc/sun_sensor_to_vector.h"
 #include "macros.h"
 #include "pico/stdlib.h"
 
-const float sensor_normal_vectors_inv[3 * 4] = {
-    0.25, 0.25, 0.25, 0.25, 0, -0.5, 0, 0.5, -0.5, 0, 0.5, 0};
+// Global storage for computed pseudoinverse (3x8)
+static float sensor_pseudoinverse[3][8];
+static bool pseudoinverse_computed = false;
 
-void sun_sensors_to_attitude(slate_t *slate)
+// --- TODO: add yz photodiodes ---
+
+// Define actual sun sensor normal vectors (8x3 matrix)
+// TODO: update with final structure geometry
+const float sensor_normals[8][3] = {
+    {1, 0, 1},   // sun_pyramid_1_1 [0]
+    {0, -1, 1},  // sun_pyramid_1_2 [1]
+    {-1, 0, 1},  // sun_pyramid_1_3 [2]
+    {0, 1, 1},   // sun_pyramid_1_4 [3]
+    {-1, 0, -1}, // sun_pyramid_2_1 [4]
+    {0, -1, -1}, // sun_pyramid_2_2 [5]
+    {1, 0, -1},  // sun_pyramid_2_3 [6]
+    {0, 1, -1},  // sun_pyramid_2_4 [7]
+};
+
+void compute_sensor_pseudoinverse();
+
+void sun_sensors_to_vector(slate_t *slate)
 {
-    float sun_sensors_reading[4 * 1] = {
-        slate->sun_sensors_intensities[0] - slate->sun_sensors_intensities[6],
-        slate->sun_sensors_intensities[1] - slate->sun_sensors_intensities[5],
-        slate->sun_sensors_intensities[2] - slate->sun_sensors_intensities[4],
-        slate->sun_sensors_intensities[3] -
-            slate->sun_sensors_intensities[7] // TODO: check with structure &
-                                              // sun pyramid driver
-    };
+    // Ensure pseudoinverse is computed
+    compute_sensor_pseudoinverse();
 
-    float I_max = slate->sun_sensors_intensities[0];
-    for (int i = 1; i < 8; ++i)
+    // Use all 8 sensor readings directly (no differential approach)
+    float sensor_readings[8];
+    for (int i = 0; i < 8; i++)
     {
-        if (slate->sun_sensors_intensities[i] > I_max)
-            I_max = slate->sun_sensors_intensities[i];
+        sensor_readings[i] =
+            static_cast<float>(slate->sun_sensors_intensities[i]);
     }
 
-    float temp[1 * 3];
-    mat_mul(sensor_normal_vectors_inv, sun_sensors_reading, temp, 3, 4, 1);
-
-    for (int i = 0; i < 3; ++i)
+    // Find max intensity for threshold checks
+    float I_max = sensor_readings[0];
+    for (int i = 1; i < 8; i++)
     {
-        slate->sun_vector_principal[i] = temp[i] / I_max;
+        if (sensor_readings[i] > I_max)
+        {
+            I_max = sensor_readings[i];
+        }
     }
 
-    // if (I_max > 1e-6f) {
+    // Check if we have enough light to make a measurement
+    if (I_max < 1e-6f)
+    {
+        // No sun detected - set sun vector to zero and flag as invalid
+        slate->sun_vector_body = {0, 0, 0};
+        slate->sun_vector_valid = false;
+        return;
+    }
 
-    //}
-    // else {
-    // TODO: want if all black?
-    //}
+    // Check for saturation
+    if (I_max == SUN_SENSOR_CLIP_VALUE)
+    {
+        // Saturation detected - set sun vector to zero and flag as invalid
+        slate->sun_vector_body = {0, 0, 0};
+        slate->sun_vector_valid = false;
+        return;
+    }
+
+    // Compute sun vector using pseudoinverse: sun_vector = A+ * sensor_readings
+    float3 sun_vector_raw = {0, 0, 0};
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            sun_vector_raw[i] +=
+                sensor_pseudoinverse[i][j] * sensor_readings[j];
+        }
+    }
+
+    // Normalize to unit vector
+    float3 sun_vector = normalize(sun_vector_raw);
+    float magnitude = length(sun_vector_raw);
+
+    if (magnitude > 1e-6f)
+    {
+        slate->sun_vector_body = sun_vector;
+        slate->sun_vector_valid = true;
+        return;
+    }
+    else
+    {
+        // Degenerate case - set to zero
+        // and flag as invalid
+        slate->sun_vector_body = {0.0f, 0.0f, 0.0f};
+        slate->sun_vector_valid = false;
+        return;
+    }
 }
 
-void test_sun_pyramid_reading(slate_t *slate)
+// Compute pseudoinverse: A+ = (A^T * A)^-1 * A^T
+void compute_sensor_pseudoinverse()
 {
-    LOG_INFO("Testing sun_pyramid_reading...");
+    if (pseudoinverse_computed)
+        return;
 
-    // Initialize
-    for (int i = 0; i < 4; ++i)
+    // Step 1: Transpose A (8x3 -> 3x8)
+    float A_transpose[3][8];
+    for (int i = 0; i < 3; i++)
     {
-        slate->sun_sensors_intensities[i] = 1.0f;
+        for (int j = 0; j < 8; j++)
+        {
+            A_transpose[i][j] = sensor_normals[j][i];
+        }
     }
 
-    for (int i = 4; i < 8; ++i)
+    // Step 2: Compute A^T * A (3x3 matrix)
+    float AtA[3][3] = {0};
+    for (int i = 0; i < 3; i++)
     {
-        slate->sun_sensors_intensities[i] = 0.0f;
+        for (int j = 0; j < 3; j++)
+        {
+            for (int k = 0; k < 8; k++)
+            {
+                AtA[i][j] += A_transpose[i][k] * A_transpose[j][k];
+            }
+        }
     }
 
-    // slate->sun_sensors_intensities[0] = {1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-    // 0.0f, 0.0f, 0.0f, 0.0f};
+    // Step 3: Invert A^T * A using existing matrix_utils function
+    float AtA_inv[3][3];
+    mat_inverse(&AtA[0][0], &AtA_inv[0][0], 3);
 
-    sun_sensors_to_attitude(slate);
-    LOG_INFO("Sun vector in principal frame: %f, %f, %f",
-             slate->sun_vector_principal[0], slate->sun_vector_principal[1],
-             slate->sun_vector_principal[2]);
-    // should be [1 0 0]
-    LOG_INFO("sun_pyramid_reading testing successful! :)");
+    // Step 4: Compute pseudoinverse = (A^T * A)^-1 * A^T
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            sensor_pseudoinverse[i][j] = 0;
+            for (int k = 0; k < 3; k++)
+            {
+                sensor_pseudoinverse[i][j] += AtA_inv[i][k] * A_transpose[k][j];
+            }
+        }
+    }
+
+    pseudoinverse_computed = true;
+    LOG_INFO("Sun sensor pseudoinverse computed successfully");
 }
