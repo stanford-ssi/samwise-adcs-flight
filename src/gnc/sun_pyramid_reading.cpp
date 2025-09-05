@@ -3,9 +3,9 @@
  * @date 2025-08-24
  */
 
+#include "gnc/sun_pyramid_reading.h"
 #include "constants.h"
 #include "gnc/matrix_utils.h"
-#include "gnc/sun_sensor_to_vector.h"
 #include "macros.h"
 #include "pico/stdlib.h"
 

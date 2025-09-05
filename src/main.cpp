@@ -32,12 +32,9 @@ int main()
 
     sleep_ms(5000);
 
-<<<<<<< HEAD
-=======
     LOG_INFO("[main] Slate takes up %d bytes!", sizeof(slate));
     // sched_init(&slate);
-    
->>>>>>> gnc/sun_pyramid_to_sun_vector
+
     /*
      * Run global initialization
      */

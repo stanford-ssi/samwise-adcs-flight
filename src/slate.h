@@ -57,7 +57,7 @@ typedef struct samwise_adcs_slate
     bool gps_data_valid;
     bool gps_alive;
 
-    float3 UTC_date; // testing for EKF
+    float3 UTC_date; // added for EKF test
 
     // Sun sensors
     uint16_t sun_sensors_intensities
@@ -69,6 +69,9 @@ typedef struct samwise_adcs_slate
     bool sun_pyramids_alive;
     bool photodiodes_yz_data_valid;
     bool photodiodes_yz_alive;
+
+    float3 sun_vector_body; // added EKF test
+    bool sun_vector_valid;  // added EKF test
 
     // IMU
     float3 w_body_raw;      // [rad/s] in body frame

@@ -14,6 +14,7 @@
 #include "matrix_utils.h"
 
 // Sep 4 testing note: Change of vari names: b_unit_local -> b_field_local
+// Sep 4 testing note: Change of vari names: sun_vector_local -> sun_vector_body
 
 // State is just the quaternion
 #define AF_STATE_SIZE (4)
@@ -260,7 +261,7 @@ void attitude_filter_update(slate_t *slate)
 
     populate_expected_measurement(z_expected, slate->q_eci_to_body,
                                   slate->sun_vector_eci, slate->b_unit_eci);
-    populate_actual_measurement(z_actual, slate->sun_vector_local,
+    populate_actual_measurement(z_actual, slate->sun_vector_body,
                                 slate->b_field_local);
 
     float z_diff[AF_MEASUREMENT_SIZE];
@@ -350,7 +351,7 @@ void test_attitude_filter(slate_t *slate)
     slate->sun_vector_eci = {1.0f, 0.0f, 0.0f};
     slate->b_unit_eci = {0.0f, 1.0f, 0.0f};
 
-    slate->sun_vector_local = {0.0f, 1.0f, 0.0f};
+    slate->sun_vector_body = {0.0f, 1.0f, 0.0f};
     slate->b_field_local = {0.0f, 0.0f, -1.0f};
 
     for (int i = 0; i < 10; i++)
