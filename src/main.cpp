@@ -49,6 +49,6 @@ int main()
         sched_dispatch(&slate);
     }
 
-    // // We should not be here -> very bad
-    // ERROR("Reached the end of the code! This should not happen!");
+    // We should not be here -> very bad
+    ERROR("Reached the end of the code! This should not happen!");
 }
