@@ -6,6 +6,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/boards)
+
 # Initialise pico_sdk from installed location
 # (note this can come from environment, CMake cache etc)
 
@@ -20,7 +22,7 @@ set(toolchainVersion 13_2_Rel1)
 set(picotoolVersion 2.0.0)
 include(${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 # ====================================================================================
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+set(PICO_BOARD adcs CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(${CMAKE_CURRENT_LIST_DIR}/pico-sdk/pico_sdk_init.cmake)
@@ -36,13 +38,15 @@ pico_sdk_init()
 
 file(GLOB top CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB gnc CONFIGURE_DEPENDS "src/gnc/*.cpp")
+file(GLOB gnc_world CONFIGURE_DEPENDS "src/gnc/world/*.cpp")
 file(GLOB drivers CONFIGURE_DEPENDS "src/drivers/*.cpp")
 file(GLOB drivers_external CONFIGURE_DEPENDS "src/drivers/external/*.[c|cpp]")
 file(GLOB scheduler CONFIGURE_DEPENDS "src/scheduler/*.cpp")
 file(GLOB states CONFIGURE_DEPENDS "src/states/*.cpp")
 file(GLOB tasks CONFIGURE_DEPENDS "src/tasks/*.cpp")
+file(GLOB tests CONFIGURE_DEPENDS "src/tests/*.cpp")
 
-add_executable(samwise-adcs ${top} ${gnc} ${drivers} ${drivers_external} ${scheduler} ${states} ${tasks})
+add_executable(samwise-adcs ${top} ${gnc} ${gnc_world} ${drivers} ${drivers_external} ${scheduler} ${states} ${tasks} ${tests})
 
 pico_set_program_name(samwise-adcs "samwise_adcs")
 pico_set_program_version(samwise-adcs "0.1")
@@ -56,8 +60,11 @@ target_link_libraries(samwise-adcs
   hardware_i2c
   hardware_spi
   hardware_uart
+  hardware_flash
+  hardware_pwm
+  hardware_adc
   pico_stdlib 
-  pico_util
+  hardware_pio
 )
 
 # Add the standard include files to the build

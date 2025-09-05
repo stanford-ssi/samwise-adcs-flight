@@ -10,15 +10,34 @@ using namespace linalg::aliases;
 #pragma once
 
 // General specifications
-constexpr uint32_t NUM_SUN_SENSORS = 10;
+constexpr uint32_t NUM_SUN_SENSORS = 16; // 8 pyramid, 8 yz (+-)
 constexpr uint32_t NUM_REACTION_WHEELS = 4;
 
 // IMU Calibration - zero rotation reading in radians per second
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 
+// #### MAGNETOMETER CALIBRATION ####
+// TODO: Update with FLIGHT model (see scripts/calibrations/magnetometer)
+// Hard iron offset correction (sensor units)
+constexpr float3 MAG_HARD_IRON_OFFSET = float3{-0.647650, 1.238939, -0.935132};
+
+// Soft iron matrix correction (in sensor units)
+constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.000000f, 0.000000f, 0.000000f},
+                                           {0.000000f, 1.000000f, 0.000000f},
+                                           {0.000000f, 0.000000f, 1.000000f}};
+
+// #### MAGNETOMETER SAMPLING ####
+// Time to turn off the magnetorquers so we can measure the magnetometer
+// TODO: test on FLIGHT model
+constexpr uint32_t MAGNETOMETER_FIELD_SETTLE_TIME_MS = 20; // [ms]
+
+// ### WORLD CONSTANTS ###
+constexpr float R_E = 6378.0f; // Earth radius in km
+
 // (These are generally useful)
 constexpr float DEG_TO_RAD = 0.01745329251;
 constexpr float RAD_TO_DEG = 57.2957795131;
+constexpr float SQRT_2_INV = 0.7071067811865476f; // 1 / sqrt(2)
 
 // Rotation thresholds for state transitions - TODO: pick good values!
 constexpr float W_COOL_DOWN_ENTER_THRESHOLD = (100.0 * DEG_TO_RAD); // in rad/s
@@ -56,3 +75,14 @@ constexpr float3 SATELLITE_INERTIA = {0.01461922201, 0.0412768466,
 // #### DESATURATION GAINS ####
 // Desaturation gains for each reaction wheel
 constexpr float DESATURATION_KP = 0.01; // [1/s]
+
+// #### ADM1176 POWER MONITORING ####
+constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
+
+// #### SUN SENSOR NORMALIZATION ####
+constexpr float VREF_ADS7830 = 2.5f;
+constexpr float VREF_RP2350B_ADC = 3.3f;
+constexpr uint16_t MAX_VALUE_RP2350B_ADC = 4095; // 12-bit ADC max value
+constexpr uint16_t MAX_VALUE_ADS7830 = 255;      // 8-bit ADC max value
+constexpr uint16_t SUN_SENSOR_CLIP_VALUE = static_cast<uint16_t>(
+    VREF_ADS7830 / VREF_RP2350B_ADC * MAX_VALUE_RP2350B_ADC);

@@ -10,6 +10,7 @@
 #include "hardware/spi.h"
 #include "pico/stdlib.h"
 
+#include "constants.h"
 #include "macros.h"
 #include "magnetometer.h"
 #include "pins.h"
@@ -59,7 +60,7 @@ static bool rm3100_spi_write_reg(uint8_t reg, const uint8_t *data, size_t len)
     rm3100_cs_select();
 
     // Send register address (write command)
-    int ret = spi_write_blocking(spi0, &reg, 1);
+    int ret = spi_write_blocking(SAMWISE_ADCS_MAGMETER_SPI, &reg, 1);
     if (ret != 1)
     {
         rm3100_cs_deselect();
@@ -67,7 +68,7 @@ static bool rm3100_spi_write_reg(uint8_t reg, const uint8_t *data, size_t len)
     }
 
     // Send data
-    ret = spi_write_blocking(spi0, data, len);
+    ret = spi_write_blocking(SAMWISE_ADCS_MAGMETER_SPI, data, len);
     rm3100_cs_deselect();
 
     return ret == (int)len;
@@ -80,18 +81,44 @@ static bool rm3100_spi_read_reg(uint8_t reg, uint8_t *data, size_t len)
     rm3100_cs_select();
 
     // Send register address (read command)
-    int ret = spi_write_blocking(spi0, &cmd, 1);
+    int ret = spi_write_blocking(SAMWISE_ADCS_MAGMETER_SPI, &cmd, 1);
     if (ret != 1)
     {
+        LOG_DEBUG("[rm3100] Failed to send read command");
         rm3100_cs_deselect();
         return false;
     }
 
     // Read data
-    ret = spi_read_blocking(spi0, 0, data, len);
+    ret = spi_read_blocking(SAMWISE_ADCS_MAGMETER_SPI, 0, data, len);
     rm3100_cs_deselect();
 
     return ret == (int)len;
+}
+
+/**
+ * Apply magnetometer calibration
+ *
+ * This function applies hard iron offset correction and soft iron matrix
+ * transformation to raw magnetometer readings. The calibration compensates
+ * for magnetic distortions in the sensor environment.
+ *
+ * @param raw_reading Raw magnetometer reading
+ * @param calibrated_reading Pointer to store calibrated result in microTesla
+ */
+static void rm3100_apply_calibration(const float3 &raw_reading,
+                                     float3 *calibrated_reading)
+{
+    if (calibrated_reading == NULL)
+    {
+        return;
+    }
+
+    // Step 1: Apply hard iron offset correction
+    float3 centered = raw_reading - MAG_HARD_IRON_OFFSET;
+
+    // Step 2: Apply soft iron correction matrix transformation
+    *calibrated_reading = mul(MAG_SOFT_IRON_MATRIX, centered);
 }
 
 /**
@@ -105,9 +132,18 @@ static bool rm3100_spi_read_reg(uint8_t reg, uint8_t *data, size_t len)
  */
 rm3100_error_t rm3100_init(void)
 {
+    // Enable magnetometer power FIRST
+    gpio_init(SAMWISE_ADCS_EN_MAGMETER);
+    gpio_set_dir(SAMWISE_ADCS_EN_MAGMETER, GPIO_OUT);
+    gpio_put(SAMWISE_ADCS_EN_MAGMETER, 0); // Enable power
+
+    // Give it time to power up
+    sleep_ms(100);
+
     // Initialize SPI interface
-    spi_init(spi0, RM3100_SPI_FREQ);
-    spi_set_format(spi0, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
+    spi_init(SAMWISE_ADCS_MAGMETER_SPI, RM3100_SPI_FREQ);
+    spi_set_format(SAMWISE_ADCS_MAGMETER_SPI, 8, SPI_CPOL_0, SPI_CPHA_0,
+                   SPI_MSB_FIRST);
 
     // Configure SPI pins
     gpio_set_function(SAMWISE_ADCS_SCLK_MAGMETER, GPIO_FUNC_SPI);
@@ -119,25 +155,22 @@ rm3100_error_t rm3100_init(void)
     gpio_set_dir(SAMWISE_ADCS_SCS_MAGMETER, GPIO_OUT);
     gpio_put(SAMWISE_ADCS_SCS_MAGMETER, 1); // Start deselected
 
-    // Small delay for SPI to stabilize
-    sleep_ms(10);
-
     // Verify chip presence by reading revision ID
     uint8_t revision_id;
     if (!rm3100_spi_read_reg(RM3100_REG_REVID, &revision_id, 1))
     {
-        LOG_INFO("RM3100: SPI communication failed during chip ID read");
+        LOG_INFO("[rm3100] SPI communication failed during chip ID read");
         return RM3100_ERROR_SPI_COMM;
     }
 
     if (revision_id != RM3100_REVID)
     {
-        LOG_INFO("RM3100: Wrong chip ID. Expected 0x%02X, got 0x%02X",
+        LOG_INFO("[rm3100] Wrong chip ID. Expected 0x%02X, got 0x%02X",
                  RM3100_REVID, revision_id);
         return RM3100_ERROR_WRONG_CHIP_ID;
     }
 
-    LOG_INFO("RM3100: Chip ID verified (0x%02X)", revision_id);
+    LOG_INFO("[rm3100] Chip ID verified (0x%02X)", revision_id);
 
     // Configure cycle counts for all axes (affects resolution and measurement
     // time)
@@ -149,7 +182,7 @@ rm3100_error_t rm3100_init(void)
 
     if (!rm3100_spi_write_reg(RM3100_REG_CCX, cycle_counts, 6))
     {
-        LOG_INFO("RM3100: Failed to configure cycle counts");
+        LOG_INFO("[rm3100] Failed to configure cycle counts");
         return RM3100_ERROR_CONFIG_FAILED;
     }
 
@@ -157,7 +190,7 @@ rm3100_error_t rm3100_init(void)
     uint8_t data_rate = RM3100_CMM_RATE_75_HZ | RM3100_CMM_RATE_MSB;
     if (!rm3100_spi_write_reg(RM3100_REG_TMRC, &data_rate, 1))
     {
-        LOG_INFO("RM3100: Failed to configure data rate");
+        LOG_INFO("[rm3100] Failed to configure data rate");
         return RM3100_ERROR_CONFIG_FAILED;
     }
 
@@ -170,12 +203,12 @@ rm3100_error_t rm3100_init(void)
 
     if (!rm3100_spi_write_reg(RM3100_REG_CMM, &cmm_config, 1))
     {
-        LOG_INFO("RM3100: Failed to enable continuous measurement mode");
+        LOG_INFO("[rm3100] Failed to enable continuous measurement mode");
         return RM3100_ERROR_CONFIG_FAILED;
     }
 
     LOG_INFO(
-        "RM3100: Initialization successful, continuous mode enabled at 75 Hz");
+        "[rm3100] Initialization successful, continuous mode enabled at 75 Hz");
     return RM3100_OK;
 }
 
@@ -183,11 +216,11 @@ rm3100_error_t rm3100_init(void)
  * Get magnetometer reading
  *
  * This function reads the latest magnetometer data from the RM3100.
- * It checks if new data is available and converts raw readings to
- * engineering units (microTesla).
+ * It checks if new data is available, converts raw readings to
+ * engineering units (microTesla), and applies calibration corrections.
  *
- * @param mag_field Pointer to float3 vector to store magnetic field in
- * microTesla
+ * @param mag_field Pointer to float3 vector to store calibrated magnetic field
+ * in microTesla
  * @return rm3100_error_t Error code (RM3100_OK on success)
  */
 rm3100_error_t rm3100_get_reading(float3 *mag_field)
@@ -232,11 +265,19 @@ rm3100_error_t rm3100_get_reading(float3 *mag_field)
     if (raw_z & 0x800000)
         raw_z |= 0xFF000000;
 
-    // Convert to microTesla using calibrated scale factor
+    // Convert to microTesla using scale factor
     const float scale = 1.0f / RM3100_LSB_PER_UT;
-    mag_field->x = raw_x * scale;
-    mag_field->y = raw_y * scale;
-    mag_field->z = raw_z * scale;
+
+    // Adjust for satellite body frame convention: magnetometer reads (+x, -y,
+    // -z) but body frame expects (+x, +y, +z)
+    float3 raw_reading = {raw_x * scale, -raw_y * scale, -raw_z * scale};
+
+    // Apply calibration to get final corrected reading
+    rm3100_apply_calibration(raw_reading, mag_field);
+
+    // Normalize the reading to unit vector
+    // Comment out during calibration to keep raw values
+    *mag_field = normalize(*mag_field);
 
     return RM3100_OK;
 }

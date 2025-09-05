@@ -11,6 +11,10 @@
 #include "scheduler/scheduler.h"
 #include "slate.h"
 
+// Make sure top gpio bank enabled
+static_assert(PICO_RP2350A == 0,
+              "PICO_RP2350A must be defined to 0 for PICUBED builds.");
+
 /**
  * One slate to rule them all!
  */
@@ -20,19 +24,21 @@ int main()
 {
     stdio_init_all();
 
-    /*
-     * Initialize the state machine
-     */
     sleep_ms(5000);
-
-    LOG_INFO("[main] Slate takes up %d bytes!", sizeof(slate));
-    sched_init(&slate);
 
     /*
      * Run global initialization
      */
     LOG_INFO("[main] Running global init...");
     init(&slate);
+
+    /*
+     * Initialize the state machine
+     */
+    sleep_ms(1000);
+
+    LOG_INFO("[main] Slate takes up %d bytes!", sizeof(slate));
+    sched_init(&slate);
 
     /*
      * Run the state machine for all of time

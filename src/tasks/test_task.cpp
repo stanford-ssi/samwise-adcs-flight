@@ -7,6 +7,7 @@
 
 #include "test_task.h"
 #include "macros.h"
+#include "pico/stdlib.h"
 
 void test_task_init(slate_t *slate)
 {
@@ -19,7 +20,7 @@ void test_task_dispatch(slate_t *slate)
 }
 
 sched_task_t test_task = {.name = "test",
-                          .dispatch_period_ms = 1000,
+                          .dispatch_period_ms = 10,
                           .task_init = &test_task_init,
                           .task_dispatch = &test_task_dispatch,
 
