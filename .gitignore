@@ -6,3 +6,5 @@ build
 *.png
 *.json
 /scripts/calibrations/magnetometer/output
+*.csv
+documentation/site

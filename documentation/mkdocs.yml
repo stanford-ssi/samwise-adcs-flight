@@ -1,0 +1,37 @@
+site_name: SAMWISE ADCS Flight Docs
+site_description: Documentation for SAMWISE ADCS Flight Software
+site_author: Lundeen Cahilly and ADCS Team
+theme:
+  name: terminal
+  # name: shadcn
+  favicon: docs/img/favicon.ico
+repo_url: https://github.com/stanford-ssi/samwise-adcs-flight
+
+
+
+nav:
+  - "Home": "index.md"
+  - "Docs Usage": "mkdocs-usage.md"
+  - "Drivers":
+    - "Power Monitor (ADM1176)": "drivers/adm1176.md"
+    - "IMU (BMI270)": "drivers/imu.md"
+    - "Magnetometer (RM3100)": "drivers/magnetometer.md"
+    - "Sun Sensor ADC (ADS7830)": "drivers/ads7830.md"
+    - "GPS Interface": "drivers/gps.md"
+    - "Magnetorquer PWM Control": "drivers/magnetorquer.md"
+    - "Neopixel Status LED": "drivers/neopixel.md"
+    - "Watchdog Timer": "drivers/watchdog.md"
+  - "GNC":
+    - "B-dot": "gnc/bdot.md"
+    - "Sun Vector Calculation": "gnc/sun_vector.md"
+    - "Attitude Filter (EKF)": "gnc/attitude_filter.md"
+    - "Attitude Dynamics": "gnc/attitude_dynamics.md"
+    - "Matrix Utils": "gnc/matrix_utils.md"
+  - "Software":
+    - "Main & Initialization": "software/main.md"
+    - "Scheduler & State Machine": "software/scheduler.md"
+  - "States":
+    - "Detumble": "states/detumble_state.md"
+  - "Onboarding":
+    - "Getting Started": "onboarding/getting-started.md"
+    - "How to Use Git": "onboarding/git-best-practices.md"
