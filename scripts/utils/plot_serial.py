@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 from collections import deque
 import argparse
 
-
-
 # Parse args --------------------
 parser = argparse.ArgumentParser()
 # Change this for your device
@@ -32,7 +30,6 @@ plt.ion()
 
 fig, ax = plt.subplots()
 
-
 data = [deque([], maxlen=max_points) for _ in range(num_values)]
 lines = [ax.plot(data[i], label=f"#{i+1}")[0] for i in range(num_values)]
 
@@ -48,12 +45,21 @@ try:
             line_raw = ser.readline().decode('utf-8', errors='replace').strip()
             line_after_info = line_raw.split("[INFO] ")[-1].strip()
 
-            # Extract numbers from message
+            # Extract numbers from message (handling trailing comma)
             try:
-                nums = [float(n) for n in line_after_info.split(",")]
+                # Split by comma and filter out any empty strings
+                number_strings = [s.strip() for s in line_after_info.split(",") if s.strip()]
+                
+                # Convert to float
+                nums = [float(n) for n in number_strings]
 
-                for (i, n) in enumerate(nums):
-                    data[i].append(n)
+                # Verify we have the expected number of values
+                if len(nums) != num_values:
+                    print(f"Warning: Expected {num_values} values, got {len(nums)}")
+                
+                # Only update the plots for the values we have
+                for i in range(min(len(nums), num_values)):
+                    data[i].append(nums[i])
                     lines[i].set_ydata(data[i])
                     lines[i].set_xdata(range(len(data[i])))
 
@@ -63,8 +69,7 @@ try:
         ax.relim()
         ax.autoscale_view(True, True, True)
         plt.pause(0.01)
-except:
+except KeyboardInterrupt:
     print("Exiting...")
 finally:
     ser.close()
-

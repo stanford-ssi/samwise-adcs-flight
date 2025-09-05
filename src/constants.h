@@ -16,9 +16,28 @@ constexpr uint32_t NUM_REACTION_WHEELS = 4;
 // IMU Calibration - zero rotation reading in radians per second
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 
+// #### MAGNETOMETER CALIBRATION ####
+// TODO: Update with FLIGHT model (see scripts/calibrations/magnetometer)
+// Hard iron offset correction (sensor units)
+constexpr float3 MAG_HARD_IRON_OFFSET = float3{-0.647650, 1.238939, -0.935132};
+
+// Soft iron matrix correction (in sensor units)
+constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.000000f, 0.000000f, 0.000000f},
+                                           {0.000000f, 1.000000f, 0.000000f},
+                                           {0.000000f, 0.000000f, 1.000000f}};
+
+// #### MAGNETOMETER SAMPLING ####
+// Time to turn off the magnetorquers so we can measure the magnetometer
+// TODO: test on FLIGHT model
+constexpr uint32_t MAGNETOMETER_FIELD_SETTLE_TIME_MS = 20; // [ms]
+
+// ### WORLD CONSTANTS ###
+constexpr float R_E = 6378.0f; // Earth radius in km
+
 // (These are generally useful)
 constexpr float DEG_TO_RAD = 0.01745329251;
 constexpr float RAD_TO_DEG = 57.2957795131;
+constexpr float SQRT_2_INV = 0.7071067811865476f; // 1 / sqrt(2)
 
 // Rotation thresholds for state transitions - TODO: pick good values!
 constexpr float W_COOL_DOWN_ENTER_THRESHOLD = (100.0 * DEG_TO_RAD); // in rad/s
