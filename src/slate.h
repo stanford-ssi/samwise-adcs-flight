@@ -95,6 +95,9 @@ typedef struct samwise_adcs_slate
     //          GNC State
     // ************************************************************************
     // General world state
+    float3 UTC_date; // TODO: change it after GPS time format is confirmed
+    float UTC_time;  // TODO: change it after GPS time format is confirmed
+
     float3 sun_vector_eci; // (unit vector)
 
     float3 B_est_rpt;  // R, phi, theta frame (unit vector) [Up, East, North]
