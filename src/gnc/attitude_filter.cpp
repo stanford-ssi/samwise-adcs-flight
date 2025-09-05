@@ -15,6 +15,7 @@
 
 // Sep 4 testing note: Change of vari names: b_unit_local -> b_field_local
 // Sep 4 testing note: Change of vari names: sun_vector_local -> sun_vector_body
+// Sep 5 testing note: Change of vari names: b_unit_eci ->B_est_eci
 
 // State is just the quaternion
 #define AF_STATE_SIZE (4)
@@ -260,7 +261,7 @@ void attitude_filter_update(slate_t *slate)
     float z_actual[AF_MEASUREMENT_SIZE];
 
     populate_expected_measurement(z_expected, slate->q_eci_to_body,
-                                  slate->sun_vector_eci, slate->b_unit_eci);
+                                  slate->sun_vector_eci, slate->B_est_eci);
     populate_actual_measurement(z_actual, slate->sun_vector_body,
                                 slate->b_field_local);
 
@@ -271,7 +272,7 @@ void attitude_filter_update(slate_t *slate)
     // S = H @ C @ H.T + R
     // K = C @ H.T @ inv(S)
     float H[AF_MEASUREMENT_SIZE * AF_STATE_SIZE];
-    populate_measurement_jacobian(H, slate->sun_vector_eci, slate->b_unit_eci,
+    populate_measurement_jacobian(H, slate->sun_vector_eci, slate->B_est_eci,
                                   slate->q_eci_to_body);
 
     float H_T[AF_STATE_SIZE * AF_MEASUREMENT_SIZE];
@@ -349,7 +350,7 @@ void test_attitude_filter(slate_t *slate)
     // Propagate and print out Q + covar frobenius
     slate->w_body = {0.00000f, 0.0f, 0.0f};
     slate->sun_vector_eci = {1.0f, 0.0f, 0.0f};
-    slate->b_unit_eci = {0.0f, 1.0f, 0.0f};
+    slate->B_est_eci = {0.0f, 1.0f, 0.0f};
 
     slate->sun_vector_body = {0.0f, 1.0f, 0.0f};
     slate->b_field_local = {0.0f, 0.0f, -1.0f};

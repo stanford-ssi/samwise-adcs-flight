@@ -1,5 +1,5 @@
 /**
- * @author Lundeen Cahilly
+ * @author Lundeen Cahilly and Chen Li
  * @date 2025-08-19
  *
  * Frame transformation utilities for GNC algorithms,
@@ -10,6 +10,7 @@
 
 #include "constants.h"
 #include "matrix_utils.h"
+#include "utils.h"
 #include <cmath>
 
 /**
@@ -37,5 +38,29 @@ float3 enu_to_ecef(const float3 &enu, const float3 &lla)
         cos_lon * enu[0] + (-sin_lat * sin_lon) * enu[1] +
             (cos_lat * sin_lon) * enu[2],          // ECEF Y
         0.0f + cos_lat * enu[1] + sin_lat * enu[2] // ECEF Z
+    };
+}
+
+/**
+ * Convert Earth-Centered Earth-Fixed (ECEF) coordinates to Earth-Centered
+ * Inertial (ECI).
+ *
+ * @param enu Vector containing ECEF X Y Z components (same units as
+ * output)
+ * @param MJD Modified Julian Date
+ * @return float3 Vector in ECI coordinates (same units as input)
+ */
+
+float3 ecef_to_eci(const float3 &ecef, const float &MJD)
+{
+    const float GMST = wrapTo360(280.4606 + 360.9856473 * (MJD - 51544.5)) *
+                       DEG_TO_RAD; // Greenwich mean sidereal time in radians
+    const float sin_GMST = sinf(GMST);
+    const float cos_GMST = cosf(GMST);
+
+    return {
+        cos_GMST * ecef[0] - sin_GMST * ecef[1], // ECI I
+        sin_GMST * ecef[0] + cos_GMST * ecef[1], // ECI J
+        ecef[2]                                  // ECI K
     };
 }

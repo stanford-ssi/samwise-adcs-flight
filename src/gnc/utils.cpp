@@ -50,3 +50,11 @@ float clamp_abs_to_one(float x)
         return -1.0f;
     return x;
 }
+
+/**
+ * @brief Wrap the angle to [0, 360) degree
+ */
+float wrapTo360(float angle)
+{
+    return fmodf(fmodf(angle, 360.0f) + 360.0f, 360.0f);
+}

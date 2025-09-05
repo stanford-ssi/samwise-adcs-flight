@@ -136,11 +136,14 @@ bool compute_B(slate_t *slate)
     float3 B_enu_raw = {Bphi, Btheta, Br}; // East-North-Up (ENU) frame
     float3 B_ecef_raw =
         enu_to_ecef(B_enu_raw, float3(lat, lon, alt)); // Convert to ECEF frame
+    float3 B_eci_raw =
+        ecef_to_eci(B_ecef_raw, slate->MJD); // Convert to ECI frame
 
     // Normalize the vectors
     slate->B_est_rpt = normalize(B_rpt_raw);
     slate->B_est_enu = normalize(B_enu_raw);
     slate->B_est_ecef = normalize(B_ecef_raw);
+    slate->B_est_eci = normalize(B_eci_raw);
 
     return true;
 }

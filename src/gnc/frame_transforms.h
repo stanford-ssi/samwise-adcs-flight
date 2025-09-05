@@ -20,3 +20,15 @@ using namespace linalg::aliases;
  * @return float3 Vector in ECEF coordinates (same units as input)
  */
 float3 enu_to_ecef(const float3 &enu, const float3 &lla);
+
+/**
+ * Convert Earth-Centered Earth-Fixed (ECEF) coordinates to Earth-Centered
+ * Inertial (ECI).
+ *
+ * @param enu Vector containing ECEF X Y Z components (same units as
+ * output)
+ * @param MJD Modified Julian Date
+ * @return float3 Vector in ECI coordinates (same units as input)
+ */
+
+float3 ecef_to_eci(const float3 &ecef, const float &MJD);

@@ -105,8 +105,9 @@ typedef struct samwise_adcs_slate
     float3 B_est_rpt;  // R, phi, theta frame (unit vector) [Up, East, North]
     float3 B_est_enu;  // East-North-Up frame (unit vector)
     float3 B_est_ecef; // ECEF frame (unit vector)
+    float3 B_est_eci;  // ECI frame (unit vector)
 
-    float MJD;
+    float MJD; // Modified Julian Date
 
     // Bdot
     float3 b_field_local_prev; // (unit vector)
