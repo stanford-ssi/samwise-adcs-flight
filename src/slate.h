@@ -57,6 +57,8 @@ typedef struct samwise_adcs_slate
     bool gps_data_valid;
     bool gps_alive;
 
+    float3 UTC_date; // testing for EKF
+
     // Sun sensors
     uint16_t sun_sensors_intensities
         [NUM_SUN_SENSORS]; // [0-3102] clipped to (2.5V / 3.3V) * 4095 due to
