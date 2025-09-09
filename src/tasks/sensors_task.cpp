@@ -222,6 +222,9 @@ void sensors_task_dispatch(slate_t *slate)
 
             // Update magnitude
             slate->w_mag = length(slate->w_body_filtered);
+            LOG_INFO("[sensors] IMU reading: [%.3f, %.3f, %.3f]",
+                     slate->w_body_filtered[0], slate->w_body_filtered[1],
+                     slate->w_body_filtered[2]);
         }
 
         slate->imu_data_valid = result;

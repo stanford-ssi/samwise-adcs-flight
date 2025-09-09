@@ -15,6 +15,7 @@
 #include "../gnc/sun_pyramid_reading.h"
 #include "../gnc/sun_vector.h"
 #include "../gnc/world/b_field.h"
+#include "../tasks/sensors_task.h"
 
 #include "slate.h"
 
@@ -40,35 +41,40 @@ void ekf_test(slate_t *slate)
     LOG_INFO("[gnc] magnetic vector [x,y,z] in eci is: %.6f, %.6f, %.6f",
              slate->B_est_eci[0], slate->B_est_eci[1], slate->B_est_eci[2]);
 
+    // sensor reading
+
+    sensors_task_dispatch(slate);
+
     // imu reading
-    float3 w_body_raw;
-    if (imu_get_rotation(&w_body_raw))
-    {
-        LOG_INFO("[gnc] angular velocity raw [wx,wy,wz] in body frame is: "
-                 "%.6f, %.6f, %.6f",
-                 w_body_raw[0], w_body_raw[1], w_body_raw[2]);
-    }
-    else
-    {
-        LOG_DEBUG("[gnc] IMU not working");
-    }
+    // float3 w_body_raw;
+    // if (imu_get_rotation(&w_body_raw))
+    // {
+    //     LOG_INFO("[gnc] angular velocity raw [wx,wy,wz] in body frame is: "
+    //              "%.6f, %.6f, %.6f",
+    //              w_body_raw[0], w_body_raw[1], w_body_raw[2]);
+    // }
+    // else
+    // {
+    //     LOG_DEBUG("[gnc] IMU not working");
+    // }
 
     // sun pyramid reading, no hardware now
-    slate->sun_vector_body = slate->sun_vector_eci;
+    // slate->sun_vector_body = slate->sun_vector_eci;
 
     // Magnetic field reading, simple test
     // slate->b_field_local = slate->B_est_eci;
-    if (rm3100_get_reading(&slate->b_field_local))
-    {
-        LOG_INFO("[gnc] magnetic reading raw [x,y,z] in body frame is: %.6f, "
-                 "%.6f, %.6f",
-                 slate->b_field_local[0], slate->b_field_local[1],
-                 slate->b_field_local[2]);
-    }
-    else
-    {
-        LOG_DEBUG("[gnc] magnetometer not working");
-    }
+    // if (rm3100_get_reading(&slate->b_field_local))
+    // {
+    //     LOG_INFO("[gnc] magnetic reading raw [x,y,z] in body frame is: %.6f,
+    //     "
+    //              "%.6f, %.6f",
+    //              slate->b_field_local[0], slate->b_field_local[1],
+    //              slate->b_field_local[2]);
+    // }
+    // else
+    // {
+    //     LOG_DEBUG("[gnc] magnetometer not working");
+    // }
 
     // EKF test
 

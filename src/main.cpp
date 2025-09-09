@@ -48,6 +48,8 @@ int main()
     LOG_INFO("[main] Initialization sequence complete - beginning main loop!");
     while (1)
     {
+        sleep_ms(1000);
+        // LOG_INFO("[main] sensor task");
         // sensors_task_dispatch(&slate);
         LOG_INFO("[main] EKF test");
         ekf_test(&slate);
