@@ -18,7 +18,7 @@ void compute_MJD(slate_t *slate)
 {
     float year = 2025.0f;
     float month = 9.0f;
-    float day = 5.0f;
+    float day = 8.0f;
 
     slate->UTC_date[0] = year;
     slate->UTC_date[1] = month;
