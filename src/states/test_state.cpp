@@ -7,8 +7,8 @@
  */
 
 #include "test_state.h"
+#include "tasks/system/watchdog_task.h"
 #include "tasks/test_task.h"
-#include "tasks/watchdog_task.h"
 
 #include "drivers/neopixel/neopixel.h"
 

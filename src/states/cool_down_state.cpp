@@ -8,9 +8,9 @@
 
 #include "cool_down_state.h"
 
-#include "tasks/sensors_task.h"
-#include "tasks/telemetry_task.h"
-#include "tasks/watchdog_task.h"
+#include "tasks/sensing/sensors_task.h"
+#include "tasks/system/telemetry_task.h"
+#include "tasks/system/watchdog_task.h"
 
 #include "states/detumble_state.h"
 

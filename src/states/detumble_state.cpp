@@ -8,11 +8,11 @@
 #include "detumble_state.h"
 
 #include "constants.h"
-#include "tasks/actuators_task.h"
-#include "tasks/bdot_task.h"
-#include "tasks/sensors_task.h"
-#include "tasks/telemetry_task.h"
-#include "tasks/watchdog_task.h"
+#include "tasks/control/actuators_task.h"
+#include "tasks/control/bdot_task.h"
+#include "tasks/sensing/sensors_task.h"
+#include "tasks/system/telemetry_task.h"
+#include "tasks/system/watchdog_task.h"
 
 #include "states/cool_down_state.h"
 #include "states/slewing_state.h"
