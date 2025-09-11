@@ -6,7 +6,7 @@
  */
 
 #include "sun_vector_tests.h"
-#include "gnc/sun_vector.h"
+#include "gnc/models/sun_vector.h"
 #include "macros.h"
 #include "pico/stdlib.h"
 

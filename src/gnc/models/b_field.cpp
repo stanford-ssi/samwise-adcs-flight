@@ -2,9 +2,9 @@
  * @author Lundeen Cahilly
  * @date 2025-02-10
  *
- * This file defines a magnetic field model based on the IGRF-2025 coefficients.
- * It computes the magnetic field vector in based on the satellite's geodetic
- * coordinates (altitude, latitude, longitude).
+ * This file defines a magnetic field model based on the IGRF-14 2025
+ * coefficients. It computes the magnetic field vector in based on the
+ * satellite's geodetic coordinates (altitude, latitude, longitude).
  */
 
 #include "b_field.h"
@@ -13,8 +13,8 @@
 #include "pico/stdlib.h"
 #include <cmath>
 
-#include "../frame_transforms.h"
 #include "constants.h"
+#include "gnc/utils/frame_transforms.h"
 #include "linalg.h"
 #include "macros.h"
 

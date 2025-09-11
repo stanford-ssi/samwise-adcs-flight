@@ -3,8 +3,8 @@
  * @date 2025-02-08
  */
 
-#include "gnc/bdot.h"
-#include "gnc/utils.h"
+#include "gnc/control/bdot.h"
+#include "gnc/utils/utils.h"
 #include "macros.h"
 #include "pico/stdlib.h"
 

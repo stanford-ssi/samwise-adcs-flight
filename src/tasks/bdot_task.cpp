@@ -7,8 +7,8 @@
  */
 
 #include "bdot_task.h"
-#include "gnc/bdot.h"
-#include "gnc/utils.h"
+#include "gnc/control/bdot.h"
+#include "gnc/utils/utils.h"
 #include "macros.h"
 
 void bdot_task_init(slate_t *slate)

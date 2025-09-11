@@ -2,9 +2,10 @@
  * @author Lundeen Cahilly
  * @date 2025-08-19
  *
- * This file contains the B field model parameters, IGRF-14 g/h coefficients
- * (no sv) and a square root lookup table for Schmidt normalization. All tables
- * are designed to support up to 13th order spherical harmonics.
+ * This file contains the B field model parameters, IGRF-14 2025 g/h
+ * coefficients (no sv) and a square root lookup table for Schmidt
+ * normalization. All tables are designed to support up to 13th order spherical
+ * harmonics.
  */
 
 constexpr int B_FIELD_MODEL_MAX_ORDER =

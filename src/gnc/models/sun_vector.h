@@ -1,3 +1,8 @@
+/**
+ * @author Chen Li and Lundeen Cahilly
+ * @date 2025-07-04
+ */
+
 #pragma once
 
 #include "constants.h"

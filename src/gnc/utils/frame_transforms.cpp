@@ -9,7 +9,7 @@
 #include "frame_transforms.h"
 
 #include "constants.h"
-#include "matrix_utils.h"
+#include "gnc/utils/matrix_utils.h"
 #include <cmath>
 
 /**

@@ -6,7 +6,7 @@
  */
 
 #include "sun_sensor_tests.h"
-#include "gnc/sun_sensor_to_vector.h"
+#include "gnc/estimation/sun_sensor_to_vector.h"
 #include "macros.h"
 
 void test_sun_pyramid_reading(slate_t *slate)

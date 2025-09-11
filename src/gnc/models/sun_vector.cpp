@@ -1,6 +1,6 @@
 /**
- * @author Chen Li
- * @date 2025-03-03
+ * @author Chen Li and Lundeen Cahilly
+ * @date 2025-07-04
  */
 
 #include "sun_vector.h"

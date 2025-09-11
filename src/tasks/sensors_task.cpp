@@ -18,7 +18,7 @@
 #include "drivers/power_monitor/power_monitor.h"
 #include "drivers/sun_sensors/photodiodes_yz.h"
 #include "drivers/sun_sensors/sun_pyramids.h"
-#include "gnc/utils.h"
+#include "gnc/utils/utils.h"
 #include "pico/time.h"
 #include <cmath>
 

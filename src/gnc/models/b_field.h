@@ -2,9 +2,9 @@
  * @author Lundeen Cahilly
  * @date 2025-02-10
  *
- * This file defines a magnetic field model based on the IGRF-2025 coefficients.
- * It computes the magnetic field vector in based on the satellite's geodetic
- * coordinates (altitude, latitude, longitude).
+ * This file defines a magnetic field model based on the IGRF-14 2025
+ * coefficients. It computes the magnetic field vector in based on the
+ * satellite's geodetic coordinates (altitude, latitude, longitude).
  */
 
 #pragma once

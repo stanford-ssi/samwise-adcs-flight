@@ -6,9 +6,9 @@
 
 #include "attitude_filter.h"
 #include "constants.h"
+#include "gnc/utils/matrix_utils.h"
 #include "linalg.h"
 #include "macros.h"
-#include "matrix_utils.h"
 
 // Constant matrices for process and measurement noise
 // TODO - pick good.sensible values for these
