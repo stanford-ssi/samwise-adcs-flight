@@ -10,7 +10,7 @@
 #include "actuators_task.h"
 #include "macros.h"
 
-#include "drivers/magnetorquer.h"
+#include "drivers/magnetorquers/magnetorquers.h"
 #include "pico/time.h"
 
 void actuators_task_init(slate_t *slate)

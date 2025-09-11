@@ -10,7 +10,7 @@
 #include "tasks/test_task.h"
 #include "tasks/watchdog_task.h"
 
-#include "../drivers/neopixel.h"
+#include "drivers/neopixel/neopixel.h"
 
 sched_state_t *test_get_next_state(slate_t *slate)
 {

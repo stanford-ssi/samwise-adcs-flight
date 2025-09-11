@@ -10,7 +10,7 @@
 #include "pico/stdlib.h"
 
 #include "macros.h"
-#include "picubed_uart.h"
+#include "picubed.h"
 #include "pins.h"
 
 // Uart parameters

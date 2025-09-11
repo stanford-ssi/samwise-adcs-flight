@@ -7,8 +7,8 @@
  */
 
 #include "watchdog_task.h"
-#include "drivers/neopixel.h"
-#include "drivers/watchdog.h"
+#include "drivers/neopixel/neopixel.h"
+#include "drivers/watchdog/watchdog.h"
 #include "macros.h"
 #include "pico/time.h"
 #include "slate.h"

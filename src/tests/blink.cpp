@@ -5,7 +5,7 @@
  * blink an led. this was harder than it should have been. godforsaken neopixel.
  */
 
-#include "../drivers/neopixel.h"
+#include "drivers/neopixel/neopixel.h"
 #include "macros.h"
 #include "pico/stdlib.h"
 

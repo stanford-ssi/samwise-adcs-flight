@@ -5,7 +5,7 @@
  * Read ADM1176 power monitor
  */
 
-#include "../drivers/adm1176.h"
+#include "../drivers/power_monitor/power_monitor.h"
 #include "macros.h"
 #include "pico/stdlib.h"
 

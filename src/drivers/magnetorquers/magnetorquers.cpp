@@ -6,7 +6,7 @@
  *
  */
 
-#include "magnetorquer.h"
+#include "magnetorquers.h"
 
 #include "hardware/pwm.h"
 #include "pico/stdlib.h"

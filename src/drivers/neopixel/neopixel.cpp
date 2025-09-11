@@ -6,7 +6,7 @@
  */
 
 #include "neopixel.h"
-#include "external/ws2812.pio.h"
+#include "../external/ws2812.pio.h"
 #include "hardware/gpio.h"
 #include "macros.h"
 #include "pico/stdlib.h"

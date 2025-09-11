@@ -6,7 +6,7 @@
  */
 
 #include "magnetorquer_tests.h"
-#include "../drivers/magnetorquer.h"
+#include "../drivers/magnetorquers/magnetorquers.h"
 #include "macros.h"
 #include "pico/stdlib.h"
 

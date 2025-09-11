@@ -17,7 +17,7 @@
 #include "states/cool_down_state.h"
 #include "states/slewing_state.h"
 
-#include "../drivers/neopixel.h"
+#include "drivers/neopixel/neopixel.h"
 
 sched_state_t *detumble_get_next_state(slate_t *slate)
 {
