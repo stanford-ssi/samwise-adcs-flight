@@ -5,7 +5,7 @@
  * Magnetic field model tests
  */
 
-#include "b_field_tests.h"
+#include "b_field.h"
 #include "gnc/models/b_field.h"
 #include "macros.h"
 #include <cmath>

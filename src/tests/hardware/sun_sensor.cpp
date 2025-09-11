@@ -5,9 +5,9 @@
  * Tests for sun sensor to vector conversion
  */
 
-#include "sun_sensor_tests.h"
 #include "gnc/estimation/sun_sensor_to_vector.h"
 #include "macros.h"
+#include "sun_sensors.h"
 
 void test_sun_pyramid_reading(slate_t *slate)
 {

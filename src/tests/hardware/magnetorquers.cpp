@@ -5,8 +5,8 @@
  * Test functions for magnetorquer pwm driver validation
  */
 
-#include "magnetorquer_tests.h"
-#include "../drivers/magnetorquers/magnetorquers.h"
+#include "magnetorquers.h"
+#include "drivers/magnetorquers/magnetorquers.h"
 #include "macros.h"
 #include "pico/stdlib.h"
 

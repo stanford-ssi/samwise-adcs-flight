@@ -64,11 +64,12 @@ file(GLOB tasks CONFIGURE_DEPENDS "src/tasks/*.cpp")
 file(GLOB tasks_control CONFIGURE_DEPENDS "src/tasks/control/*.cpp")
 file(GLOB tasks_sensing CONFIGURE_DEPENDS "src/tasks/sensing/*.cpp")
 file(GLOB tasks_system CONFIGURE_DEPENDS "src/tasks/system/*.cpp")
-
 # Tests
 file(GLOB tests CONFIGURE_DEPENDS "src/tests/*.cpp")
+file(GLOB tests_hardware CONFIGURE_DEPENDS "src/tests/hardware/*.cpp")
+file(GLOB tests_software CONFIGURE_DEPENDS "src/tests/software/*.cpp")
 
-add_executable(samwise-adcs ${top} ${gnc} ${gnc_estimation} ${gnc_control} ${gnc_models} ${gnc_utils} ${drivers} ${drivers_power_monitor} ${drivers_gps} ${drivers_imu} ${drivers_magnetometer} ${drivers_magnetorquers} ${drivers_neopixel} ${drivers_sun_sensors} ${drivers_picubed} ${drivers_watchdog} ${drivers_external} ${scheduler} ${states} ${tasks} ${tasks_control} ${tasks_sensing} ${tasks_system} ${tests})
+add_executable(samwise-adcs ${top} ${gnc} ${gnc_estimation} ${gnc_control} ${gnc_models} ${gnc_utils} ${drivers} ${drivers_power_monitor} ${drivers_gps} ${drivers_imu} ${drivers_magnetometer} ${drivers_magnetorquers} ${drivers_neopixel} ${drivers_sun_sensors} ${drivers_picubed} ${drivers_watchdog} ${drivers_external} ${scheduler} ${states} ${tasks} ${tasks_control} ${tasks_sensing} ${tasks_system} ${tests_hardware} ${tests_software})
 
 pico_set_program_name(samwise-adcs "samwise_adcs")
 pico_set_program_version(samwise-adcs "0.1")
