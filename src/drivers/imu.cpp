@@ -474,7 +474,7 @@ static float lsb_to_dps(int16_t val, float dps, uint8_t bit_width)
  */
 static float lsb_to_rps(int16_t val, float dps, uint8_t bit_width)
 {
-    return lsb_to_dps(val, dps, bit_width) * RAD_TO_DEG;
+    return lsb_to_dps(val, dps, bit_width) * DEG_TO_RAD;
 }
 
 // *******************************
