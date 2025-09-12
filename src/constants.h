@@ -79,10 +79,17 @@ constexpr float DESATURATION_KP = 0.01; // [1/s]
 // #### ADM1176 POWER MONITORING ####
 constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 
-// #### SUN SENSOR NORMALIZATION ####
-constexpr float VREF_ADS7830 = 2.5f;
+// #### SUN SENSOR ADC NORMALIZATION ####
+// RP2350B ADC Configuration (TODO: verify for ADCS board v1.8)
 constexpr float VREF_RP2350B_ADC = 3.3f;
-constexpr uint16_t MAX_VALUE_RP2350B_ADC = 4095; // 12-bit ADC max value
-constexpr uint16_t MAX_VALUE_ADS7830 = 255;      // 8-bit ADC max value
+constexpr uint16_t BIT_RESOLUTION_RP2350B_ADC = 12;
+constexpr uint16_t MAX_VALUE_RP2350B_ADC = (1 << BIT_RESOLUTION_RP2350B_ADC); // 4095 for 12-bit ADC
+
+// ADS7830 ADC Configuration (TODO: verify for ADCS board v1.8)
+constexpr float VREF_ADS7830 = 2.5f; // TODO: check internal (always 2.5v) vs external (we set)
+constexpr uint16_t BIT_RESOLUTION_ADS7830 = 8;
+constexpr uint16_t MAX_VALUE_ADS7830 = (1 << BIT_RESOLUTION_ADS7830); // 8-bit ADC max value
+
+// Scales sun sensor readings from different ADCs to match
 constexpr uint16_t SUN_SENSOR_CLIP_VALUE = static_cast<uint16_t>(
     VREF_ADS7830 / VREF_RP2350B_ADC * MAX_VALUE_RP2350B_ADC);

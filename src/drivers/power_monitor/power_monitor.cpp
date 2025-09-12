@@ -23,8 +23,6 @@
 // Conversion constants
 #define VOLTAGE_SCALE (26.35f / 4096.0f) // For VRANGE = 0
 #define CURRENT_SCALE (0.10584f / 4096.0f)
-#define DEFAULT_SENSE_RESISTOR                                                 \
-    0.0207f // Sense resistor value calibrated via hardware test
 
 // Static buffers (matching working driver)
 static uint8_t _cmd_buf[1];
@@ -36,7 +34,6 @@ constexpr uint32_t TIMEOUT_MS =
 
 // Static state
 static bool is_initialized = false;
-static float sense_resistor = DEFAULT_SENSE_RESISTOR;
 
 /**
  * Configure ADM1176 modes (matches working driver exactly)
@@ -236,7 +233,7 @@ bool adm_get_current(float *current_out)
 
     // Extract current data (matches working driver exactly)
     float raw_amps = ((_read_buf[1] << 4) | (_read_buf[2] & DATA_I_MASK));
-    *current_out = (CURRENT_SCALE * raw_amps) / sense_resistor;
+    *current_out = (CURRENT_SCALE * raw_amps) / ADCS_POWER_SENSE_RESISTOR;
 
     // LOG_DEBUG("[adm1176] current: %.3f A (raw: %.0f)", *current_out,
     // raw_amps);
