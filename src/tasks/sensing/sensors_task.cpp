@@ -219,7 +219,6 @@ void sensors_task_dispatch(slate_t *slate)
             constexpr float imu_lpf_alpha = 0.628318530718;
             slate->w_body_filtered = low_pass_filter(
                 slate->w_body_filtered, slate->w_body_raw, imu_lpf_alpha);
-
             // Update magnitude
             slate->w_mag = length(slate->w_body_filtered);
         }
