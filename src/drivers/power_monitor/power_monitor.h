@@ -5,9 +5,6 @@
  * ADM1176 power monitor driver
  */
 
-#ifndef ADM_H
-#define ADM_H
-
 #include "slate.h"
 #include <stdbool.h>
 #include <stdint.h>
@@ -63,5 +60,3 @@ bool adm_is_initialized(void);
  * @return true if successful, false otherwise
  */
 bool adm_get_power(slate_t *slate);
-
-#endif // ADM_H

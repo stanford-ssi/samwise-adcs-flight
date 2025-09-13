@@ -8,15 +8,11 @@
  * harmonics.
  */
 
-constexpr int B_FIELD_MODEL_MAX_ORDER =
-    13; // Maximum order of the magnetic field model
-constexpr int B_FIELD_MODEL_ORDER = 13; // The order we use in the field model
-constexpr float B_FIELD_LOW_ALTITUDE_THRESH =
-    0.0f; // Threshold for low altitude (km)
-constexpr float B_FIELD_HIGH_ALTITUDE_THRESH =
-    1000.0f; // Threshold for high altitude (km)
-constexpr float B_FIELD_POLE_THRESH =
-    1e-7f; // Threshold for pole regularization
+constexpr int B_FIELD_MODEL_MAX_ORDER = 13; // Max order of B field model
+constexpr int B_FIELD_MODEL_ORDER = 13; // Order used in the field model
+constexpr float B_FIELD_LOW_ALTITUDE_THRESH = 0.0f;
+constexpr float B_FIELD_HIGH_ALTITUDE_THRESH = 1000.0f;
+constexpr float B_FIELD_POLE_THRESH = 1e-7f; // Pole regularization threshold
 
 // IGRF 2025 Coefficients (up to n=13) [nT]
 // Indices are n going down and m going left to right

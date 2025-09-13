@@ -7,6 +7,18 @@
  * 12-bit ADC resolution and a reference voltage of 3.3V.
  */
 
+
+// ---------------------------------------------------- // 
+// TODO: for the v1.8 version of the ADCS board,
+// we need to swap which ADCs read which sun sensors
+// to the following: 
+// - Sun Pyramids -> RP2350B ADC
+// - Y/Z Photodiodes -> ADS7830 ADC
+// 
+// Also, the reference voltages also may been switched, 
+// that's worth checking on the schematic
+// ---------------------------------------------------- // 
+
 #include "photodiodes_yz.h"
 
 #include "constants.h"
@@ -22,9 +34,7 @@ constexpr uint8_t SAMWISE_ADCS_ADC_CHANNELS[8] = {
     SAMWISE_ADCS_PD_ZP2, SAMWISE_ADCS_PD_YM1, SAMWISE_ADCS_PD_YM2,
     SAMWISE_ADCS_PD_ZM1, SAMWISE_ADCS_PD_ZM2};
 
-constexpr float VREF_YZ = 3.3f;        // Reference voltage for ADC conversion
-constexpr uint8_t ADC_RESOLUTION = 12; // 12-bit ADC resolution
-constexpr uint16_t ADC_MAX_VALUE = (1 << ADC_RESOLUTION); // 4095 for 12-bit ADC
+constexpr float VREF_YZ = VREF_RP2350B_ADC;        // Reference voltage for ADC conversion
 
 /**
  * Initialize the YZ sun sensors by setting up the ADC hardware
@@ -72,7 +82,7 @@ bool photodiodes_yz_get_reading(uint8_t channel, uint16_t *value)
     uint16_t result = adc_read();
     *value = result;
 
-    if (*value > ADC_MAX_VALUE)
+    if (*value > MAX_VALUE_RP2350B_ADC)
     {
         LOG_ERROR("[photodiodes_yz] ADC value out of range: %d", *value);
         return false;
@@ -106,7 +116,7 @@ bool photodiodes_yz_get_voltage(uint8_t channel, float *voltage)
 
     // Convert 12-bit ADC value to voltage
     *voltage =
-        ((float)value / (float)ADC_MAX_VALUE) * VREF_YZ; // Scale to 0-3.3V
+        ((float)value / (float)MAX_VALUE_RP2350B_ADC) * VREF_YZ; // Scale to 0-3.3V
 
     if (*voltage < 0.0f || *voltage > VREF_YZ)
     {

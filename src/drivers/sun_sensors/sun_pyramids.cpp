@@ -8,6 +8,17 @@
  * readings.
  */
 
+// ---------------------------------------------------- // 
+// TODO: for the v1.8 version of the ADCS board,
+// we need to swap which ADCs read which sun sensors
+// to the following: 
+// - Sun Pyramids -> RP2350B ADC
+// - Y/Z Photodiodes -> ADS7830 ADC
+// 
+// Also, the reference voltages also may been switched, 
+// that's worth checking on the schematic
+// ---------------------------------------------------- // 
+
 #include "sun_pyramids.h"
 
 #include "constants.h"
@@ -36,10 +47,6 @@
 /*! Maximum ADC channels */
 #define ADS7830_MAX_CHANNELS (8)
 
-/*! Expected 8-bit ADC resolution */
-#define ADS7830_RESOLUTION_BITS (8)
-#define ADS7830_MAX_VALUE (255)
-
 /******************************************************************************/
 /*!                Static variable definition                                 */
 
@@ -47,14 +54,11 @@
 // static const uint8_t ads7830_channel_commands[8] = {
 //     0x84, 0xC4, 0x94, 0xD4, 0xA4, 0xE4, 0xB4, 0xF4 // PD1=0, PD0=1
 // };
-// #define VREF \
-//     (2.5f) // Reference voltage for external reference (confirm w/ hardware)
 
-// Using internal reference (2.5V)
+// Using internal reference
 static const uint8_t ads7830_channel_commands[8] = {
     0x8C, 0xCC, 0x9C, 0xDC, 0xAC, 0xEC, 0xBC, 0xFC // PD1=1, PD0=1
 };
-#define VREF (2.5f) // Reference voltage for internal reference
 
 /*! I2C instance for ADC communication */
 static i2c_inst_t *ads7830_i2c_inst = i2c1;
@@ -248,7 +252,7 @@ bool sun_pyramids_read_voltage(uint8_t channel, float *voltage_out, float vref)
     }
 
     // Convert 8-bit ADC value to voltage
-    *voltage_out = ((float)raw_value / (float)ADS7830_MAX_VALUE) * vref;
+    *voltage_out = (static_cast<float>(raw_value) / static_cast<float>(MAX_VALUE_ADS7830)) * vref;
 
     return true;
 }
@@ -278,7 +282,7 @@ bool sun_pyramids_read_all_channels(uint8_t values_out[ADS7830_MAX_CHANNELS])
         // Small delay between channel reads
         // sleep_us(10);
     }
-
+    
     return true;
 }
 
@@ -298,7 +302,7 @@ bool sun_pyramids_read_all_voltages(float voltages_out[ADS7830_MAX_CHANNELS])
 
     for (uint8_t channel = 0; channel < ADS7830_MAX_CHANNELS; channel++)
     {
-        if (!sun_pyramids_read_voltage(channel, &voltages_out[channel], VREF))
+        if (!sun_pyramids_read_voltage(channel, &voltages_out[channel], VREF_ADS7830))
         {
             LOG_ERROR("[sun_pyramids] Failed to read voltage on channel %d",
                       channel);
