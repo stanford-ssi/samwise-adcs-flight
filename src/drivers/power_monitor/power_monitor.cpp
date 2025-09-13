@@ -197,8 +197,6 @@ bool adm_get_voltage(float *voltage_out)
     float raw_volts = ((_read_buf[0] << 8) | (_read_buf[2] & DATA_V_MASK)) >> 4;
     *voltage_out = VOLTAGE_SCALE * raw_volts;
 
-    // LOG_DEBUG("[adm1176] voltage: %.3f V (raw: %.0f)", *voltage_out,
-    // raw_volts);
     return true;
 }
 
@@ -312,7 +310,6 @@ bool adm_get_power(slate_t *slate)
         return false;
     }
 
-    // Update slate
     slate->adcs_power = voltage * current;
     slate->adcs_voltage = voltage;
     slate->adcs_current = current;
