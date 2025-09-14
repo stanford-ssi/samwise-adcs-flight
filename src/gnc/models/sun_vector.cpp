@@ -70,8 +70,5 @@ void compute_sun_vector_eci(slate_t *slate)
     float rY = cos(epsilon_rad) * sin(lambda_rad);
     float rZ = sin(epsilon_rad) * sin(lambda_rad);
 
-    // slate->sun_vector_eci[0] = X;
-    // slate->sun_vector_eci[1] = Y;
-    // slate->sun_vector_eci[2] = Z;
     slate->sun_vector_eci = {rX, rY, rZ};
 }

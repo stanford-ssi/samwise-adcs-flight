@@ -28,7 +28,6 @@ bool watchdog_init(slate_t *slate)
 
 void watchdog_feed(slate_t *slate)
 {
-    // LOG_DEBUG("[watchdog] Feeding watchdog");
     if (!slate->watchdog_initialized)
     {
         LOG_ERROR("[watchdog] Watchdog not initialized!");

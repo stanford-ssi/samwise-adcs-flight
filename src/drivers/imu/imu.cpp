@@ -16,8 +16,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "../external/bmi270_legacy.h"
-#include "../external/bmi2_defs.h"
+#include "drivers/external/bmi270_legacy.h"
+#include "drivers/external/bmi2_defs.h"
 #include "linalg.h"
 #include "pico/stdlib.h"
 

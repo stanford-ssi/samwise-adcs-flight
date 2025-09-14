@@ -22,9 +22,9 @@ using namespace linalg;
 
 typedef struct samwise_adcs_slate
 {
-    // ************************************************************************
+    // ========================================================================
     //          GENERAL STATE
-    // ************************************************************************
+    // ========================================================================
 
     // State machine
     sched_state_t *current_state;
@@ -40,9 +40,9 @@ typedef struct samwise_adcs_slate
     absolute_time_t pin_high_time;
     absolute_time_t last_feed_time;
 
-    // ************************************************************************
+    // ========================================================================
     //          SENSOR DATA
-    // ************************************************************************
+    // ========================================================================
 
     // Magmeter
     float3 b_field_local; // (unit vector)
@@ -86,9 +86,9 @@ typedef struct samwise_adcs_slate
     float adcs_current; // [A] ADCS board current
     bool adm1176_alive; // true if ADM1176 is initialized
 
-    // ************************************************************************
+    // ========================================================================
     //          ACTUATOR REQUESTS
-    // ************************************************************************
+    // ========================================================================
     // Magnetorquer drivers
     float3 magdrv_requested;    // [-1.0 to 1.0] in principal axes frame
     bool magnetorquers_running; // true if magnetorquers are currently active
@@ -96,9 +96,9 @@ typedef struct samwise_adcs_slate
     // Reaction wheels
     float reaction_wheels_w_requested[NUM_REACTION_WHEELS]; // [rad/s]
 
-    // ************************************************************************
+    // ========================================================================
     //          GNC State
-    // ************************************************************************
+    // ========================================================================
     // General world state
     float3 UTC_date; // TODO: change it after GPS time format is confirmed
     float UTC_time;  // TODO: change it after GPS time format is confirmed
