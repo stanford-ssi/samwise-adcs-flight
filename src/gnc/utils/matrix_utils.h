@@ -15,6 +15,8 @@ void mat_transpose(const float *A, float *out, int M, int N);
 
 void mat_inverse(const float *A, float *out, int N);
 
+void mat_pseudoinverse(const float *A, float *out, int M, int N);
+
 float mat_frobenius(const float *A, float N);
 
 void test_matrix_utils();

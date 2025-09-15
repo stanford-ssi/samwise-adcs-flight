@@ -7,6 +7,10 @@
 
 #include "linalg.h"
 #include "slate.h"
+#include "constants.h"
 
 void sun_sensors_to_vector(slate_t *slate);
 void test_sun_pyramid_reading(slate_t *slate);
+
+// External access to sensor configuration for testing
+extern const float sensor_normals[NUM_SUN_SENSORS][3];

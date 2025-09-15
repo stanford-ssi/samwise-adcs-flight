@@ -275,6 +275,33 @@ static void test_mat_inverse()
     ASSERT_ALMOST_EQ(0.0f, 0.0f, 1.0f);
 }
 
+/**
+ * @brief Compute the Moore-Penrose pseudoinverse of matrix A using the formula:
+ * A+ = (A^T * A)^-1 * A^T for matrices where A^T * A is invertible
+ *
+ * @param A Input matrix (M x N) in row-major order
+ * @param out Output pseudoinverse matrix (N x M) in row-major order
+ * @param M Number of rows in A
+ * @param N Number of columns in A
+ */
+void mat_pseudoinverse(const float *A, float *out, int M, int N)
+{
+    // Step 1: Compute A^T (N x M)
+    float A_transpose[N * M];
+    mat_transpose(A, A_transpose, M, N);
+
+    // Step 2: Compute A^T * A (N x N)
+    float AtA[N * N];
+    mat_mul(A_transpose, A, AtA, N, M, N);
+
+    // Step 3: Invert A^T * A
+    float AtA_inv[N * N];
+    mat_inverse(AtA, AtA_inv, N);
+
+    // Step 4: Compute pseudoinverse = (A^T * A)^-1 * A^T (N x M)
+    mat_mul(AtA_inv, A_transpose, out, N, N, M);
+}
+
 void test_matrix_utils()
 {
     // test_mat_mul();
