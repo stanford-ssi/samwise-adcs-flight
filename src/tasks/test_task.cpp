@@ -8,7 +8,6 @@
 #include "test_task.h"
 #include "macros.h"
 #include "pico/stdlib.h"
-#include "tests/software/sun_sensor_to_vector.h"
 #include "constants.h"
 
 void test_task_init(slate_t *slate)
