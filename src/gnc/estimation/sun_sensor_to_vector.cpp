@@ -1,5 +1,5 @@
 /**
- * @author Lundeen Cahilly, Tactical Cinderblock, Chen Li
+ * @author Lundeen Cahilly, Chen Li, and Tactical Cinderblock
  * @date 2025-09-14
  * 
  * Convert sun sensor readings to sun vector :3
@@ -18,6 +18,7 @@ static bool pseudoinverse_computed = false;
 // Shadow detection parameters
 const float SHADOW_THRESHOLD = 0.05f;  // relative intensity threshold for shadow detection
 const float MIN_WEIGHT = 0.01f;        // minimum weight for any sensor
+const uint16_t THRESHOLD = 50;
 
 float3 best_fit_occlusion(float sensor_readings[NUM_SUN_SENSORS]);
 float get_occl_factor(const float *sensor_readings, const float *normals, int M, int N, float3& current_sun);
@@ -42,17 +43,8 @@ void sun_sensors_to_vector(slate_t *slate)
         }
     }
 
-    // Check if we have enough light to make a measurement
-    if (I_max < 1e-6f)
-    {
-        LOG_DEBUG("[sun_sensor_to_vector] No sun detected (max intensity = %.6f)", I_max);
-        // No sun detected - set sun vector to zero and flag as invalid
-        slate->sun_vector_body = {0, 0, 0};
-        slate->sun_vector_valid = false;
-        return;
-    }
-
-    // Check for saturation
+    // Check for saturation 
+    // TODO: figure out what to do in this case
     if (I_max >= SUN_SENSOR_CLIP_VALUE)
     {
         LOG_DEBUG("[sun_sensor_to_vector] Saturation detected in sun sensor readings");
@@ -62,25 +54,68 @@ void sun_sensors_to_vector(slate_t *slate)
         return;
     }
 
-    // Normalize sun_sensor_readings AFTER checking for saturation
-    float norm = 0;
-    for (int i = 0; i < NUM_SUN_SENSORS; i++)
+    // Define sensor readings in unique directions
+    float sensor_readings_unique[12];
+    for (int i = 0; i < 8; i++)
     {
-        norm += sensor_readings[i] * sensor_readings[i];
-    }
-    norm = sqrtf(norm);
-    for (int i = 0; i < NUM_SUN_SENSORS; i++)
-    {
-        sensor_readings[i] /= norm;
+        sensor_readings_unique[i] = sensor_readings[i];
     }
 
-    // TODO: comment
-    float3 sun_vector_best = best_fit_occlusion(sensor_readings);
+    // Averaging redundant +Y/-Y sensors
+    sensor_readings_unique[8] = (sensor_readings[8] + sensor_readings[9]) / 2;
+    sensor_readings_unique[9] = (sensor_readings[10] + sensor_readings[11]) / 2;
+    
+    // Including +Z/-Z sensors (and averaging as above)
+    sensor_readings_unique[10] = (sensor_readings[12] + sensor_readings[13]) / 2;
+    sensor_readings_unique[11] = (sensor_readings[14] + sensor_readings[15]) / 2;
+
+    int normals_idx[12] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14};
+
+    // Only consider readings above threshold
+    for (int i = 0; i < 12; i++)
+    {
+        if (sensor_readings_unique[i] < 50)  // used to be "SHADOW_THRESHOLD * I_max"
+        {
+            sensor_readings_unique[i] = 0.0f;
+        }
+    }
+
+    // create a matrix of normals and signals excluding zero sensors
+    float normals[12][3];
+    float signals[12];
+    int valid_count = 0;
+    for (int i = 0; i < 12; i++) {
+        if (sensor_readings_unique[i] > 1e-6f) {
+            for (int j = 0; j < 3; j++) {
+                normals[valid_count][j] = SUN_SENSOR_NORMALS[normals_idx[i]][j];
+            }
+            signals[valid_count] = sensor_readings_unique[i];
+            valid_count++;
+        }
+    }
+
+    // make sure top three are not zero
+    if (valid_count < 3)
+    {
+        // Degenerate case - set to zero and flag as invalid
+        slate->sun_vector_body = {0.0f, 0.0f, 0.0f};
+        slate->sun_vector_valid = false;
+        LOG_INFO("[sun_sensor_to_vector] Sun vector solution failed, too few valid sensors");
+        return;
+    }
+
+    // compute psuedoinverse of valid sensors
+    float sensor_pseudoinverse[3 * valid_count];
+    mat_pseudoinverse((float*)normals, sensor_pseudoinverse, valid_count, 3);
+
+    // Compute sun vector
+    float sun_vector_3[3] = {0, 0, 0};
+    mat_mul(sensor_pseudoinverse, signals, sun_vector_3, 3, valid_count, 1);
+    float3 sun_vector = {sun_vector_3[0], sun_vector_3[1], sun_vector_3[2]};
 
     // Normalize to unit vector
-    float3 sun_vector = normalize(sun_vector_best);
-    float magnitude = length(sun_vector_best);
-    LOG_INFO("Sun vector magnitude: %.6f", magnitude);
+    sun_vector = normalize(sun_vector);
+    float magnitude = length(sun_vector);
 
     if (magnitude > 1e-6f)
     {
@@ -93,7 +128,7 @@ void sun_sensors_to_vector(slate_t *slate)
         // Degenerate case - set to zero and flag as invalid
         slate->sun_vector_body = {0.0f, 0.0f, 0.0f};
         slate->sun_vector_valid = false;
-        LOG_INFO("Sun vector solution failed, magnitude too small: %.6f", magnitude);
+        LOG_INFO("[sun_sensor_to_vector] Sun vector solution failed, magnitude too small: %.6f", magnitude);
         return;
     }
 }
@@ -280,3 +315,4 @@ float get_occl_factor(const float *sensor_readings, const float *normals, int M,
 
     return norm;
 }
+

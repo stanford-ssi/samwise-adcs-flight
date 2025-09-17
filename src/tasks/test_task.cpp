@@ -19,7 +19,6 @@ void test_task_init(slate_t *slate)
 void test_task_dispatch(slate_t *slate)
 {
     LOG_INFO("[test] TEST TASK IS DISPATCHING");
-    test_eclipse(slate);
 }
 
 sched_task_t test_task = {.name = "test",
