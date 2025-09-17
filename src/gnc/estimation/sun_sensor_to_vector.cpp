@@ -18,7 +18,7 @@ static bool pseudoinverse_computed = false;
 // Shadow detection parameters
 const float SHADOW_THRESHOLD = 0.05f;  // relative intensity threshold for shadow detection
 const float MIN_WEIGHT = 0.01f;        // minimum weight for any sensor
-const uint16_t THRESHOLD = 50;
+const uint16_t ACTIVE_THRESHOLD = 50;
 
 bool solve_sun_vector_ransac(float normals[][3], float signals[], int n_sensors, float3& best_sun_vector, int& best_inlier_count);
 bool compute_sun_vector_ransac(slate_t *slate);
@@ -94,7 +94,7 @@ bool compute_sun_vector_pseudoinverse(slate_t *slate)
     // Only consider readings above threshold
     for (int i = 0; i < 12; i++)
     {
-        if (sensor_readings_unique[i] < 50)  // used to be "SHADOW_THRESHOLD * I_max"
+        if (sensor_readings_unique[i] < ACTIVE_THRESHOLD)
         {
             sensor_readings_unique[i] = 0.0f;
         }
@@ -195,6 +195,7 @@ bool compute_sun_vector_ransac(slate_t *slate)
     }
 
     // Averaging redundant +Y/-Y sensors
+    // TODO: do something smarter here because we're using RANSAC
     sensor_readings_unique[8] = (sensor_readings[8] + sensor_readings[9]) / 2;
     sensor_readings_unique[9] = (sensor_readings[10] + sensor_readings[11]) / 2;
 
@@ -207,7 +208,7 @@ bool compute_sun_vector_ransac(slate_t *slate)
     // Only consider readings above threshold
     for (int i = 0; i < 12; i++)
     {
-        if (sensor_readings_unique[i] < 50)  // used to be "SHADOW_THRESHOLD * I_max"
+        if (sensor_readings_unique[i] < ACTIVE_THRESHOLD)
         {
             sensor_readings_unique[i] = 0.0f;
         }
@@ -273,7 +274,6 @@ bool solve_sun_vector_ransac(float normals[][3], float signals[], int n_sensors,
 
     const int MAX_ITERATIONS = 100;
     const float INLIER_THRESHOLD = 0.2f; // threshold for considering a sensor an inlier
-    const uint16_t EXPECTED_SIGNAL_THRESHOLD = 50; // threshold for expected signal check
 
     best_inlier_count = 0;
     best_sun_vector = {0, 0, 0};

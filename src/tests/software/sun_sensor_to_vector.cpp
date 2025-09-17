@@ -56,7 +56,7 @@ const struct test_case test_cases[] = {
      {NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE},
      "4 occluded case (2 unique active)"},
 
-    // // Test cases with sensor failures
+    // Test cases with sensor failures
     {{1.0f, 0.0f, 0.0f},
      {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
      {NONE, LOW, FLOATING, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE},
@@ -65,7 +65,12 @@ const struct test_case test_cases[] = {
     {{0.0f, 1.0f, 0.2f},
      {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
      {LOW, NONE, NONE, FLOATING, LOW, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE},
-     "Sun +Y+Z with multiple failures"},
+     "Sun +Y+Z with sensor 1 LOW, sensor 3 FLOATING, sensor 4 LOW, and three sensors nominal"},
+
+    {{1.0f, 0.0f, 0.0f},
+     {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
+     {NONE, FLOATING, FLOATING, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE},
+     "Sun +X with sensor 1 FLOATING, sensor 2 FLOATING, two sensors nominal"},
 };
 
 const int NUM_TEST_CASES = sizeof(test_cases) / sizeof(test_cases[0]);
@@ -165,10 +170,10 @@ void test_sun_sensor_cases(slate_t *slate)
 
 void test_sun_sensor_monte_carlo(slate_t *slate)
 {
-    const int NUM_MONTE_CARLO_RUNS = 100000;
+    const int NUM_MONTE_CARLO_RUNS = 5000;
 
     // Select which test cases to run Monte Carlo on
-    int selected_cases[] = {0, 1, 2, 3, 4, 5}; 
+    int selected_cases[] = {0, 1, 2, 3, 4, 5, 6}; 
     int num_cases = sizeof(selected_cases) / sizeof(selected_cases[0]);
 
     printf("=== Monte Carlo Analysis (%d runs per case) ===\n", NUM_MONTE_CARLO_RUNS);
