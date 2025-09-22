@@ -53,6 +53,7 @@ file(GLOB drivers_gps CONFIGURE_DEPENDS "src/drivers/gps/*.cpp")
 file(GLOB drivers_imu CONFIGURE_DEPENDS "src/drivers/imu/*.cpp")
 file(GLOB drivers_magnetometer CONFIGURE_DEPENDS "src/drivers/magnetometer/*.cpp")
 file(GLOB drivers_magnetorquers CONFIGURE_DEPENDS "src/drivers/magnetorquers/*.cpp")
+file(GLOB drivers_mram CONFIGURE_DEPENDS "src/drivers/mram/*.cpp")
 file(GLOB drivers_neopixel CONFIGURE_DEPENDS "src/drivers/neopixel/*.cpp")
 file(GLOB drivers_sun_sensors CONFIGURE_DEPENDS "src/drivers/sun_sensors/*.cpp")
 file(GLOB drivers_picubed CONFIGURE_DEPENDS "src/drivers/picubed/*.cpp")
@@ -92,6 +93,7 @@ add_executable(samwise-adcs
     ${drivers_imu}
     ${drivers_magnetometer}
     ${drivers_magnetorquers}
+    ${drivers_mram}
     ${drivers_neopixel}
     ${drivers_sun_sensors}
     ${drivers_picubed}

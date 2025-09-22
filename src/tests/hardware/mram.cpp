@@ -1,5 +1,12 @@
-#include "mram_test.h"
-#include "../drivers/mram.h"
+/**
+ * @author  Lundeen Cahilly
+ * @date    2025-09-22
+ *
+ * Test functions for MRAM driver validation
+ */
+
+#include "mram.h"
+#include "drivers/mram/mram.h"
 
 void mram_test(void)
 {

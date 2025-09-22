@@ -3,7 +3,7 @@
  * @date 2025-08-18
  *
  * This file contains functions for interfacing with MR25H40MDF
- * MRAM using QSPI on a RP2350b chip.
+ * MRAM using QSPI on a RP2350B chip.
  */
 
 #include "mram.h"

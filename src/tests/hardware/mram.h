@@ -1,3 +1,10 @@
+/**
+ * @author  Lundeen Cahilly
+ * @date    2025-09-22
+ *
+ * Test functions for MRAM driver validation
+ */
+
 #include "hardware/flash.h"
 #include "pico/flash.h"
 #include "pico/stdlib.h"
