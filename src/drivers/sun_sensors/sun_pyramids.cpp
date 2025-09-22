@@ -8,16 +8,16 @@
  * readings.
  */
 
-// ---------------------------------------------------- // 
+// ---------------------------------------------------- //
 // TODO: for the v1.8 version of the ADCS board,
 // we need to swap which ADCs read which sun sensors
-// to the following: 
+// to the following:
 // - Sun Pyramids -> RP2350B ADC
 // - Y/Z Photodiodes -> ADS7830 ADC
-// 
-// Also, the reference voltages also may been switched, 
+//
+// Also, the reference voltages also may been switched,
 // that's worth checking on the schematic
-// ---------------------------------------------------- // 
+// ---------------------------------------------------- //
 
 #include "sun_pyramids.h"
 
@@ -252,7 +252,9 @@ bool sun_pyramids_read_voltage(uint8_t channel, float *voltage_out, float vref)
     }
 
     // Convert 8-bit ADC value to voltage
-    *voltage_out = (static_cast<float>(raw_value) / static_cast<float>(MAX_VALUE_ADS7830)) * vref;
+    *voltage_out = (static_cast<float>(raw_value) /
+                    static_cast<float>(MAX_VALUE_ADS7830)) *
+                   vref;
 
     return true;
 }
@@ -282,7 +284,7 @@ bool sun_pyramids_read_all_channels(uint8_t values_out[ADS7830_MAX_CHANNELS])
         // Small delay between channel reads
         // sleep_us(10);
     }
-    
+
     return true;
 }
 
@@ -302,7 +304,8 @@ bool sun_pyramids_read_all_voltages(float voltages_out[ADS7830_MAX_CHANNELS])
 
     for (uint8_t channel = 0; channel < ADS7830_MAX_CHANNELS; channel++)
     {
-        if (!sun_pyramids_read_voltage(channel, &voltages_out[channel], VREF_ADS7830))
+        if (!sun_pyramids_read_voltage(channel, &voltages_out[channel],
+                                       VREF_ADS7830))
         {
             LOG_ERROR("[sun_pyramids] Failed to read voltage on channel %d",
                       channel);

@@ -37,13 +37,13 @@ void test_reaction_wheel_allocation()
     LOG_INFO("Testing Compute Control Torque...");
 
     // Test the function
-    float3 torque = compute_control_torque(q_current, q_desired, w_current,
-                                         w_desired);
+    float3 torque =
+        compute_control_torque(q_current, q_desired, w_current, w_desired);
     LOG_INFO("Control torque: %f, %f, %f", torque[0], torque[1], torque[2]);
 
     // Test allocate_reaction_wheels
-    float4 wheel_speeds = allocate_reaction_wheels(q_current, q_desired,
-                                                 w_current, w_desired);
+    float4 wheel_speeds =
+        allocate_reaction_wheels(q_current, q_desired, w_current, w_desired);
     LOG_INFO("Wheel speeds: %f, %f, %f, %f", wheel_speeds[0], wheel_speeds[1],
              wheel_speeds[2], wheel_speeds[3]);
     LOG_INFO("--------------------------------");
