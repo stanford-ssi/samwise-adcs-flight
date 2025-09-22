@@ -13,7 +13,7 @@ using namespace linalg::aliases;
 //          GENERAL SPECIFICATIONS
 // ========================================================================
 
-constexpr uint32_t NUM_SUN_SENSORS = 16;   // 8 pyramid, 8 yz (+-)
+constexpr uint32_t NUM_SUN_SENSORS = 16; // 8 pyramid, 8 yz (+-)
 constexpr uint32_t NUM_REACTION_WHEELS = 4;
 
 // IMU Calibration - zero rotation reading in radians per second
@@ -58,19 +58,20 @@ constexpr float SQRT_2_INV = 0.7071067811865476f; // 1 / sqrt(2)
 
 // Rotation thresholds for state transitions - TODO: pick good values!
 constexpr float W_COOL_DOWN_ENTER_THRESHOLD = (100.0 * DEG_TO_RAD); // in rad/s
-constexpr float W_COOL_DOWN_EXIT_THRESHOLD  = (90.0 * DEG_TO_RAD);  // in rad/s
+constexpr float W_COOL_DOWN_EXIT_THRESHOLD = (90.0 * DEG_TO_RAD);   // in rad/s
 
 constexpr float W_ENTER_DETUMBLE_THRESHOLD = (10.0 * DEG_TO_RAD); // in rad/s
-constexpr float W_EXIT_DETUMBLE_THRESHOLD  = (1.0 * DEG_TO_RAD);  // in rad/s
+constexpr float W_EXIT_DETUMBLE_THRESHOLD = (1.0 * DEG_TO_RAD);   // in rad/s
 
 // ========================================================================
 //          REACTION WHEEL SPECS
-// ======================================================================== 
+// ========================================================================
 
 // Spec sheet:
-// https://www.faulhaber.com/fileadmin/Import/Media/EN_2610_B_DFF.pdf 
-// Reaction wheel MOI: This is the moment of inertia of the reaction wheel about 
-// its axis of rotation. Same for all reaction wheels, irregardless of oriented axis
+// https://www.faulhaber.com/fileadmin/Import/Media/EN_2610_B_DFF.pdf
+// Reaction wheel MOI: This is the moment of inertia of the reaction wheel about
+// its axis of rotation. Same for all reaction wheels, irregardless of oriented
+// axis
 constexpr float REACTION_WHEEL_MOI = 7.90e-7; // [kg*m^2]
 
 // Reaction wheel max angular momentum:
@@ -119,12 +120,15 @@ constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 // RP2350B ADC Configuration (TODO: verify for ADCS board v1.8)
 constexpr float VREF_RP2350B_ADC = 3.3f;
 constexpr uint16_t BIT_RESOLUTION_RP2350B_ADC = 12;
-constexpr uint16_t MAX_VALUE_RP2350B_ADC = (1 << BIT_RESOLUTION_RP2350B_ADC); // 4095 for 12-bit ADC
+constexpr uint16_t MAX_VALUE_RP2350B_ADC =
+    (1 << BIT_RESOLUTION_RP2350B_ADC); // 4095 for 12-bit ADC
 
 // ADS7830 ADC Configuration (TODO: verify for ADCS board v1.8)
-constexpr float VREF_ADS7830 = 2.5f; // TODO: check internal (always 2.5v) vs external (we set)
+constexpr float VREF_ADS7830 =
+    2.5f; // TODO: check internal (always 2.5v) vs external (we set)
 constexpr uint16_t BIT_RESOLUTION_ADS7830 = 8;
-constexpr uint16_t MAX_VALUE_ADS7830 = (1 << BIT_RESOLUTION_ADS7830); // 8-bit ADC max value
+constexpr uint16_t MAX_VALUE_ADS7830 =
+    (1 << BIT_RESOLUTION_ADS7830); // 8-bit ADC max value
 
 // Scales sun sensor readings from different ADCs to match
 constexpr uint16_t SUN_SENSOR_CLIP_VALUE = static_cast<uint16_t>(

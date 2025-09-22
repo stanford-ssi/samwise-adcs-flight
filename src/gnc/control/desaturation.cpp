@@ -25,33 +25,27 @@ using namespace linalg::aliases;
  * @param reaction_wheel_4 Angular momentum of reaction wheel 4
  * @return true if any wheel is saturated, false otherwise
  */
-bool saturation_detection(float3 &reaction_wheel_1,
-                          float3 &reaction_wheel_2,
-                          float3 &reaction_wheel_3,
-                          float3 &reaction_wheel_4)
+bool saturation_detection(float3 &reaction_wheel_1, float3 &reaction_wheel_2,
+                          float3 &reaction_wheel_3, float3 &reaction_wheel_4)
 {
     // Check each reaction wheel and check if it is saturated
-    if (length(reaction_wheel_1) >
-        REACTION_WHEEL_SATURATION_UPPER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_1) > REACTION_WHEEL_SATURATION_UPPER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
-    if (length(reaction_wheel_2) >
-        REACTION_WHEEL_SATURATION_UPPER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_2) > REACTION_WHEEL_SATURATION_UPPER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
-    if (length(reaction_wheel_3) >
-        REACTION_WHEEL_SATURATION_UPPER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_3) > REACTION_WHEEL_SATURATION_UPPER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
-    if (length(reaction_wheel_4) >
-        REACTION_WHEEL_SATURATION_UPPER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_4) > REACTION_WHEEL_SATURATION_UPPER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
@@ -69,33 +63,27 @@ bool saturation_detection(float3 &reaction_wheel_1,
  * @param reaction_wheel_4 Angular momentum of reaction wheel 4
  * @return true if any wheel is desaturated, false otherwise
  */
-bool desaturation_detection(float3 &reaction_wheel_1,
-                            float3 &reaction_wheel_2,
-                            float3 &reaction_wheel_3,
-                            float3 &reaction_wheel_4)
+bool desaturation_detection(float3 &reaction_wheel_1, float3 &reaction_wheel_2,
+                            float3 &reaction_wheel_3, float3 &reaction_wheel_4)
 {
     // Check each reaction wheel and check if it is desaturated
-    if (length(reaction_wheel_1) <
-        REACTION_WHEEL_SATURATION_LOWER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_1) < REACTION_WHEEL_SATURATION_LOWER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
-    if (length(reaction_wheel_2) <
-        REACTION_WHEEL_SATURATION_LOWER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_2) < REACTION_WHEEL_SATURATION_LOWER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
-    if (length(reaction_wheel_3) <
-        REACTION_WHEEL_SATURATION_LOWER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_3) < REACTION_WHEEL_SATURATION_LOWER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
-    if (length(reaction_wheel_4) <
-        REACTION_WHEEL_SATURATION_LOWER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_4) < REACTION_WHEEL_SATURATION_LOWER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
@@ -113,16 +101,16 @@ bool desaturation_detection(float3 &reaction_wheel_1,
  * @param reaction_wheel_4 Angular momentum of reaction wheel 4
  * @return Total angular momentum vector
  */
-float3 compute_total_reaction_wheel_angular_momentum(
-    float3 &reaction_wheel_1,
-    float3 &reaction_wheel_2,
-    float3 &reaction_wheel_3,
-    float3 &reaction_wheel_4)
+float3 compute_total_reaction_wheel_angular_momentum(float3 &reaction_wheel_1,
+                                                     float3 &reaction_wheel_2,
+                                                     float3 &reaction_wheel_3,
+                                                     float3 &reaction_wheel_4)
 {
     float3 total_reaction_wheel_angular_momentum;
 
     // Add the angular momentum components
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
         total_reaction_wheel_angular_momentum[i] =
             reaction_wheel_1[i] + reaction_wheel_2[i] + reaction_wheel_3[i] +
             reaction_wheel_4[i];
@@ -136,12 +124,13 @@ float3 compute_total_reaction_wheel_angular_momentum(
  * Calculate desired magnetic dipole moment for reaction wheel desaturation
  *
  * @param slate Satellite state containing magnetic field data
- * @param total_reaction_wheel_angular_momentum Total angular momentum of all wheels
+ * @param total_reaction_wheel_angular_momentum Total angular momentum of all
+ * wheels
  * @return Desired magnetic dipole moment vector
  */
-float3 calculate_magnetometer_dipole(
-    slate_t *slate,
-    float3 &total_reaction_wheel_angular_momentum)
+float3
+calculate_magnetometer_dipole(slate_t *slate,
+                              float3 &total_reaction_wheel_angular_momentum)
 {
     // Calculate the desaturation torque
     // based on the gains we know
