@@ -36,16 +36,82 @@ project(samwise-adcs C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+# Core
 file(GLOB top CONFIGURE_DEPENDS "src/*.cpp")
+
+# GNC Algorithms
 file(GLOB gnc CONFIGURE_DEPENDS "src/gnc/*.cpp")
+file(GLOB gnc_estimation CONFIGURE_DEPENDS "src/gnc/estimation/*.cpp")
+file(GLOB gnc_control CONFIGURE_DEPENDS "src/gnc/control/*.cpp")
+file(GLOB gnc_models CONFIGURE_DEPENDS "src/gnc/models/*.cpp")
+file(GLOB gnc_utils CONFIGURE_DEPENDS "src/gnc/utils/*.cpp")
+
+# Drivers
 file(GLOB drivers CONFIGURE_DEPENDS "src/drivers/*.cpp")
+file(GLOB drivers_power_monitor CONFIGURE_DEPENDS "src/drivers/power_monitor/*.cpp")
+file(GLOB drivers_gps CONFIGURE_DEPENDS "src/drivers/gps/*.cpp")
+file(GLOB drivers_imu CONFIGURE_DEPENDS "src/drivers/imu/*.cpp")
+file(GLOB drivers_magnetometer CONFIGURE_DEPENDS "src/drivers/magnetometer/*.cpp")
+file(GLOB drivers_magnetorquers CONFIGURE_DEPENDS "src/drivers/magnetorquers/*.cpp")
+file(GLOB drivers_neopixel CONFIGURE_DEPENDS "src/drivers/neopixel/*.cpp")
+file(GLOB drivers_sun_sensors CONFIGURE_DEPENDS "src/drivers/sun_sensors/*.cpp")
+file(GLOB drivers_picubed CONFIGURE_DEPENDS "src/drivers/picubed/*.cpp")
+file(GLOB drivers_watchdog CONFIGURE_DEPENDS "src/drivers/watchdog/*.cpp")
 file(GLOB drivers_external CONFIGURE_DEPENDS "src/drivers/external/*.[c|cpp]")
+
+# System Components
 file(GLOB scheduler CONFIGURE_DEPENDS "src/scheduler/*.cpp")
 file(GLOB states CONFIGURE_DEPENDS "src/states/*.cpp")
-file(GLOB tasks CONFIGURE_DEPENDS "src/tasks/*.cpp")
-file(GLOB tests CONFIGURE_DEPENDS "src/tests/*.cpp")
 
-add_executable(samwise-adcs ${top} ${gnc} ${drivers} ${drivers_external} ${scheduler} ${states} ${tasks} ${tests})
+# Tasks
+file(GLOB tasks CONFIGURE_DEPENDS "src/tasks/*.cpp")
+file(GLOB tasks_control CONFIGURE_DEPENDS "src/tasks/control/*.cpp")
+file(GLOB tasks_sensing CONFIGURE_DEPENDS "src/tasks/sensing/*.cpp")
+file(GLOB tasks_system CONFIGURE_DEPENDS "src/tasks/system/*.cpp")
+
+# Tests
+file(GLOB tests CONFIGURE_DEPENDS "src/tests/*.cpp")
+file(GLOB tests_hardware CONFIGURE_DEPENDS "src/tests/hardware/*.cpp")
+file(GLOB tests_software CONFIGURE_DEPENDS "src/tests/software/*.cpp")
+
+add_executable(samwise-adcs 
+    # Core
+    ${top}
+
+    # GNC Algorithms
+    ${gnc}
+    ${gnc_estimation}
+    ${gnc_control}
+    ${gnc_models}
+    ${gnc_utils}
+
+    # Drivers
+    ${drivers}
+    ${drivers_power_monitor}
+    ${drivers_gps}
+    ${drivers_imu}
+    ${drivers_magnetometer}
+    ${drivers_magnetorquers}
+    ${drivers_neopixel}
+    ${drivers_sun_sensors}
+    ${drivers_picubed}
+    ${drivers_watchdog}
+    ${drivers_external}
+    
+    # System Components
+    ${scheduler}
+    ${states}
+    
+    # Tasks
+    ${tasks}
+    ${tasks_control}
+    ${tasks_sensing}
+    ${tasks_system}
+    
+    # Tests
+    ${tests_hardware}
+    ${tests_software}
+)
 
 pico_set_program_name(samwise-adcs "samwise_adcs")
 pico_set_program_version(samwise-adcs "0.1")
@@ -61,6 +127,7 @@ target_link_libraries(samwise-adcs
   hardware_uart
   hardware_flash
   hardware_pwm
+  hardware_adc
   pico_stdlib 
   hardware_pio
 )

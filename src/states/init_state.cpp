@@ -11,7 +11,7 @@
 
 #include "macros.h"
 
-#include "../drivers/neopixel.h"
+#include "drivers/neopixel/neopixel.h"
 
 sched_state_t *init_get_next_state(slate_t *slate)
 {
