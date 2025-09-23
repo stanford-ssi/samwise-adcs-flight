@@ -9,9 +9,9 @@
 #include "pico/stdlib.h"
 
 #include "gnc/estimation/attitude_filter.h"
-#include "gnc/utils/mjd.h"
-#include "gnc/models/sun_vector.h"
 #include "gnc/models/b_field.h"
+#include "gnc/models/sun_vector.h"
+#include "gnc/utils/mjd.h"
 #include "tasks/sensing/sensors_task.h"
 
 #include "slate.h"

@@ -219,12 +219,12 @@ void sensors_task_dispatch(slate_t *slate)
             constexpr float imu_lpf_alpha = 0.628318530718;
             slate->w_body_filtered = low_pass_filter(
                 slate->w_body_filtered, slate->w_body_raw, imu_lpf_alpha);
-                
+
             // Update magnitude
             slate->w_mag = length(slate->w_body_filtered);
             LOG_DEBUG("[sensors] IMU reading: [%.3f, %.3f, %.3f]",
-                     slate->w_body_filtered[0], slate->w_body_filtered[1],
-                     slate->w_body_filtered[2]);
+                      slate->w_body_filtered[0], slate->w_body_filtered[1],
+                      slate->w_body_filtered[2]);
         }
 
         slate->imu_data_valid = result;

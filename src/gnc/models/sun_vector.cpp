@@ -5,9 +5,9 @@
 
 #include "sun_vector.h"
 #include "constants.h"
+#include "gnc/utils/utils.h"
 #include "macros.h"
 #include "pico/stdlib.h"
-#include "gnc/utils/utils.h"
 
 // Note: the difference between UTC and UT1 is ignored
 

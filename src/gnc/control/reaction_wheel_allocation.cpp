@@ -4,8 +4,8 @@
  */
 
 #include "reaction_wheel_allocation.h"
-#include "constants.h"
 #include "bdot.h"
+#include "constants.h"
 #include "linalg.h"
 #include "macros.h"
 #include "pico/stdlib.h"
