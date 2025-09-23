@@ -9,8 +9,8 @@
 #include "frame_transforms.h"
 
 #include "constants.h"
-#include "matrix_utils.h"
-#include "utils.h"
+#include "gnc/utils/matrix_utils.h"
+#include "gnc/utils/utils.h"
 #include <cmath>
 
 /**

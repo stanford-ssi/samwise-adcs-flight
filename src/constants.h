@@ -112,7 +112,6 @@ constexpr float GYRO_STD_DEV = 0.0087266; // [rad/s]
 constexpr float SUN_SENSOR_STD = 0.01;
 constexpr float MAG_SENSOR_STD = 0.01;
 
-// #### DESATURATION GAINS ####
 // ========================================================================
 //          DESATURATION GAINS
 // ========================================================================

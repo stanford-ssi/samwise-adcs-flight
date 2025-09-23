@@ -11,39 +11,41 @@
 
 #include <cmath>
 
-bool saturation_detection(linalg::vec<float, 3> &reaction_wheel_1,
-                          linalg::vec<float, 3> &reaction_wheel_2,
-                          linalg::vec<float, 3> &reaction_wheel_3,
-                          linalg::vec<float, 3> &reaction_wheel_4)
-{
-    /*
-    Inputs: reaction wheel torques
-    Outputs: boolean indicating if the reaction wheels are saturated
-    Tasks: Check if the reaction wheels are saturated
-    */
+using namespace linalg::aliases;
 
+// TODO: This file is a rough draft and must be refactored
+// before other files are connected to it
+
+/**
+ * Check if any reaction wheel is saturated
+ *
+ * @param reaction_wheel_1 Angular momentum of reaction wheel 1
+ * @param reaction_wheel_2 Angular momentum of reaction wheel 2
+ * @param reaction_wheel_3 Angular momentum of reaction wheel 3
+ * @param reaction_wheel_4 Angular momentum of reaction wheel 4
+ * @return true if any wheel is saturated, false otherwise
+ */
+bool saturation_detection(float3 &reaction_wheel_1, float3 &reaction_wheel_2,
+                          float3 &reaction_wheel_3, float3 &reaction_wheel_4)
+{
     // Check each reaction wheel and check if it is saturated
-    if (linalg::length(reaction_wheel_1) >
-        REACTION_WHEEL_SATURATION_UPPER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_1) > REACTION_WHEEL_SATURATION_UPPER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
-    if (linalg::length(reaction_wheel_2) >
-        REACTION_WHEEL_SATURATION_UPPER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_2) > REACTION_WHEEL_SATURATION_UPPER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
-    if (linalg::length(reaction_wheel_3) >
-        REACTION_WHEEL_SATURATION_UPPER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_3) > REACTION_WHEEL_SATURATION_UPPER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
-    if (linalg::length(reaction_wheel_4) >
-        REACTION_WHEEL_SATURATION_UPPER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_4) > REACTION_WHEEL_SATURATION_UPPER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
@@ -52,39 +54,36 @@ bool saturation_detection(linalg::vec<float, 3> &reaction_wheel_1,
     return false;
 }
 
-bool desaturation_detection(linalg::vec<float, 3> &reaction_wheel_1,
-                            linalg::vec<float, 3> &reaction_wheel_2,
-                            linalg::vec<float, 3> &reaction_wheel_3,
-                            linalg::vec<float, 3> &reaction_wheel_4)
+/**
+ * Check if any reaction wheel is desaturated
+ *
+ * @param reaction_wheel_1 Angular momentum of reaction wheel 1
+ * @param reaction_wheel_2 Angular momentum of reaction wheel 2
+ * @param reaction_wheel_3 Angular momentum of reaction wheel 3
+ * @param reaction_wheel_4 Angular momentum of reaction wheel 4
+ * @return true if any wheel is desaturated, false otherwise
+ */
+bool desaturation_detection(float3 &reaction_wheel_1, float3 &reaction_wheel_2,
+                            float3 &reaction_wheel_3, float3 &reaction_wheel_4)
 {
-    /*
-    Inputs: Reaction wheel torques
-    Outputs: Boolean indicating if the reaction wheels are desaturated
-    Tasks: Check if the reaction wheels are desaturated yer
-    */
-
     // Check each reaction wheel and check if it is desaturated
-    if (linalg::length(reaction_wheel_1) <
-        REACTION_WHEEL_SATURATION_LOWER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_1) < REACTION_WHEEL_SATURATION_LOWER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
-    if (linalg::length(reaction_wheel_2) <
-        REACTION_WHEEL_SATURATION_LOWER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_2) < REACTION_WHEEL_SATURATION_LOWER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
-    if (linalg::length(reaction_wheel_3) <
-        REACTION_WHEEL_SATURATION_LOWER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_3) < REACTION_WHEEL_SATURATION_LOWER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
-    if (linalg::length(reaction_wheel_4) <
-        REACTION_WHEEL_SATURATION_LOWER_LIMIT *
-            MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
+    if (length(reaction_wheel_4) < REACTION_WHEEL_SATURATION_LOWER_LIMIT *
+                                       MAX_REACTION_WHEEL_ANGULAR_MOMENTUM)
     {
         return true;
     }
@@ -93,23 +92,24 @@ bool desaturation_detection(linalg::vec<float, 3> &reaction_wheel_1,
     return false;
 }
 
-linalg::vec<float, 3> compute_total_reaction_wheel_angular_momentum(
-    linalg::vec<float, 3> &reaction_wheel_1,
-    linalg::vec<float, 3> &reaction_wheel_2,
-    linalg::vec<float, 3> &reaction_wheel_3,
-    linalg::vec<float, 3> &reaction_wheel_4)
+/**
+ * Compute total angular momentum from all reaction wheels
+ *
+ * @param reaction_wheel_1 Angular momentum of reaction wheel 1
+ * @param reaction_wheel_2 Angular momentum of reaction wheel 2
+ * @param reaction_wheel_3 Angular momentum of reaction wheel 3
+ * @param reaction_wheel_4 Angular momentum of reaction wheel 4
+ * @return Total angular momentum vector
+ */
+float3 compute_total_reaction_wheel_angular_momentum(float3 &reaction_wheel_1,
+                                                     float3 &reaction_wheel_2,
+                                                     float3 &reaction_wheel_3,
+                                                     float3 &reaction_wheel_4)
 {
-    /*
-    Inputs: Reaction wheel torques
-    Outputs: Computed torques
-    Tasks: Do a vector sum of each reaction wheel angular momentum to get total
-    angular momentum
-    */
+    float3 total_reaction_wheel_angular_momentum;
 
-    linalg::vec<float, 3> total_reaction_wheel_angular_momentum;
-
-    // Add the torques
-    for (float i = 0; i < 4; i++)
+    // Add the angular momentum components
+    for (int i = 0; i < 3; i++)
     {
         total_reaction_wheel_angular_momentum[i] =
             reaction_wheel_1[i] + reaction_wheel_2[i] + reaction_wheel_3[i] +
@@ -120,28 +120,28 @@ linalg::vec<float, 3> compute_total_reaction_wheel_angular_momentum(
     return total_reaction_wheel_angular_momentum;
 }
 
-linalg::vec<float, 3> calculate_magnetometer_dipole(
-    slate_t *slate,
-    linalg::vec<float, 3> &total_reaction_wheel_angular_momentum)
+/**
+ * Calculate desired magnetic dipole moment for reaction wheel desaturation
+ *
+ * @param slate Satellite state containing magnetic field data
+ * @param total_reaction_wheel_angular_momentum Total angular momentum of all
+ * wheels
+ * @return Desired magnetic dipole moment vector
+ */
+float3
+calculate_magnetometer_dipole(slate_t *slate,
+                              float3 &total_reaction_wheel_angular_momentum)
 {
-    /*
-    Inputs: Slate object, magnetic dipole moment vector
-    Outputs: Magnetic field torque
-    Tasks: Calculate the desired magnetic dipole moment vector
-        This is the desired TOTAL dipole we want from the magnetometers
-    */
-
     // Calculate the desaturation torque
     // based on the gains we know
     // Via this gain, we convert from angular momentum to torque (* 1/s)
-    linalg::vec<float, 3> desaturation_torque =
+    float3 desaturation_torque =
         -DESATURATION_KP * total_reaction_wheel_angular_momentum; // [N*m]
 
     // Calculate the magnetic dipole moment vector
-    linalg::vec<float, 3> magnetic_dipole_moment_vector =
-        linalg::cross(slate->b_field_local, desaturation_torque) /
-        (linalg::length(slate->b_field_local) *
-         linalg::length(slate->b_field_local));
+    float3 magnetic_dipole_moment_vector =
+        cross(slate->b_field_local, desaturation_torque) /
+        (length(slate->b_field_local) * length(slate->b_field_local));
 
     // Return the magnetic dipole moment vector
     return magnetic_dipole_moment_vector;
