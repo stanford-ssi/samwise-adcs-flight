@@ -93,6 +93,7 @@ def main():
 
     import time
     last_update_time = time.time()
+    latest_quaternion = None
 
     try:
         print("Waiting for quaternion data...")
@@ -101,8 +102,8 @@ def main():
         while True:
             current_time = time.time()
 
-            # Read serial data
-            if ser.in_waiting:
+            # Read all available serial data and keep only the latest quaternion
+            while ser.in_waiting:
                 try:
                     # Read and parse line
                     line_raw = ser.readline().decode('utf-8', errors='replace').strip()
@@ -119,60 +120,61 @@ def main():
 
                     # Verify we have at least 4 values for quaternion
                     if len(nums) < 4:
-                        print(f"Warning: Need at least 4 values for quaternion, got {len(nums)}")
                         continue
 
-                    # Extract quaternion (first 4 values, scalar-last format)
-                    qx, qy, qz, qw = nums[0], nums[1], nums[2], nums[3]
-
-                    # Rate limiting: only update at specified rate
-                    if current_time - last_update_time >= FRAME_PERIOD:
-                        # Convert quaternion to rotation matrix
-                        R = quaternion_to_rotation_matrix(qx, qy, qz, qw)
-
-                        # Transform body frame vectors to ECI frame
-                        eci_x = R @ body_x
-                        eci_y = R @ body_y
-                        eci_z = R @ body_z
-
-                        # Clear and redraw arrows
-                        ax.clear()
-
-                        # Plot transformed body frame vectors
-                        ax.quiver(0, 0, 0, eci_x[0], eci_x[1], eci_x[2],
-                                 color='red', arrow_length_ratio=0.1, linewidth=3, label='Body X')
-                        ax.quiver(0, 0, 0, eci_y[0], eci_y[1], eci_y[2],
-                                 color='green', arrow_length_ratio=0.1, linewidth=3, label='Body Y')
-                        ax.quiver(0, 0, 0, eci_z[0], eci_z[1], eci_z[2],
-                                 color='blue', arrow_length_ratio=0.1, linewidth=3, label='Body Z')
-
-                        # Add reference ECI axes
-                        ax.quiver(0, 0, 0, 1, 0, 0, color='gray', alpha=0.3, linewidth=1, label='ECI X')
-                        ax.quiver(0, 0, 0, 0, 1, 0, color='gray', alpha=0.3, linewidth=1, label='ECI Y')
-                        ax.quiver(0, 0, 0, 0, 0, 1, color='gray', alpha=0.3, linewidth=1, label='ECI Z')
-
-                        # Restore plot settings
-                        ax.set_xlabel('ECI X')
-                        ax.set_ylabel('ECI Y')
-                        ax.set_zlabel('ECI Z')
-                        ax.set_xlim([-1.5, 1.5])
-                        ax.set_ylim([-1.5, 1.5])
-                        ax.set_zlim([-1.5, 1.5])
-                        ax.legend()
-                        ax.set_title(f'Satellite Orientation (q=[{qx:.3f}, {qy:.3f}, {qz:.3f}, {qw:.3f}])')
-
-                        plt.draw()
-                        plt.pause(0.01)
-                        last_update_time = current_time
-
-                        print(f"Updated: q=({qx:.3f}, {qy:.3f}, {qz:.3f}, {qw:.3f})")
+                    # Store latest quaternion (first 4 values, scalar-last format)
+                    latest_quaternion = (nums[0], nums[1], nums[2], nums[3])
 
                 except Exception as e:
                     print(f"Error parsing line '{line_raw}': {e}")
 
+            # Update plot at 20Hz with latest quaternion data
+            if latest_quaternion and current_time - last_update_time >= FRAME_PERIOD:
+                qx, qy, qz, qw = latest_quaternion
+
+                # Convert quaternion to rotation matrix
+                R = quaternion_to_rotation_matrix(qx, qy, qz, qw)
+
+                # Transform body frame vectors to ECI frame
+                eci_x = R @ body_x
+                eci_y = R @ body_y
+                eci_z = R @ body_z
+
+                # Clear and redraw arrows
+                ax.clear()
+
+                # Plot transformed body frame vectors
+                ax.quiver(0, 0, 0, eci_x[0], eci_x[1], eci_x[2],
+                         color='red', arrow_length_ratio=0.1, linewidth=3, label='Body X')
+                ax.quiver(0, 0, 0, eci_y[0], eci_y[1], eci_y[2],
+                         color='green', arrow_length_ratio=0.1, linewidth=3, label='Body Y')
+                ax.quiver(0, 0, 0, eci_z[0], eci_z[1], eci_z[2],
+                         color='blue', arrow_length_ratio=0.1, linewidth=3, label='Body Z')
+
+                # Add reference ECI axes
+                ax.quiver(0, 0, 0, 1, 0, 0, color='gray', alpha=0.3, linewidth=1, label='ECI X')
+                ax.quiver(0, 0, 0, 0, 1, 0, color='gray', alpha=0.3, linewidth=1, label='ECI Y')
+                ax.quiver(0, 0, 0, 0, 0, 1, color='gray', alpha=0.3, linewidth=1, label='ECI Z')
+
+                # Restore plot settings
+                ax.set_xlabel('ECI X')
+                ax.set_ylabel('ECI Y')
+                ax.set_zlabel('ECI Z')
+                ax.set_xlim([-1.5, 1.5])
+                ax.set_ylim([-1.5, 1.5])
+                ax.set_zlim([-1.5, 1.5])
+                ax.legend()
+                ax.set_title(f'Satellite Orientation (q=[{qx:.3f}, {qy:.3f}, {qz:.3f}, {qw:.3f}])')
+
+                plt.draw()
+                plt.pause(0.01)
+                last_update_time = current_time
+
+                print(f"Updated: q=({qx:.3f}, {qy:.3f}, {qz:.3f}, {qw:.3f})")
+
             else:
-                # No data available, small delay to prevent busy waiting
-                time.sleep(0.001)
+                # Small delay to prevent busy waiting
+                time.sleep(0.01)
 
     except KeyboardInterrupt:
         print("\nExiting...")
