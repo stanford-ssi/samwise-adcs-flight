@@ -64,7 +64,7 @@ bool compute_sun_vector_pseudoinverse(slate_t *slate)
         }
     }
 
-    // Check for saturation 
+    // Check for saturation
     // TODO: figure out what to do in this case
     if (I_max >= SUN_SENSOR_CLIP_VALUE)
     {
@@ -74,38 +74,64 @@ bool compute_sun_vector_pseudoinverse(slate_t *slate)
         return false;
     }
 
-    // Define sensor readings in unique directions
-    float sensor_readings_unique[12];
-    for (int i = 0; i < 8; i++)
-    {
-        sensor_readings_unique[i] = sensor_readings[i];
+    // Define opposite sensor pairs that should never both be active
+    const int opposite_pairs[][2] = {
+        {0, 6}, {1, 5}, {2, 4}, {3, 7},    // pyramid opposites
+        {8, 10}, {9, 11},                  // Y+ vs Y- pairs
+        {12, 14}, {13, 15}                 // Z+ vs Z- pairs
+    };
+    const int num_opposite_pairs = 8;
+
+    // Check if opposites are active at same time (not meant to be possible)
+    bool exclude_sensor[NUM_SUN_SENSORS] = {false};
+    for (int i = 0; i < num_opposite_pairs; i++) {
+        int sensor1 = opposite_pairs[i][0];
+        int sensor2 = opposite_pairs[i][1];
+        
+        if (sensor_readings[sensor1] > ACTIVE_THRESHOLD &&
+            sensor_readings[sensor2] > ACTIVE_THRESHOLD) {
+            exclude_sensor[sensor1] = true;
+            exclude_sensor[sensor2] = true;
+        }
     }
 
-    // Averaging redundant +Y/-Y sensors
-    sensor_readings_unique[8] = (sensor_readings[8] + sensor_readings[9]) / 2;
-    sensor_readings_unique[9] = (sensor_readings[10] + sensor_readings[11]) / 2;
-    
-    // Including +Z/-Z sensors (and averaging as above)
-    sensor_readings_unique[10] = (sensor_readings[12] + sensor_readings[13]) / 2;
-    sensor_readings_unique[11] = (sensor_readings[14] + sensor_readings[15]) / 2;
+    // Create 6 differential readings by subtracting opposite sensors
+    float sensor_readings_unique[6];
 
-    int normals_idx[12] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14};
+    // First 4 are pyramid differentials (positive - negative)
+    sensor_readings_unique[0] = sensor_readings[0] - sensor_readings[6];  // 0-6 diff
+    sensor_readings_unique[1] = sensor_readings[1] - sensor_readings[5];  // 1-5 diff
+    sensor_readings_unique[2] = sensor_readings[2] - sensor_readings[4];  // 2-4 diff
+    sensor_readings_unique[3] = sensor_readings[3] - sensor_readings[7];  // 3-7 diff
 
-    // Only consider readings above threshold
-    for (int i = 0; i < 12; i++)
+    // Y differential: average(Y+) - average(Y-)
+    sensor_readings_unique[4] =
+        (sensor_readings[8] + sensor_readings[9]) / 2 -
+        (sensor_readings[10] + sensor_readings[11]) / 2;
+
+    // Z differential: average(Z+) - average(Z-)
+    sensor_readings_unique[5] =
+        (sensor_readings[12] + sensor_readings[13]) / 2 -
+        (sensor_readings[14] + sensor_readings[15]) / 2;
+
+    // Use the positive direction normals for each differential pair
+    int normals_idx[6] = {0, 1, 2, 3, 8, 12};
+
+    // Only consider readings above threshold (differential readings can be negative)
+    for (int i = 0; i < 6; i++)
     {
-        if (sensor_readings_unique[i] < ACTIVE_THRESHOLD)
+        if (fabs(sensor_readings_unique[i]) < ACTIVE_THRESHOLD)
         {
             sensor_readings_unique[i] = 0.0f;
         }
     }
 
     // create a matrix of normals and signals excluding zero sensors
-    float normals[12][3];
-    float signals[12];
+    float normals[6][3];
+    float signals[6];
     int valid_count = 0;
-    for (int i = 0; i < 12; i++) {
-        if (sensor_readings_unique[i] > 1e-6f) {
+    for (int i = 0; i < 6; i++) {
+        if (fabs(sensor_readings_unique[i]) > 1e-6f) {
             for (int j = 0; j < 3; j++) {
                 normals[valid_count][j] = SUN_SENSOR_NORMALS[normals_idx[i]][j];
             }
@@ -187,11 +213,31 @@ bool compute_sun_vector_ransac(slate_t *slate)
         return false;
     }
 
-    // Define sensor readings in unique directions
+    // Define opposite sensor pairs that should never both be active
+    const int opposite_pairs[][2] = {
+        {0, 6}, {1, 5}, {2, 4}, {3, 7},    // pyramid opposites
+        {8, 10}, {9, 11},                  // Y+ vs Y- pairs
+        {12, 14}, {13, 15}                 // Z+ vs Z- pairs
+    };
+    const int num_opposite_pairs = 8;
+
+    // Mark sensors with impossible readings for exclusion
+    bool exclude_sensor[NUM_SUN_SENSORS] = {false};
+    for (int i = 0; i < num_opposite_pairs; i++) {
+        int sensor1 = opposite_pairs[i][0];
+        int sensor2 = opposite_pairs[i][1];
+        if (sensor_readings[sensor1] > ACTIVE_THRESHOLD &&
+            sensor_readings[sensor2] > ACTIVE_THRESHOLD) {
+            exclude_sensor[sensor1] = true;
+            exclude_sensor[sensor2] = true;
+        }
+    }
+
+    // Define sensor readings in unique directions (excluding problematic sensors)
     float sensor_readings_unique[12];
     for (int i = 0; i < 8; i++)
     {
-        sensor_readings_unique[i] = sensor_readings[i];
+        sensor_readings_unique[i] = exclude_sensor[i] ? 0.0f : sensor_readings[i];
     }
 
     // Averaging redundant +Y/-Y sensors
