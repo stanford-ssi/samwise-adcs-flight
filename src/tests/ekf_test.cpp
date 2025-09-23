@@ -8,14 +8,11 @@
 #include "macros.h"
 #include "pico/stdlib.h"
 
-#include "../drivers/imu.h"
-#include "../drivers/magnetometer.h"
-#include "../gnc/attitude_filter.h"
-#include "../gnc/mjd.h"
-#include "../gnc/sun_pyramid_reading.h"
-#include "../gnc/sun_vector.h"
-#include "../gnc/world/b_field.h"
-#include "../tasks/sensors_task.h"
+#include "gnc/estimation/attitude_filter.h"
+#include "gnc/utils/mjd.h"
+#include "gnc/models/sun_vector.h"
+#include "gnc/models/b_field.h"
+#include "tasks/sensing/sensors_task.h"
 
 #include "slate.h"
 
