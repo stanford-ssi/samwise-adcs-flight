@@ -10,7 +10,7 @@
 #include "macros.h"
 #include "pins.h"
 
-#include "drivers/neopixel.h"
+#include "drivers/neopixel/neopixel.h"
 #include "hardware/i2c.h"
 #include "pico/stdlib.h"
 
