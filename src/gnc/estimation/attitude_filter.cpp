@@ -342,33 +342,3 @@ void attitude_filter_update(slate_t *slate)
         attitude_filter_init(slate);
     }
 }
-
-int count = 0;
-;
-void test_attitude_filter(slate_t *slate)
-{
-    // Propagate and print out Q + covar frobenius
-    slate->w_body = {0.00000f, 0.0f, 0.0f};
-    slate->sun_vector_eci = {1.0f, 0.0f, 0.0f};
-    slate->B_est_eci = {0.0f, 1.0f, 0.0f};
-
-    slate->sun_vector_body = {0.0f, 1.0f, 0.0f};
-    slate->b_field_local = {0.0f, 0.0f, -1.0f};
-
-    for (int i = 0; i < 10; i++)
-    {
-        attitude_filter_propagate(slate, 0.1);
-
-        LOG_INFO("%f, %f, %f, %f, %f", slate->q_eci_to_body[0],
-                 slate->q_eci_to_body[1], slate->q_eci_to_body[2],
-                 slate->q_eci_to_body[3], slate->attitude_covar_log_frobenius);
-    }
-
-    attitude_filter_update(slate);
-
-    LOG_INFO("%f, %f, %f, %f, %f", ++count, slate->q_eci_to_body[0],
-             slate->q_eci_to_body[1], slate->q_eci_to_body[2],
-             slate->q_eci_to_body[3], slate->attitude_covar_log_frobenius);
-
-    // ASSERT(slate->af_init_count == 1);
-}

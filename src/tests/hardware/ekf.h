@@ -12,3 +12,4 @@
 #include "slate.h"
 
 void ekf_test(slate_t *slate);
+void attitude_filter_software_test(slate_t *slate);

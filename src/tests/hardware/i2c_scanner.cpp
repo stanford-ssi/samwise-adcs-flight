@@ -5,11 +5,11 @@
  * i2c scanner task from flight software
  */
 
+#include "i2c_scanner.h"
 #include "constants.h"
 #include "macros.h"
 #include "pins.h"
 
-#include "hardware/i2c.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
@@ -31,16 +31,14 @@ void scan_i2c_bus(i2c_inst_t *i2c_inst, const char *bus_name)
     for (uint8_t addr = 0x08; addr <= 0x77; addr++)
     {
         // Try to write 1 byte and read back - more reliable test
-        int result =
-            i2c_write_blocking_until(i2c_inst, addr, &test_data, 1, true,
-                                     make_timeout_time_ms(10)); // Short timeout
+        int result = i2c_write_blocking(i2c_inst, addr, &test_data, 1, true);
 
         if (result == 1)
         {
             // Try to read back to confirm it's a real device
             uint8_t read_back;
-            int read_result = i2c_read_blocking_until(
-                i2c_inst, addr, &read_back, 1, false, make_timeout_time_ms(10));
+            int read_result =
+                i2c_read_blocking(i2c_inst, addr, &read_back, 1, false);
 
             if (read_result == 1)
             {
