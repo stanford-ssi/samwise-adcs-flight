@@ -9,15 +9,22 @@ using namespace linalg::aliases;
 
 #pragma once
 
-// General specifications
+// ========================================================================
+//          GENERAL SPECIFICATIONS
+// ========================================================================
+
 constexpr uint32_t NUM_SUN_SENSORS = 16; // 8 pyramid, 8 yz (+-)
 constexpr uint32_t NUM_REACTION_WHEELS = 4;
 
 // IMU Calibration - zero rotation reading in radians per second
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 
-// #### MAGNETOMETER CALIBRATION ####
+// ========================================================================
+//          MAGNETOMETER CALIBRATION
+// ========================================================================
+
 // TODO: Update with FLIGHT model (see scripts/calibrations/magnetometer)
+
 // Hard iron offset correction (sensor units)
 constexpr float3 MAG_HARD_IRON_OFFSET = float3{-0.647650, 1.238939, -0.935132};
 
@@ -26,18 +33,28 @@ constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.000000f, 0.000000f, 0.000000f},
                                            {0.000000f, 1.000000f, 0.000000f},
                                            {0.000000f, 0.000000f, 1.000000f}};
 
-// #### MAGNETOMETER SAMPLING ####
+// ========================================================================
+//          MAGNETOMETER SAMPLING
+// ========================================================================
+
 // Time to turn off the magnetorquers so we can measure the magnetometer
 // TODO: test on FLIGHT model
 constexpr uint32_t MAGNETOMETER_FIELD_SETTLE_TIME_MS = 20; // [ms]
 
-// ### WORLD CONSTANTS ###
+// ========================================================================
+//          WORLD CONSTANTS
+// ========================================================================
+
 constexpr float R_E = 6378.0f; // Earth radius in km
 
 // (These are generally useful)
 constexpr float DEG_TO_RAD = 0.01745329251;
 constexpr float RAD_TO_DEG = 57.2957795131;
 constexpr float SQRT_2_INV = 0.7071067811865476f; // 1 / sqrt(2)
+
+// ========================================================================
+//          STATE TRANSITION THRESHOLDS
+// ========================================================================
 
 // Rotation thresholds for state transitions - TODO: pick good values!
 constexpr float W_COOL_DOWN_ENTER_THRESHOLD = (100.0 * DEG_TO_RAD); // in rad/s
@@ -46,21 +63,31 @@ constexpr float W_COOL_DOWN_EXIT_THRESHOLD = (90.0 * DEG_TO_RAD);   // in rad/s
 constexpr float W_ENTER_DETUMBLE_THRESHOLD = (10.0 * DEG_TO_RAD); // in rad/s
 constexpr float W_EXIT_DETUMBLE_THRESHOLD = (1.0 * DEG_TO_RAD);   // in rad/s
 
-// #### REACTION WHEEL SPECS ####
+// ========================================================================
+//          REACTION WHEEL SPECS
+// ========================================================================
+
 // Spec sheet:
-// https://www.faulhaber.com/fileadmin/Import/Media/EN_2610_B_DFF.pdf Reaction
-// wheel MOI: This is the moment of inertia of the reaction wheel about its axis
-// of rotation Same for all reaction wheels, irregardless of oriented axis
+// https://www.faulhaber.com/fileadmin/Import/Media/EN_2610_B_DFF.pdf
+// Reaction wheel MOI: This is the moment of inertia of the reaction wheel about
+// its axis of rotation. Same for all reaction wheels, irregardless of oriented
+// axis
 constexpr float REACTION_WHEEL_MOI = 7.90e-7; // [kg*m^2]
+
 // Reaction wheel max angular momentum:
 constexpr float MAX_REACTION_WHEEL_ANGULAR_MOMENTUM =
     (40000 / 60) * REACTION_WHEEL_MOI; // [kg*m^2/s]
+
 // Reaction wheel upper proportional limit:
 constexpr float REACTION_WHEEL_SATURATION_UPPER_LIMIT = 0.9;
+
 // Reaction wheel lower proportional limit:
 constexpr float REACTION_WHEEL_SATURATION_LOWER_LIMIT = 0.1;
 
-// #### SATELLITE INERTIA ###
+// ========================================================================
+//          SATELLITE INERTIA
+// ========================================================================
+
 // !!!!!!!!!!!!!!!! TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // These are calculated from a really hacky estimate
 // made back in fall quarter. We should replace these with
@@ -72,7 +99,9 @@ constexpr float3 SATELLITE_INERTIA = {0.01461922201, 0.0412768466,
 
 // TODO: Add principal axes to body rotation
 
-// #### SENSOR ERRORS ####
+// ========================================================================
+//          SENSOR NOISE
+// ========================================================================
 // See IMU datasheet:
 // https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmi270-ds000.pdf
 // Choose 0.5 º/s as a rough approximation of large noise sources (bias +
@@ -84,16 +113,36 @@ constexpr float SUN_SENSOR_STD = 0.01;
 constexpr float MAG_SENSOR_STD = 0.01;
 
 // #### DESATURATION GAINS ####
+// ========================================================================
+//          DESATURATION GAINS
+// ========================================================================
+
 // Desaturation gains for each reaction wheel
 constexpr float DESATURATION_KP = 0.01; // [1/s]
 
-// #### ADM1176 POWER MONITORING ####
+// ========================================================================
+//          POWER MONITORING
+// ========================================================================
+
 constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 
-// #### SUN SENSOR NORMALIZATION ####
-constexpr float VREF_ADS7830 = 2.5f;
+// ========================================================================
+//          SUN SENSOR ADC NORMALIZATION
+// ========================================================================
+
+// RP2350B ADC Configuration (TODO: verify for ADCS board v1.8)
 constexpr float VREF_RP2350B_ADC = 3.3f;
-constexpr uint16_t MAX_VALUE_RP2350B_ADC = 4095; // 12-bit ADC max value
-constexpr uint16_t MAX_VALUE_ADS7830 = 255;      // 8-bit ADC max value
+constexpr uint16_t BIT_RESOLUTION_RP2350B_ADC = 12;
+constexpr uint16_t MAX_VALUE_RP2350B_ADC =
+    (1 << BIT_RESOLUTION_RP2350B_ADC); // 4095 for 12-bit ADC
+
+// ADS7830 ADC Configuration (TODO: verify for ADCS board v1.8)
+constexpr float VREF_ADS7830 =
+    2.5f; // TODO: check internal (always 2.5v) vs external (we set)
+constexpr uint16_t BIT_RESOLUTION_ADS7830 = 8;
+constexpr uint16_t MAX_VALUE_ADS7830 =
+    (1 << BIT_RESOLUTION_ADS7830); // 8-bit ADC max value
+
+// Scales sun sensor readings from different ADCs to match
 constexpr uint16_t SUN_SENSOR_CLIP_VALUE = static_cast<uint16_t>(
     VREF_ADS7830 / VREF_RP2350B_ADC * MAX_VALUE_RP2350B_ADC);

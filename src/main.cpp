@@ -10,8 +10,6 @@
 #include "macros.h"
 #include "scheduler/scheduler.h"
 #include "slate.h"
-#include "tasks/sensors_task.h"
-#include "tests/ekf_test.h"
 
 // Make sure top gpio bank enabled
 static_assert(PICO_RP2350A == 0,
@@ -48,11 +46,7 @@ int main()
     LOG_INFO("[main] Initialization sequence complete - beginning main loop!");
     while (1)
     {
-        sleep_ms(1000);
-        // LOG_INFO("[main] sensor task");
-        // sensors_task_dispatch(&slate);
-        LOG_INFO("[main] EKF test");
-        ekf_test(&slate);
+        sched_dispatch(&slate);
     }
 
     // We should not be here -> very bad

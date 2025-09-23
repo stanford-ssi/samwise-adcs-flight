@@ -5,6 +5,21 @@ build
 *.csv
 *.png
 *.json
-/scripts/calibrations/magnetometer/output
-*.csv
 documentation/site
+
+# Scripts - Python virtual environments
+scripts/**/venv/
+scripts/**/env/
+scripts/**/.venv/
+scripts/**/.env/
+scripts/**/calibrate/
+scripts/**/sun/
+
+# Scripts - Python cache
+scripts/**/__pycache__/
+scripts/**/*.pyc
+scripts/**/*.pyo
+scripts/**/*.pyd
+
+# Scripts - Output directories
+scripts/calibration/magnetometer/output/

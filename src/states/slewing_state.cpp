@@ -7,13 +7,13 @@
 
 #include "slewing_state.h"
 
-#include "tasks/sensors_task.h"
-#include "tasks/telemetry_task.h"
-#include "tasks/watchdog_task.h"
+#include "tasks/sensing/sensors_task.h"
+#include "tasks/system/telemetry_task.h"
+#include "tasks/system/watchdog_task.h"
 
 #include "states/detumble_state.h"
 
-#include "../drivers/neopixel.h"
+#include "drivers/neopixel/neopixel.h"
 
 sched_state_t *slewing_get_next_state(slate_t *slate)
 {
