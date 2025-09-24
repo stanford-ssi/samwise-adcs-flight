@@ -38,9 +38,6 @@ void ekf_test(slate_t *slate)
     LOG_INFO("[gnc] magnetic vector [x,y,z] in eci is: %.6f, %.6f, %.6f",
              slate->B_est_eci[0], slate->B_est_eci[1], slate->B_est_eci[2]);
 
-    // sensor reading
-    sensors_task_dispatch(slate);
-
     // EKF test
     int count = 0;
 
