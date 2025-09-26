@@ -103,9 +103,9 @@ static float parse_coordinate(const char *coord_str, const char *direction)
 }
 
 /**
- * Parse GGA sentence for position and altitude data
+ * Parse RMC sentence for position, time, and date data
  */
-static void parse_gga_sentence(const char *sentence)
+static void parse_rmc_sentence(const char *sentence)
 {
     char *token;
     char *sentence_copy = strdup(sentence);
@@ -118,7 +118,7 @@ static void parse_gga_sentence(const char *sentence)
 
     token = strtok(sentence_copy, ",");
 
-    while (token != NULL && field < 15)
+    while (token != NULL && field < 12)
     {
         switch (field)
         {
@@ -128,7 +128,10 @@ static void parse_gga_sentence(const char *sentence)
                     current_gps_data.timestamp = (uint32_t)atol(token);
                 }
                 break;
-            case 2: // Latitude
+            case 2: // Status (A=active, V=void)
+                current_gps_data.valid = (token[0] == 'A');
+                break;
+            case 3: // Latitude
                 if (strlen(token) > 0)
                 {
                     char *next_token = strtok(NULL, ",");
@@ -140,7 +143,7 @@ static void parse_gga_sentence(const char *sentence)
                     }
                 }
                 break;
-            case 4: // Longitude
+            case 5: // Longitude
                 if (strlen(token) > 0)
                 {
                     char *next_token = strtok(NULL, ",");
@@ -152,16 +155,22 @@ static void parse_gga_sentence(const char *sentence)
                     }
                 }
                 break;
-            case 6: // Fix quality (0=invalid, 1=GPS, 2=DGPS)
-                current_gps_data.valid = (atoi(token) > 0);
-                break;
-            case 7: // Number of satellites
-                current_gps_data.satellites = (uint8_t)atoi(token);
-                break;
-            case 9: // Altitude above sea level
+            case 7: // Speed over ground (knots)
                 if (strlen(token) > 0)
                 {
-                    current_gps_data.altitude = atof(token);
+                    current_gps_data.speed = atof(token);
+                }
+                break;
+            case 8: // Course over ground (degrees)
+                if (strlen(token) > 0)
+                {
+                    current_gps_data.course = atof(token);
+                }
+                break;
+            case 9: // Date (DDMMYY)
+                if (strlen(token) >= 6)
+                {
+                    current_gps_data.date = (uint32_t)atol(token);
                 }
                 break;
         }
@@ -180,11 +189,11 @@ static void process_nmea_sentence(const char *sentence)
 {
     // LOG_DEBUG("[GPS] Processing: '%s'", sentence);
 
-    // Check for GGA sentence
-    if (strncmp(sentence, "$GPGGA", 6) == 0 ||
-        strncmp(sentence, "$GNGGA", 6) == 0)
+    // Check for RMC sentence
+    if (strncmp(sentence, "$GPRMC", 6) == 0 ||
+        strncmp(sentence, "$GNRMC", 6) == 0)
     {
-        parse_gga_sentence(sentence);
+        parse_rmc_sentence(sentence);
     }
 }
 
@@ -242,9 +251,10 @@ bool gps_init(void)
     current_gps_data.valid = false;
     current_gps_data.latitude = 0.0f;
     current_gps_data.longitude = 0.0f;
-    current_gps_data.altitude = 0.0f;
-    current_gps_data.satellites = 0;
     current_gps_data.timestamp = 0;
+    current_gps_data.date = 0;
+    current_gps_data.speed = 0.0f;
+    current_gps_data.course = 0.0f;
 
     LOG_INFO("[gps] UART initialized at %d baud (actual: %d)", GPS_UART_BAUD,
              actual_baud);
