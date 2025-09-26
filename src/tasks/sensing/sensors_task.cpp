@@ -196,8 +196,22 @@ void sensors_task_dispatch(slate_t *slate)
             slate->gps_lon = gps_data.longitude;
             slate->gps_time = static_cast<float>(
                 gps_data.timestamp); // Convert HHMMSS to float
-            LOG_INFO("[sensors] GPS data: Lat: %.6f, Lon: %.6f, Time: %.3f",
-                     slate->gps_lat, slate->gps_lon, slate->gps_time);
+
+            // Parse GPS date (DDMMYY format) to UTC_date (year, month, day)
+            uint32_t date = gps_data.date;
+            uint32_t day = date / 10000;
+            uint32_t month = (date / 100) % 100;
+            uint32_t year = date % 100;
+
+            // Convert 2-digit year to 4-digit (assume 21st century)
+            year += 2000;
+
+            slate->UTC_date[0] = static_cast<float>(year);  // Year
+            slate->UTC_date[1] = static_cast<float>(month); // Month
+            slate->UTC_date[2] = static_cast<float>(day);   // Day
+
+            LOG_INFO("[sensors] GPS data: Lat: %.6f, Lon: %.6f, Time: %.3f, Date: %02d/%02d/%04d",
+                     slate->gps_lat, slate->gps_lon, slate->gps_time, day, month, year);
         }
 
         slate->gps_data_valid = result;
