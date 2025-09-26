@@ -30,9 +30,9 @@ inline float sqrt_lut_get(int index)
 
 bool compute_B(slate_t *slate)
 {
-    const float lat = slate->gps_lat;          // latitude (-90 to 90)
-    const float lon = slate->gps_lon;          // longitude (-180 to 180)
-    const float alt = SATELLITE_MEAN_ALTITUDE; // altitude (km)
+    const float lat = slate->gps_lat; // latitude (-90 to 90)
+    const float lon = slate->gps_lon; // longitude (-180 to 180)
+    const float alt = slate->gps_alt; // altitude (km)
 
     // Input validation to prevent NaN
     if (alt < B_FIELD_LOW_ALTITUDE_THRESH || alt > B_FIELD_HIGH_ALTITUDE_THRESH)

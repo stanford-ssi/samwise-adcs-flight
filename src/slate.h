@@ -53,6 +53,7 @@ typedef struct samwise_adcs_slate
     // GPS
     float gps_lat; // º (N+ S-)
     float gps_lon; // º (E+ W-)
+    float gps_alt; // km
     float gps_time;
     bool gps_data_valid;
     bool gps_alive;
@@ -100,16 +101,15 @@ typedef struct samwise_adcs_slate
     //          GNC State
     // ========================================================================
     // General world state
-    float3 UTC_date; // TODO: change it after GPS time format is confirmed
-    float UTC_time;  // TODO: change it after GPS time format is confirmed
+    float3 UTC_date; // [year, month, day]
+    float UTC_time;  // [seconds]
+    float MJD;       // Modified Julian Date
 
     float3 sun_vector_eci; // (unit vector)
 
     float3 B_est_rpt;  // R, phi, theta frame (unit vector) [Up, East, North]
     float3 B_est_enu;  // East-North-Up frame (unit vector)
     float3 B_est_ecef; // ECEF frame (unit vector)
-
-    float MJD;
 
     // Bdot
     float3 b_field_local_prev; // (unit vector)

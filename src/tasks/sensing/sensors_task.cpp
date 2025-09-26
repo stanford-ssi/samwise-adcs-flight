@@ -195,6 +195,7 @@ void sensors_task_dispatch(slate_t *slate)
         {
             slate->gps_lat = gps_data.latitude;
             slate->gps_lon = gps_data.longitude;
+            slate->gps_alt = gps_data.altitude / 1000.0f; // Convert m to km
             slate->gps_time = static_cast<float>(
                 gps_data.timestamp); // Convert HHMMSS to float
 
@@ -214,8 +215,11 @@ void sensors_task_dispatch(slate_t *slate)
             // Compute MJD based on GPS date and time
             compute_MJD(slate);
 
-            LOG_INFO("[sensors] GPS data: Lat: %.6f, Lon: %.6f, Time: %.3f, Date: %02d/%02d/%04d",
-                     slate->gps_lat, slate->gps_lon, slate->gps_time, day, month, year);
+            LOG_INFO("[sensors] GPS data: Lat: %.6f, Lon: %.6f, Alt: %.3f, "
+                     "Time: %.3f, "
+                     "Date: %02d/%02d/%04d",
+                     slate->gps_lat, slate->gps_lon, slate->gps_alt,
+                     slate->gps_time, day, month, year);
         }
 
         slate->gps_data_valid = result;
