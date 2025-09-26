@@ -18,8 +18,8 @@
 #include "drivers/power_monitor/power_monitor.h"
 #include "drivers/sun_sensors/photodiodes_yz.h"
 #include "drivers/sun_sensors/sun_pyramids.h"
-#include "gnc/utils/utils.h"
 #include "gnc/utils/mjd.h"
+#include "gnc/utils/utils.h"
 #include "pico/time.h"
 #include <cmath>
 
@@ -214,8 +214,10 @@ void sensors_task_dispatch(slate_t *slate)
             // Compute MJD based on GPS date and time
             compute_MJD(slate);
 
-            LOG_INFO("[sensors] GPS data: Lat: %.6f, Lon: %.6f, Time: %.3f, Date: %02d/%02d/%04d",
-                     slate->gps_lat, slate->gps_lon, slate->gps_time, day, month, year);
+            LOG_INFO("[sensors] GPS data: Lat: %.6f, Lon: %.6f, Time: %.3f, "
+                     "Date: %02d/%02d/%04d",
+                     slate->gps_lat, slate->gps_lon, slate->gps_time, day,
+                     month, year);
         }
 
         slate->gps_data_valid = result;
