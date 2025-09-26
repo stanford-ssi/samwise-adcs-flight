@@ -124,7 +124,7 @@ typedef struct samwise_adcs_slate
 
     float attitude_covar[7 * 7]; // attitude covariance matrix
 
-    // Attituide control
+    // Attitude control
     float3 control_torque;
     float3 reaction_wheel_speeds;
 
