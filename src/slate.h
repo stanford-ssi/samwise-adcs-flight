@@ -135,8 +135,4 @@ typedef struct samwise_adcs_slate
     float3 r_ecef;
     float3 r_eci;
 
-    // LLA coordinates in latitude (degrees) [-90 to 90], longitude (degrees)
-    // [-180, 180], altitude (km) [0, 1000]
-    float3 lla;
-
 } slate_t;

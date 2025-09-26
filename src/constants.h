@@ -46,6 +46,8 @@ constexpr uint32_t MAGNETOMETER_FIELD_SETTLE_TIME_MS = 20; // [ms]
 // ========================================================================
 
 constexpr float R_E = 6378.0f; // Earth radius in km
+constexpr float SATELLITE_MEAN_ALTITUDE =
+    517.963f; // Time mean satellite altitude in km
 
 // (These are generally useful)
 constexpr float DEG_TO_RAD = 0.01745329251;
