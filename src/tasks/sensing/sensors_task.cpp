@@ -194,8 +194,8 @@ void sensors_task_dispatch(slate_t *slate)
         {
             slate->gps_lat = gps_data.latitude;
             slate->gps_lon = gps_data.longitude;
-            slate->gps_time =
-                static_cast<float>(gps_data.timestamp); // Convert HHMMSS to float
+            slate->gps_time = static_cast<float>(
+                gps_data.timestamp); // Convert HHMMSS to float
             LOG_INFO("[sensors] GPS data: Lat: %.6f, Lon: %.6f, Time: %.3f",
                      slate->gps_lat, slate->gps_lon, slate->gps_time);
         }

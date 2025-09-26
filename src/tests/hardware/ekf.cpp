@@ -28,7 +28,7 @@ void ekf_test(slate_t *slate)
     slate->gps_data_valid = true;
 
     LOG_DEBUG("[sensors] GPS data: Lat: %.6f, Lon: %.6f, Time: %.3f",
-                    slate->gps_lat, slate->gps_lon, slate->gps_time);
+              slate->gps_lat, slate->gps_lon, slate->gps_time);
     // Remember to change the hard coded date in gnc/mjd.cpp
 
     // MJD calculation
@@ -38,13 +38,13 @@ void ekf_test(slate_t *slate)
     // sun model
     compute_sun_vector_eci(slate);
     LOG_DEBUG("[gnc] sun vector [x,y,z] in eci is: %.6f, %.6f, %.6f",
-             slate->sun_vector_eci[0], slate->sun_vector_eci[1],
-             slate->sun_vector_eci[2]);
+              slate->sun_vector_eci[0], slate->sun_vector_eci[1],
+              slate->sun_vector_eci[2]);
 
     // B field model
     compute_B(slate);
     LOG_DEBUG("[gnc] magnetic vector [x,y,z] in eci is: %.6f, %.6f, %.6f",
-             slate->B_est_eci[0], slate->B_est_eci[1], slate->B_est_eci[2]);
+              slate->B_est_eci[0], slate->B_est_eci[1], slate->B_est_eci[2]);
 
     // EKF test
     int count = 0;
@@ -55,8 +55,8 @@ void ekf_test(slate_t *slate)
         attitude_filter_propagate(slate, 0.1);
 
         LOG_DEBUG("%f, %f, %f, %f, %f", slate->q_eci_to_body[0],
-                 slate->q_eci_to_body[1], slate->q_eci_to_body[2],
-                 slate->q_eci_to_body[3], slate->attitude_covar_log_frobenius);
+                  slate->q_eci_to_body[1], slate->q_eci_to_body[2],
+                  slate->q_eci_to_body[3], slate->attitude_covar_log_frobenius);
     }
 
     attitude_filter_update(slate);

@@ -44,7 +44,6 @@ void gps_uart_irq_handler(void)
             {
                 buffer_index = 0;
             }
-            // Don't clear sentence_ready here!
         }
 
         // Add character to buffer if there's space
@@ -59,8 +58,6 @@ void gps_uart_irq_handler(void)
                 if (buffer_index > 5)
                 {
                     sentence_ready = true;
-                    // LOG_DEBUG("[GPS] Sentence complete, length: %d",
-                    // buffer_index);
                 }
                 buffer_index = 0; // Reset for next sentence
             }
@@ -71,7 +68,6 @@ void gps_uart_irq_handler(void)
         }
         else
         {
-            // LOG_DEBUG("[GPS] Buffer overflow, resetting");
             buffer_index = 0;
             sentence_ready = false;
         }
@@ -260,13 +256,9 @@ bool gps_get_data(gps_data_t *data)
     if (!data)
         return false;
 
-    // LOG_DEBUG("[GPS] gps_get_data called, sentence_ready = %s",
-    //           sentence_ready ? "true" : "false");
-
     // Process any pending sentences
     if (sentence_ready)
     {
-        // LOG_DEBUG("[GPS] About to process sentence");
         process_nmea_sentence(gps_buffer);
         sentence_ready = false;
     }
