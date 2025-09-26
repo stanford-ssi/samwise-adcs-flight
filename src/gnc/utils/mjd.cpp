@@ -9,6 +9,7 @@
 #include "mjd.h"
 #include "macros.h"
 #include "pico/printf.h"
+#include "slate.h"
 
 // Move MJD calculation from gnc/sun_vector.cpp to here
 // It is more clear to calcualte MJD everytime we heard from GPS
@@ -18,7 +19,7 @@ void compute_MJD(slate_t *slate)
 {
     float year = 2025.0f;
     float month = 9.0f;
-    float day = 8.0f;
+    float day = 24.0f;
 
     slate->UTC_date[0] = year;
     slate->UTC_date[1] = month;
