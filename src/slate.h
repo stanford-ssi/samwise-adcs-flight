@@ -128,7 +128,7 @@ typedef struct samwise_adcs_slate
 
     absolute_time_t af_last_ran_time;
 
-    // Attituide control
+    // Attitude control
     float3 control_torque;
     float3 reaction_wheel_speeds;
 

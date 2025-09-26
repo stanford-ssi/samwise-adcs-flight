@@ -1,8 +1,8 @@
 /**
  * @author Lundeen Cahilly
- * @date 2025-06-05
+ * @date 2025-09-25
  *
- * Simple UART driver for GPS NMEA sentences
+ * UART driver to read GPS NMEA sentences (RMC)
  */
 
 #include "gps.h"
