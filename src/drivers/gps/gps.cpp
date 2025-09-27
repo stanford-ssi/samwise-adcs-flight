@@ -39,7 +39,6 @@ void gps_uart_irq_handler(void)
         // Handle sentence start
         if (c == '$')
         {
-            // Only reset if no sentence is pending
             if (!sentence_ready)
             {
                 buffer_index = 0;
@@ -76,6 +75,54 @@ void gps_uart_irq_handler(void)
             sentence_ready = false;
         }
     }
+}
+
+/**
+ * Validate NMEA sentence checksum
+ */
+static bool validate_nmea_checksum(const char *sentence)
+{
+
+    if (!sentence || strlen(sentence) < 8)
+    {
+        return false;
+    }
+
+    // Find the asterisk
+    const char *asterisk = strrchr(sentence, '*');
+    if (!asterisk || strlen(asterisk) != 3)
+    {
+        return false;
+    }
+
+    // Calculate checksum (XOR all characters between $ and *)
+    uint8_t calculated_checksum = 0;
+    for (const char *p = sentence + 1; p < asterisk; p++)
+    {
+        calculated_checksum ^= *p;
+    }
+
+    // Parse received checksum
+    char checksum_str[3] = {asterisk[1], asterisk[2], '\0'};
+    uint8_t received_checksum = (uint8_t)strtol(checksum_str, NULL, 16);
+
+    bool valid = (calculated_checksum == received_checksum);
+
+    if (valid)
+    {
+        LOG_DEBUG("[gps] Checksum matches: calc=0x%02X, recv=0x%02X",
+                  calculated_checksum, received_checksum);
+    }
+
+    return valid;
+}
+
+/**
+ * Validate coordinate is within valid GPS range
+ */
+static bool validate_coordinate(float lat, float lon)
+{
+    return (lat >= -90.0f && lat <= 90.0f && lon >= -180.0f && lon <= 180.0f);
 }
 
 /**
@@ -266,6 +313,12 @@ static void process_nmea_sentence(const char *sentence)
     if (strncmp(sentence, "$GPRMC", 6) == 0 ||
         strncmp(sentence, "$GNRMC", 6) == 0)
     {
+        // Validate checksum for RMC sentences
+        if (!validate_nmea_checksum(sentence))
+        {
+            return;
+        }
+        LOG_DEBUG("[gps] Processing RMC: %s", sentence);
         parse_rmc_sentence(sentence);
     }
 
@@ -273,6 +326,12 @@ static void process_nmea_sentence(const char *sentence)
     if (strncmp(sentence, "$GPGGA", 6) == 0 ||
         strncmp(sentence, "$GNGGA", 6) == 0)
     {
+        // Validate checksum for GGA sentences
+        if (!validate_nmea_checksum(sentence))
+        {
+            return;
+        }
+        LOG_DEBUG("[gps] Processing GGA: %s", sentence);
         parse_gga_sentence(sentence);
     }
 }
