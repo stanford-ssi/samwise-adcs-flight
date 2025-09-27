@@ -108,8 +108,9 @@ typedef struct samwise_adcs_slate
     float3 B_est_rpt;  // R, phi, theta frame (unit vector) [Up, East, North]
     float3 B_est_enu;  // East-North-Up frame (unit vector)
     float3 B_est_ecef; // ECEF frame (unit vector)
+    float3 B_est_eci;  // ECI frame (unit vector)
 
-    float MJD;
+    float MJD; // Modified Julian Date
 
     // Bdot
     float3 b_field_local_prev; // (unit vector)
@@ -118,11 +119,14 @@ typedef struct samwise_adcs_slate
     bool bdot_data_has_updated;
 
     // Attitude propagator
-    quaternion q_eci_to_principal;
-    float3 w_principal;   // [rad s^-1] in principal axes frame
-    float3 tau_principal; // [Nm] total torque in principal axes frame
+    quaternion q_eci_to_body;
+    float3 w_body;               // [rad s^-1] in body frame: written by IMU
+    float attitude_covar[4 * 4]; // attitude covariance matrix
+    float attitude_covar_log_frobenius;
+    bool af_is_initialized;
+    uint32_t af_init_count = 0;
 
-    float attitude_covar[7 * 7]; // attitude covariance matrix
+    absolute_time_t af_last_ran_time;
 
     // Attituide control
     float3 control_torque;

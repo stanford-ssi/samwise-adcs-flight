@@ -195,7 +195,7 @@ void sensors_task_dispatch(slate_t *slate)
             slate->gps_lat = gps_data.latitude;
             slate->gps_lon = gps_data.longitude;
             slate->gps_time =
-                (float)gps_data.timestamp; // Convert HHMMSS to float
+                static_cast<float>(gps_data.timestamp); // Convert HHMMSS to float
             LOG_INFO("[sensors] GPS data: Lat: %.6f, Lon: %.6f, Time: %.3f",
                      slate->gps_lat, slate->gps_lon, slate->gps_time);
         }
@@ -219,9 +219,12 @@ void sensors_task_dispatch(slate_t *slate)
             constexpr float imu_lpf_alpha = 0.628318530718;
             slate->w_body_filtered = low_pass_filter(
                 slate->w_body_filtered, slate->w_body_raw, imu_lpf_alpha);
-                
+
             // Update magnitude
             slate->w_mag = length(slate->w_body_filtered);
+            LOG_DEBUG("[sensors] IMU reading: [%.3f, %.3f, %.3f]",
+                      slate->w_body_filtered[0], slate->w_body_filtered[1],
+                      slate->w_body_filtered[2]);
         }
 
         slate->imu_data_valid = result;

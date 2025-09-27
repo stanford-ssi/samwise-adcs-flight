@@ -5,13 +5,9 @@
 
 #include "sun_vector.h"
 #include "constants.h"
+#include "gnc/utils/utils.h"
 #include "macros.h"
 #include "pico/stdlib.h"
-
-float wrapTo360(float angle)
-{
-    return fmodf(fmodf(angle, 360.0f) + 360.0f, 360.0f);
-}
 
 // Note: the difference between UTC and UT1 is ignored
 
