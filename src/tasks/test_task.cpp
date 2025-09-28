@@ -25,7 +25,6 @@ void test_task_dispatch(slate_t *slate)
     sensors_task_dispatch(slate);
 
     ekf_test(slate);
-
 }
 
 sched_task_t test_task = {.name = "test",

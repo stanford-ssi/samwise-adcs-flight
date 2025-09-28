@@ -6,6 +6,7 @@
  */
 
 #include "b_field.h"
+#include "constants.h"
 #include "gnc/models/b_field.h"
 #include "macros.h"
 #include <cmath>
@@ -23,7 +24,7 @@ void test_b_field_reference_points(slate_t *slate)
         const char *name;
     };
 
-    // Reference values from IGRF calculator
+    // Reference values from IGRF calculator at mean satellite altitude
     TestPoint test_points[] = {{89.9f, 0.0f, 0.0f, -56835.0f, 439.0f, -1783.0f,
                                 56864.0f, "North Pole"},
                                {-89.9f, 0.0f, 0.0f, 51612.0f, -8771.0f,
@@ -40,8 +41,9 @@ void test_b_field_reference_points(slate_t *slate)
 
     for (int i = 0; i < num_tests; i++)
     {
-        slate->lla =
-            float3(test_points[i].lat, test_points[i].lon, test_points[i].alt);
+        slate->gps_lat = test_points[i].lat;
+        slate->gps_lon = test_points[i].lon;
+        slate->gps_alt = test_points[i].alt;
 
         compute_B(slate);
 
@@ -90,7 +92,8 @@ void test_b_field_mapping(slate_t *slate)
     {
         for (float lon = -179.9f; lon <= 179.9f; lon += LON_STEP)
         {
-            slate->lla = float3(lat, lon, ALTITUDE);
+            slate->gps_lat = lat;
+            slate->gps_lon = lon;
 
             compute_B(slate);
 
@@ -111,8 +114,10 @@ void test_b_field_ecef_conversion(slate_t *slate)
 {
     LOG_INFO("Testing B field ECEF conversion...");
 
-    // Test point: North Pole, 400 km altitude
-    slate->lla = float3(89.9f, 0.0f, 400.0f);
+    // Test point: North Pole at satellite mean altitude
+    slate->gps_lat = 89.9f;
+    slate->gps_lon = 0.0f;
+    slate->gps_alt = 400.0f;
 
     compute_B(slate);
 
