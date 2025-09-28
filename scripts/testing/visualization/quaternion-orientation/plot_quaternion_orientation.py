@@ -5,7 +5,7 @@ Plots 3 orthogonal vectors representing the satellite body frame in ECI coordina
 
 Usage: python plot_orientation.py [--port /dev/cu.usbmodem101]
 
-Expected input format: [INFO] qx, qy, qz, qw, extra_value
+Expected input format: [ekf_test] qx, qy, qz, qw, extra_value
 where quaternion is in scalar-last format (qx, qy, qz, qw)
 """
 
@@ -87,7 +87,7 @@ def main():
 
     try:
         print("Waiting for quaternion data...")
-        print("Expected format: [INFO] qx, qy, qz, qw, extra_value")
+        print("Expected format: [DEBUG] [ekf_test] qx, qy, qz, qw, extra_value")
 
         while True:
             current_time = time.time()
@@ -98,11 +98,11 @@ def main():
                     # Read and parse line
                     line_raw = ser.readline().decode('utf-8', errors='replace').strip()
 
-                    # Check if line contains [INFO]
-                    if "[INFO]" not in line_raw:
+                    # Check if line contains [DEBUG] and [ekf_test]
+                    if "[DEBUG]" not in line_raw or "[ekf_test]" not in line_raw:
                         continue
 
-                    line_after_info = line_raw.split("[INFO]")[-1].strip()
+                    line_after_info = line_raw.split("[ekf_test]")[-1].strip()
 
                     # Extract numbers
                     number_strings = [s.strip() for s in line_after_info.split(",") if s.strip()]
