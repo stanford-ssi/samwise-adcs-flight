@@ -8,15 +8,24 @@
 #include "test_task.h"
 #include "macros.h"
 #include "pico/stdlib.h"
+#include "tasks/sensing/sensors_task.h"
+#include "tests/hardware/ekf.h"
 
 void test_task_init(slate_t *slate)
 {
     LOG_INFO("[test] Initializing test task!");
+
+    sensors_task_init(slate);
 }
 
 void test_task_dispatch(slate_t *slate)
 {
     LOG_INFO("[test] TEST TASK IS DISPATCHING");
+
+    sensors_task_dispatch(slate);
+
+    ekf_test(slate);
+
 }
 
 sched_task_t test_task = {.name = "test",

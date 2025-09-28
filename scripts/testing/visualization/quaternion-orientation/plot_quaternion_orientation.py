@@ -16,7 +16,7 @@ import argparse
 from mpl_toolkits.mplot3d import Axes3D
 
 # Configuration constants
-UPDATE_RATE_HZ = 20  # Update rate in Hz
+UPDATE_RATE_HZ = 60  # Update rate in Hz
 FRAME_PERIOD = 1.0 / UPDATE_RATE_HZ  # Period between frame updates
 
 def quaternion_to_rotation_matrix(qx, qy, qz, qw):
@@ -62,20 +62,6 @@ def main():
     body_y = np.array([0, 1, 0])
     body_z = np.array([0, 0, 1])
 
-    # Initialize plot elements
-    origin = np.array([0, 0, 0])
-
-    # Plot body frame vectors
-    x_line = ax.quiver(origin[0], origin[1], origin[2],
-                      body_x[0], body_x[1], body_x[2],
-                      color='red', arrow_length_ratio=0.1, linewidth=3, label='Body X')
-    y_line = ax.quiver(origin[0], origin[1], origin[2],
-                      body_y[0], body_y[1], body_y[2],
-                      color='green', arrow_length_ratio=0.1, linewidth=3, label='Body Y')
-    z_line = ax.quiver(origin[0], origin[1], origin[2],
-                      body_z[0], body_z[1], body_z[2],
-                      color='blue', arrow_length_ratio=0.1, linewidth=3, label='Body Z')
-
     # Setup plot appearance
     ax.set_xlabel('ECI X')
     ax.set_ylabel('ECI Y')
@@ -83,17 +69,21 @@ def main():
     ax.set_xlim([-1.5, 1.5])
     ax.set_ylim([-1.5, 1.5])
     ax.set_zlim([-1.5, 1.5])
-    ax.legend()
     ax.set_title('Satellite Body Frame Orientation in ECI')
 
-    # Add reference ECI axes (thinner, gray)
-    ax.quiver(0, 0, 0, 1, 0, 0, color='gray', alpha=0.3, linewidth=1)
-    ax.quiver(0, 0, 0, 0, 1, 0, color='gray', alpha=0.3, linewidth=1)
-    ax.quiver(0, 0, 0, 0, 0, 1, color='gray', alpha=0.3, linewidth=1)
+    # Add static reference ECI axes (thinner, gray)
+    ax.quiver(0, 0, 0, 1, 0, 0, color='gray', alpha=0.3, linewidth=1, label='ECI X')
+    ax.quiver(0, 0, 0, 0, 1, 0, color='gray', alpha=0.3, linewidth=1, label='ECI Y')
+    ax.quiver(0, 0, 0, 0, 0, 1, color='gray', alpha=0.3, linewidth=1, label='ECI Z')
 
     import time
     last_update_time = time.time()
     latest_quaternion = None
+
+    # Store current body frame arrows for removal
+    current_x_arrow = None
+    current_y_arrow = None
+    current_z_arrow = None
 
     try:
         print("Waiting for quaternion data...")
@@ -140,34 +130,37 @@ def main():
                 eci_y = R @ body_y
                 eci_z = R @ body_z
 
-                # Clear and redraw arrows
-                ax.clear()
+                # Remove previous body frame arrows
+                if current_x_arrow:
+                    try:
+                        current_x_arrow.remove()
+                    except:
+                        pass
+                if current_y_arrow:
+                    try:
+                        current_y_arrow.remove()
+                    except:
+                        pass
+                if current_z_arrow:
+                    try:
+                        current_z_arrow.remove()
+                    except:
+                        pass
 
-                # Plot transformed body frame vectors
-                ax.quiver(0, 0, 0, eci_x[0], eci_x[1], eci_x[2],
-                         color='red', arrow_length_ratio=0.1, linewidth=3, label='Body X')
-                ax.quiver(0, 0, 0, eci_y[0], eci_y[1], eci_y[2],
-                         color='green', arrow_length_ratio=0.1, linewidth=3, label='Body Y')
-                ax.quiver(0, 0, 0, eci_z[0], eci_z[1], eci_z[2],
-                         color='blue', arrow_length_ratio=0.1, linewidth=3, label='Body Z')
+                # Plot new transformed body frame vectors
+                current_x_arrow = ax.quiver(0, 0, 0, eci_x[0], eci_x[1], eci_x[2],
+                                          color='red', arrow_length_ratio=0.1, linewidth=3, label='Body X')
+                current_y_arrow = ax.quiver(0, 0, 0, eci_y[0], eci_y[1], eci_y[2],
+                                          color='green', arrow_length_ratio=0.1, linewidth=3, label='Body Y')
+                current_z_arrow = ax.quiver(0, 0, 0, eci_z[0], eci_z[1], eci_z[2],
+                                          color='blue', arrow_length_ratio=0.1, linewidth=3, label='Body Z')
 
-                # Add reference ECI axes
-                ax.quiver(0, 0, 0, 1, 0, 0, color='gray', alpha=0.3, linewidth=1, label='ECI X')
-                ax.quiver(0, 0, 0, 0, 1, 0, color='gray', alpha=0.3, linewidth=1, label='ECI Y')
-                ax.quiver(0, 0, 0, 0, 0, 1, color='gray', alpha=0.3, linewidth=1, label='ECI Z')
-
-                # Restore plot settings
-                ax.set_xlabel('ECI X')
-                ax.set_ylabel('ECI Y')
-                ax.set_zlabel('ECI Z')
-                ax.set_xlim([-1.5, 1.5])
-                ax.set_ylim([-1.5, 1.5])
-                ax.set_zlim([-1.5, 1.5])
-                ax.legend()
+                # Update title with current quaternion
                 ax.set_title(f'Satellite Orientation (q=[{qx:.3f}, {qy:.3f}, {qz:.3f}, {qw:.3f}])')
 
-                plt.draw()
-                plt.pause(0.01)
+                # Redraw
+                fig.canvas.draw_idle()
+                fig.canvas.flush_events()
                 last_update_time = current_time
 
                 print(f"Updated: q=({qx:.3f}, {qy:.3f}, {qz:.3f}, {qw:.3f})")

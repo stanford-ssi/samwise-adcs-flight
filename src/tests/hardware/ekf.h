@@ -12,4 +12,5 @@
 #include "slate.h"
 
 void ekf_test(slate_t *slate);
+void expected_quternion(slate_t *slate, quaternion &q_expected);
 void attitude_filter_software_test(slate_t *slate);
