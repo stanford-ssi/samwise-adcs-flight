@@ -30,9 +30,9 @@ inline float sqrt_lut_get(int index)
 
 bool compute_B(slate_t *slate)
 {
-    const float lat = slate->lla[0]; // latitude (-90 to 90)
-    const float lon = slate->lla[1]; // longitude (-180 to 180)
-    const float alt = slate->lla[2]; // altitude (km)
+    const float lat = slate->gps_lat; // latitude (-90 to 90)
+    const float lon = slate->gps_lon; // longitude (-180 to 180)
+    const float alt = slate->gps_alt; // altitude (km)
 
     // Input validation to prevent NaN
     if (alt < B_FIELD_LOW_ALTITUDE_THRESH || alt > B_FIELD_HIGH_ALTITUDE_THRESH)
@@ -136,11 +136,14 @@ bool compute_B(slate_t *slate)
     float3 B_enu_raw = {Bphi, Btheta, Br}; // East-North-Up (ENU) frame
     float3 B_ecef_raw =
         enu_to_ecef(B_enu_raw, float3(lat, lon, alt)); // Convert to ECEF frame
+    float3 B_eci_raw =
+        ecef_to_eci(B_ecef_raw, slate->MJD); // Convert to ECI frame
 
     // Normalize the vectors
     slate->B_est_rpt = normalize(B_rpt_raw);
     slate->B_est_enu = normalize(B_enu_raw);
     slate->B_est_ecef = normalize(B_ecef_raw);
+    slate->B_est_eci = normalize(B_eci_raw);
 
     return true;
 }

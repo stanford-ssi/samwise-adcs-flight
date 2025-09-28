@@ -615,6 +615,6 @@ bool imu_get_rotation(float3 *w_out)
         return true;
     }
 
-    LOG_DEBUG("Reading the gyro with no data!");
+    LOG_DEBUG("[IMU] Reading the gyro with no data!");
     return false;
 }

@@ -17,6 +17,7 @@ float time_diff_seconds(absolute_time_t t_start, absolute_time_t t_end);
 
 float sign(float x);
 float clamp_abs_to_one(float x);
+float wrapTo360(float angle);
 
 /**
  * Apply a simple low pass filter to a changing value. Supports a wide array of

@@ -108,6 +108,26 @@ void mat_add(const float *A, const float *B, float *out, int M, int N)
 }
 
 /**
+ * @brief Populate out (row-major) with A - B
+ *
+ * @param A (MxN)
+ * @param B (MxN)
+ * @param out (MxN)
+ * @param M
+ * @param N
+ */
+void mat_sub(const float *A, const float *B, float *out, int M, int N)
+{
+    for (int i = 0; i < M; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            out[IDX(i, j, N)] = A[IDX(i, j, N)] - B[IDX(i, j, N)];
+        }
+    }
+}
+
+/**
  * @brief Populate out (row-major) with the inverse of A. Assumes
  * that A is non-singular (will lead to NaN's otherwise).
  *
@@ -177,22 +197,47 @@ void mat_inverse(const float *A, float *out, int N)
 }
 
 /**
- * @brief Caculate the frobenius norm (square root of sum of squared elements)
- * of an NxN matrix `A`
+ * @brief Caculate the log (base 10) of the frobenius norm (square root of sum
+ * of squared elements) of an NxN matrix `A`
  *
  * @param A
  * @param N
  * @return float
  */
-float mat_frobenius(const float *A, float N)
+float mat_log_frobenius(const float *A, int N)
 {
-    float sum_squares;
+    float sum_squares = 0.0f;
     for (int i = 0; i < N * N; i++)
     {
         sum_squares += (A[i] * A[i]);
     }
 
-    return sqrtf(sum_squares);
+    return 0.5f * log10f(sum_squares);
+}
+
+/**
+ * @brief Checks if the MxN matrix `A` (row-major) has any elements which are
+ * NaN
+ *
+ * @param A
+ * @param M
+ * @param N
+ * @return true if any elements of A are NaN
+ */
+bool mat_contains_nan(const float *A, int M, int N)
+{
+    for (int i = 0; i < M; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            if (isnan(A[IDX(i, j, N)]))
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 // Helper functions to generate random numbers for testing

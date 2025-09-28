@@ -18,9 +18,12 @@ typedef struct
     bool valid;
     float latitude;     // Decimal degrees
     float longitude;    // Decimal degrees
-    float altitude;     // Meters above sea level
-    uint8_t satellites; // Number of satellites used
+    float altitude;     // Altitude above sea level in meters (from GGA)
     uint32_t timestamp; // UTC time as HHMMSS
+    uint32_t date;      // UTC date as DDMMYY
+    float speed;        // Speed over ground in knots
+    float course;       // Course over ground in degrees
+    uint8_t satellites; // Number of satellites in use (from GGA)
 } gps_data_t;
 
 /**
