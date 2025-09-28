@@ -33,10 +33,10 @@ const float sensor_normals[8][3] = {
     {-1, 1, 0},  // sun_pyramid_1_2 [1]
     {0, 1, -1},  // sun_pyramid_1_3 [2]
     {1, 1, 0},   // sun_pyramid_1_4 [3]
-    {0, -1, 1}, // sun_pyramid_2_1 [4]
-    {1, -1, 0}, // sun_pyramid_2_2 [5]
-    {0, -1, -1},  // sun_pyramid_2_3 [6]
-    {-1, -1, 0},  // sun_pyramid_2_4 [7]
+    {0, -1, 1},  // sun_pyramid_2_1 [4]
+    {1, -1, 0},  // sun_pyramid_2_2 [5]
+    {0, -1, -1}, // sun_pyramid_2_3 [6]
+    {-1, -1, 0}, // sun_pyramid_2_4 [7]
 };
 
 void compute_sensor_pseudoinverse();
