@@ -119,27 +119,27 @@ constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 // Define all sun sensor normal vectors (NUM_SUN_SENSORS x 3 matrix)
 const float SUN_SENSOR_NORMALS[NUM_SUN_SENSORS][3] = {
     // Pyramid group 1 on +X face (0-3)
-    {SQRT_2_INV, 0, SQRT_2_INV},      // sun_pyramid_1_1
-    {SQRT_2_INV, SQRT_2_INV, 0},      // sun_pyramid_1_2
-    {SQRT_2_INV, 0, -SQRT_2_INV},     // sun_pyramid_1_3
-    {SQRT_2_INV, -SQRT_2_INV, 0},     // sun_pyramid_1_4
+    {SQRT_2_INV, 0, SQRT_2_INV},  // sun_pyramid_1_1
+    {SQRT_2_INV, SQRT_2_INV, 0},  // sun_pyramid_1_2
+    {SQRT_2_INV, 0, -SQRT_2_INV}, // sun_pyramid_1_3
+    {SQRT_2_INV, -SQRT_2_INV, 0}, // sun_pyramid_1_4
     // Pyramid group 2 on -X face (4-7)
-    {-SQRT_2_INV, 0, SQRT_2_INV},     // sun_pyramid_2_1
-    {-SQRT_2_INV, -SQRT_2_INV, 0},    // sun_pyramid_2_2
-    {-SQRT_2_INV, 0, -SQRT_2_INV},    // sun_pyramid_2_3
-    {-SQRT_2_INV, SQRT_2_INV, 0},     // sun_pyramid_2_4
+    {-SQRT_2_INV, 0, SQRT_2_INV},  // sun_pyramid_2_1
+    {-SQRT_2_INV, -SQRT_2_INV, 0}, // sun_pyramid_2_2
+    {-SQRT_2_INV, 0, -SQRT_2_INV}, // sun_pyramid_2_3
+    {-SQRT_2_INV, SQRT_2_INV, 0},  // sun_pyramid_2_4
     // Y+ sensors (8-9)
-    {0, -1, 0},     // y+ sensor 1 
-    {0, -1, 0},     // y+ sensor 2 
+    {0, -1, 0}, // y+ sensor 1
+    {0, -1, 0}, // y+ sensor 2
     // Y- sensors (10-11)
-    {0, 1, 0},      // y- sensor 1 
-    {0, 1, 0},      // y- sensor 2 
+    {0, 1, 0}, // y- sensor 1
+    {0, 1, 0}, // y- sensor 2
     // Z+ face sensors (12-13)
-    {0, 0, 1},      // z+ sensor 1
-    {0, 0, 1},      // z+ sensor 2
+    {0, 0, 1}, // z+ sensor 1
+    {0, 0, 1}, // z+ sensor 2
     // Z- face sensors (14-15)
-    {0, 0, -1},     // z- sensor 1 
-    {0, 0, -1},     // z- sensor 2 
+    {0, 0, -1}, // z- sensor 1
+    {0, 0, -1}, // z- sensor 2
 };
 
 // ========================================================================

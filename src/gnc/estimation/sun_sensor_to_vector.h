@@ -5,9 +5,9 @@
 
 #pragma once
 
+#include "constants.h"
 #include "linalg.h"
 #include "slate.h"
-#include "constants.h"
 
 void sun_sensors_to_vector(slate_t *slate);
 
