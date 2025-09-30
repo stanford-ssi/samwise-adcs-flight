@@ -71,6 +71,16 @@ const struct test_case test_cases[] = {
      {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
      {NONE, FLOATING, FLOATING, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE},
      "Sun +X with sensor 1 FLOATING, sensor 2 FLOATING, two sensors nominal"},
+
+     {{1.0f, 0.0f, 0.0f},
+     {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
+     {FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING},
+     "Sun +X with all sensors FLOATING"},
+
+     {{1.0f, 0.0f, 0.0f},
+     {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
+     {NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING},
+     "Sun +X with YZ sensors FLOATING, sun pyramids nominal"},
 };
 
 const int NUM_TEST_CASES = sizeof(test_cases) / sizeof(test_cases[0]);
@@ -173,7 +183,7 @@ void test_sun_sensor_monte_carlo(slate_t *slate)
     const int NUM_MONTE_CARLO_RUNS = 5000;
 
     // Select which test cases to run Monte Carlo on
-    int selected_cases[] = {0, 1, 2, 3, 4, 5, 6}; 
+    int selected_cases[] = {0, 1, 2, 3, 4, 5, 6, 7, 8}; 
     int num_cases = sizeof(selected_cases) / sizeof(selected_cases[0]);
 
     printf("=== Monte Carlo Analysis (%d runs per case) ===\n", NUM_MONTE_CARLO_RUNS);
@@ -183,6 +193,8 @@ void test_sun_sensor_monte_carlo(slate_t *slate)
         printf("Case %d: %s\n", case_num, test_cases[case_num].description);
 
         float total_error = 0.0f;
+        float min_error = INFINITY;
+        float max_error = -INFINITY;
         int successful_runs = 0;
         int failed_runs = 0;
 
@@ -241,6 +253,8 @@ void test_sun_sensor_monte_carlo(slate_t *slate)
                 float angle_error = acosf(dot) * RAD_TO_DEG;
 
                 total_error += angle_error;
+                if (angle_error < min_error) min_error = angle_error;
+                if (angle_error > max_error) max_error = angle_error;
                 successful_runs++;
             } else {
                 failed_runs++;
@@ -252,7 +266,7 @@ void test_sun_sensor_monte_carlo(slate_t *slate)
             float avg_error = total_error / successful_runs;
             float success_rate = (float)successful_runs / NUM_MONTE_CARLO_RUNS * 100.0f;
             printf("  Success rate: %.1f%% (%d/%d)\n", success_rate, successful_runs, NUM_MONTE_CARLO_RUNS);
-            printf("  Average angular error: %.6f degrees\n", avg_error);
+            printf("  Angular error - Mean: %.6f deg, Min: %.6f deg, Max: %.6f deg\n", avg_error, min_error, max_error);
         } else {
             printf("  No sun vector: 0%% success rate\n");
         }
