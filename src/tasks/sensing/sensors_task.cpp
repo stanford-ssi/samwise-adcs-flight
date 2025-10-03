@@ -49,14 +49,8 @@ void sensors_task_init(slate_t *slate)
     }
 
     // --- GPS --- //
-    LOG_INFO("[sensors] Initializing GPS...");
-    bool gps_result = gps_init();
-    slate->gps_alive = gps_result;
-
-    if (!gps_result)
-    {
-        LOG_ERROR("[sensors] Error initializing GPS - deactivating!");
-    }
+    LOG_INFO("[sensors] GPS disabled - setting alive to false");
+    slate->gps_alive = false;
 
     // --- Sun Sensors --- //
     LOG_INFO("[sensors] Initializing sun pyramids...");

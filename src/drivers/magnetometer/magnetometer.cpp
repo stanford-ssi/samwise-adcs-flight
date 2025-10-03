@@ -275,6 +275,10 @@ rm3100_error_t rm3100_get_reading(float3 *mag_field)
     // Apply calibration to get final corrected reading
     rm3100_apply_calibration(raw_reading, mag_field);
 
+    // Log post-calibration, pre-normalization readings
+    LOG_DEBUG("[rm3100] Calibrated (pre-norm): [%.3f, %.3f, %.3f] µT",
+              mag_field->x, mag_field->y, mag_field->z);
+
     // Normalize the reading to unit vector
     // Comment out during calibration to keep raw values
     *mag_field = normalize(*mag_field);
