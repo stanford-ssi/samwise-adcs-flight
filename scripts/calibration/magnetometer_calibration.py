@@ -377,30 +377,48 @@ class MagnetometerCalibrator:
         
         print(f"Calibration report saved to: {header_filename}")
 
-# Example usage
+import argparse
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("MAGNETOMETER CALIBRATION SCRIPT")
     print("=" * 60)
+
     print("\nIMPORTANT: Before starting calibration:")
     print("1. Go to src/drivers/magnetometer.cpp")
     print("2. Comment out the normalization line in rm3100_get_reading()")
     print("3. Flash the updated firmware to your device")
     print("4. We need raw magnetometer values, not normalized ones!")
+
     print("\nPress Enter when ready to continue...")
     input()
-    
-    # Initialize calibrator
-    cal = MagnetometerCalibrator(port='/dev/tty.usbmodem101')  # Adjust port as needed
-    
+
+    # -----------------------------
+    # Command-line argument parsing
+    # -----------------------------
+    parser = argparse.ArgumentParser(
+        description="Magnetometer calibration utility."
+    )
+    parser.add_argument(
+        "--port",
+        type=str,
+        required=True,
+        help="Serial port for the magnetometer (e.g. /dev/tty.usbmodem101 or COM3)"
+    )
+    args = parser.parse_args()
+
+    # Initialize calibrator with chosen port
+    cal = MagnetometerCalibrator(port=args.port)
+
     # Collect new data and save it
     if cal.collect_data(min_samples=10000):
         json_filename = cal.save_data_to_file()
         # Load the data we just saved (demonstrates the load functionality)
         cal.load_data_from_file(json_filename)
-    
+
     # Perform calibration (choose method)
-    cal.calibrate(method='sphere') 
-    
+    cal.calibrate(method='ellipsoid')
+
     # Generate comprehensive report
     cal.save_calibration()
