@@ -1,12 +1,15 @@
 /**
- * @author Chen Li and  and Lundeen Cahilly
+ * @author Lundeen Cahilly, Chen Li, and Tactical Cinderblock
  * @date 2025-08-24
  */
 
 #pragma once
 
+#include "constants.h"
 #include "linalg.h"
 #include "slate.h"
 
 void sun_sensors_to_vector(slate_t *slate);
-void test_sun_pyramid_reading(slate_t *slate);
+
+// External access to sensor configuration for testing
+extern const float sensor_normals[NUM_SUN_SENSORS][3];

@@ -11,7 +11,6 @@
 #include "slate.h"
 
 void test_task_init(slate_t *slate);
-
 void test_task_dispatch(slate_t *slate);
 
 extern sched_task_t test_task;

@@ -20,5 +20,8 @@ void mat_inverse(const float *A, float *out, int N);
 float mat_log_frobenius(const float *A, int N);
 
 bool mat_contains_nan(const float *A, int M, int N);
+void mat_pseudoinverse(const float *A, float *out, int M, int N);
+
+float mat_frobenius(const float *A, float N);
 
 void test_matrix_utils();
