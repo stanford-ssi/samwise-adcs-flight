@@ -10,15 +10,14 @@
 #include "pico/printf.h"
 
 /**
- * If this symbol is defined, we are configured to run a flight build.
+ * Build mode is now controlled via CMake options:
+ * - FLIGHT (default): Production flight build
+ * - TEST: Hardware testing build
+ * - SIMULATION: Hardware-in-loop simulation build
  *
- * All flight/non-flight-secific behavior should check this symbol, or the
- * convenience macros below (#ifdef FLIGHT... / if (IS_FLIGHT)...)
- *
- * IMPORTANT: Uncomment before flight!
+ * These symbols are defined automatically by CMakeLists.txt based on build options.
+ * Do NOT manually define them here!
  */
-// #define FLIGHT
-#define TEST
 
 /**
  * Convenience macros to get whether we are in flight in a runtime build.
@@ -40,8 +39,27 @@
 #error "TEST and FLIGHT should never be defined at the same time!"
 #endif
 
+#ifdef SIMULATION
+#error "TEST and SIMULATION should never be defined at the same time!"
+#endif
+
 #else
 #define IS_TEST false
+#endif
+
+/**
+ * Convenience macro to determine if we are in a simulation build.
+ */
+#ifdef SIMULATION
+#define IS_SIMULATION true
+
+// Simulation and flight should never both be defined
+#ifdef FLIGHT
+#error "SIMULATION and FLIGHT should never be defined at the same time!"
+#endif
+
+#else
+#define IS_SIMULATION false
 #endif
 
 /**
