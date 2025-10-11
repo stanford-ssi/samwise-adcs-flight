@@ -117,6 +117,40 @@ Run `source configure.sh` for initial repository setup.
 **Note: Only Mac and Linux are supported. If you are on Windows, create a Linux VM**
 
 ## Building Instructions
+
+### Build Modes
+
+The flight software supports three build modes:
+
+1. **FLIGHT Mode** (Default - Production)
+   - Full hardware sensor initialization
+   - Optimized for flight operations
+   - ```bash
+     cd build
+     cmake ..
+     make -j8
+     ```
+
+2. **TEST Mode** (Hardware Testing)
+   - Enables test tasks and hardware validation routines
+   - ```bash
+     cd build
+     cmake -DTEST_MODE=ON ..
+     make -j8
+     ```
+
+3. **SIMULATION Mode** (Hardware-in-Loop)
+   - Replaces real sensor reads with data from USB serial
+   - Sends actuator commands back via USB for physics simulation
+   - Ideal for testing GNC algorithms with simulated dynamics
+   - ```bash
+     cd build
+     cmake -DSIMULATION_MODE=ON ..
+     make -j8
+     ```
+
+### Basic Build Process
+
 Create a `build` folder:
 ```
 mkdir build
@@ -127,9 +161,9 @@ Enter the `build` folder:
 cd build
 ```
 
-Run `cmake` (Note: this is usually only necessary if you have added, moved, or deleted files):
+Run `cmake` with your desired build mode (Note: this is usually only necessary if you have added, moved, or deleted files):
 ```
-cmake ..
+cmake ..  # FLIGHT mode (default)
 ```
 
 Make the project:
