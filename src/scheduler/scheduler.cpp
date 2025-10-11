@@ -15,6 +15,10 @@
 #include "states/slewing_state.h"
 #include "states/test_state.h"
 
+#ifdef SIMULATION
+#include "drivers/sim_interface/sim_interface.h"
+#endif
+
 /*
  * Include the actual state machine
  */
@@ -105,8 +109,16 @@ void sched_dispatch(slate_t *slate)
          */
         if (absolute_time_diff_us(task->next_dispatch, get_absolute_time()) > 0)
         {
+#ifdef SIMULATION
+            // Apply time acceleration in simulation mode
+            float multiplier = sim_get_time_multiplier();
+            uint32_t accelerated_period_ms =
+                (uint32_t)(task->dispatch_period_ms / multiplier);
+            task->next_dispatch = make_timeout_time_ms(accelerated_period_ms);
+#else
             task->next_dispatch =
                 make_timeout_time_ms(task->dispatch_period_ms);
+#endif
 
             task->task_dispatch(slate);
         }
@@ -123,7 +135,8 @@ void sched_dispatch(slate_t *slate)
     sched_state_t *const next_state = current_state_info->get_next_state(slate);
     if (next_state != current_state_info)
     {
-        LOG_DEBUG("sched: Transitioning to state %s", next_state->name);
+        LOG_INFO("sched: State transition: %s -> %s",
+                 current_state_info->name, next_state->name);
 
         slate->current_state = next_state;
         slate->entered_current_state_time = get_absolute_time();
