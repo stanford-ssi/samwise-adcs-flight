@@ -91,7 +91,7 @@ typedef struct samwise_adcs_slate
     //          ACTUATOR REQUESTS
     // ========================================================================
     // Magnetorquer drivers
-    float3 magdrv_requested;    // [-1.0 to 1.0] in principal axes frame
+    float3 magdrv_requested;    // [-1.0 to 1.0] in body frame
     bool magnetorquers_running; // true if magnetorquers are currently active
 
     // Reaction wheels
@@ -118,9 +118,9 @@ typedef struct samwise_adcs_slate
     bool bdot_data_has_updated;
 
     // Attitude propagator
-    quaternion q_eci_to_principal;
-    float3 w_principal;   // [rad s^-1] in principal axes frame
-    float3 tau_principal; // [Nm] total torque in principal axes frame
+    quaternion q_eci_to_body;
+    float3 w_body;   // [rad s^-1] in body frame
+    float3 tau_body; // [Nm] total torque in body frame
 
     float attitude_covar[7 * 7]; // attitude covariance matrix
 

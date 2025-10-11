@@ -12,7 +12,7 @@
 #include "slate.h"
 #include <stdint.h>
 
-#ifdef SIMULATION
+// #ifdef SIMULATION
 
 /**
  * @brief Packet structure for sensor data from simulator to flight computer
@@ -22,24 +22,28 @@
 typedef struct __attribute__((packed)) {
     // Header
     uint8_t header[2];  // "SS" (0x53 0x53)
+    float sim_mjd;          // MJD according to simulator w/ fractional day
 
     // IMU data
-    float w_body_x;     // [rad/s]
-    float w_body_y;     // [rad/s]
-    float w_body_z;     // [rad/s]
+    float3 w_body_raw;  // [rad/s] in body frame
 
     // Magnetometer data
-    float b_field_x;    // [unit vector component]
-    float b_field_y;    // [unit vector component]
-    float b_field_z;    // [unit vector component]
+    float3 b_field_local;   // B field in body frame (unit vector)
+
+    // Sun sensor data (16 sensors - all of them)
+    uint16_t sun_sensors[16];  // [0-3102] ADC values
 
     // GPS data
     float gps_lat;      // [degrees] N+ S-
     float gps_lon;      // [degrees] E+ W-
-    float gps_time;     // [s]
+    float gps_alt;      // [km]
+    float gps_time;     // [HHMMSS as float]
+    float3 UTC_date;   // [year, month, day]
 
-    // Sun sensor data (16 sensors - all of them)
-    uint16_t sun_sensors[16];  // [0-4095] ADC values
+    // Power monitoring
+    float adcs_power;   // [W] ADCS board power consumption
+    float adcs_voltage; // [V] ADCS board voltage
+    float adcs_current; // [A] ADCS board current
 
     // Footer
     uint16_t checksum;  // Simple sum of all bytes
@@ -54,13 +58,16 @@ typedef struct __attribute__((packed)) {
     // Header
     uint8_t header[2];  // "AA" (0x41 0x41)
 
+    // Attitude propagator
+    quaternion q_eci_to_body;
+    float3 w_body;   // [rad s^-1] in body frame
+    float3 sun_vector_body; // (unit vector) in body frame
+
     // Magnetorquer requests
-    float magdrv_x;     // [-1.0 to 1.0]
-    float magdrv_y;     // [-1.0 to 1.0]
-    float magdrv_z;     // [-1.0 to 1.0]
+    float3 magdrv_requested;     // [-1.0 to 1.0] in body frame
 
     // Reaction wheel requests (3 wheels)
-    float rw_speeds[3]; // [rad/s]
+    float reaction_wheels_w_requested[3]; // [rad/s]
 
     // Footer
     uint16_t checksum;  // Simple sum of all bytes
