@@ -18,8 +18,8 @@
 #include "drivers/power_monitor/power_monitor.h"
 #include "drivers/sun_sensors/photodiodes_yz.h"
 #include "drivers/sun_sensors/sun_pyramids.h"
-#include "gnc/utils/utils.h"
 #include "gnc/utils/mjd.h"
+#include "gnc/utils/utils.h"
 #include "pico/time.h"
 #include <cmath>
 
@@ -154,24 +154,9 @@ void sensors_task_dispatch(slate_t *slate)
             // Magnetorquers not running, read directly
             result = rm3100_get_reading(&slate->b_field_local);
         }
-        // Calculate compass bearing and inclination
-        // +X = North, +Y = West, -Z = Down
-        float bearing_deg =
-            atan2f(-slate->b_field_local.y, slate->b_field_local.x) * 180.0f /
-            M_PI;
-        if (bearing_deg < 0)
-            bearing_deg += 360.0f;
-
-        float inclination_deg =
-            atan2f(-slate->b_field_local.z,
-                   sqrtf(slate->b_field_local.x * slate->b_field_local.x +
-                         slate->b_field_local.y * slate->b_field_local.y)) *
-            180.0f / M_PI;
-
-        LOG_DEBUG("[sensors] Magnetometer reading: [%.3f, %.3f, %.3f] | "
-                  "Bearing: %.1f° | Inclination: %.1f°",
+        LOG_DEBUG("[sensors] Magnetometer reading: [%.3f, %.3f, %.3f] | ",
                   slate->b_field_local.x, slate->b_field_local.y,
-                  slate->b_field_local.z, bearing_deg, inclination_deg);
+                  slate->b_field_local.z);
 
         slate->magmeter_data_valid = (result == RM3100_OK);
         slate->b_field_read_time = get_absolute_time();
@@ -215,11 +200,11 @@ void sensors_task_dispatch(slate_t *slate)
             // Compute MJD based on GPS date and time
             compute_MJD(slate);
 
-            LOG_INFO("[sensors] GPS data: Lat: %.6f, Lon: %.6f, Alt: %.3f, "
-                     "Time: %.3f, "
-                     "Date: %02d/%02d/%04d",
-                     slate->gps_lat, slate->gps_lon, slate->gps_alt,
-                     slate->gps_time, day, month, year);
+            LOG_DEBUG("[sensors] GPS data: Lat: %.6f, Lon: %.6f, Alt: %.3f, "
+                      "Time: %.3f, "
+                      "Date: %02d/%02d/%04d",
+                      slate->gps_lat, slate->gps_lon, slate->gps_alt,
+                      slate->gps_time, day, month, year);
         }
 
         slate->gps_data_valid = result;
@@ -245,6 +230,9 @@ void sensors_task_dispatch(slate_t *slate)
             // Update magnitude
             slate->w_mag = length(slate->w_body_filtered);
         }
+        LOG_DEBUG("[sensors] IMU reading: [%.7f, %.7f, %.7f]",
+                  slate->w_body_raw.x, slate->w_body_raw.y,
+                  slate->w_body_raw.z);
 
         slate->imu_data_valid = result;
     }

@@ -12,8 +12,10 @@
 #include "slate.h"
 
 // MJD calculation constants
-static const float MJD_EPOCH_OFFSET = 679004.0f; // Offset to convert from Julian to Modified Julian Date
-static const float DAYS_PER_MONTH_COEFFICIENT = 30.6001f; // Coefficient for month-to-day conversion
+static const float MJD_EPOCH_OFFSET =
+    679004.0f; // Offset to convert from Julian to Modified Julian Date
+static const float DAYS_PER_MONTH_COEFFICIENT =
+    30.6001f; // Coefficient for month-to-day conversion
 
 // Runs in sensors task after GPS data is read
 void compute_MJD(slate_t *slate)
@@ -24,7 +26,8 @@ void compute_MJD(slate_t *slate)
 
     // GPS time format is HHMMSS (e.g., 210230 = 21:02:30)
     int hh = static_cast<int>(slate->gps_time / 10000);
-    int mm = static_cast<int>((static_cast<int>(slate->gps_time) % 10000) / 100);
+    int mm =
+        static_cast<int>((static_cast<int>(slate->gps_time) % 10000) / 100);
     float ss = fmodf(slate->gps_time, 100);
 
     float D = D_int + (hh + mm / 60.0f + ss / 3600.0f) / 24.0f;
@@ -43,6 +46,6 @@ void compute_MJD(slate_t *slate)
 
     float B = floorf(y / 400.0f) - floorf(y / 100.0f) + floorf(y / 4.0f);
 
-    slate->MJD =
-        365.0f * y - MJD_EPOCH_OFFSET + floorf(B) + floorf(DAYS_PER_MONTH_COEFFICIENT * (m + 1)) + D;
+    slate->MJD = 365.0f * y - MJD_EPOCH_OFFSET + floorf(B) +
+                 floorf(DAYS_PER_MONTH_COEFFICIENT * (m + 1)) + D;
 }
