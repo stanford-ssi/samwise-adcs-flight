@@ -9,14 +9,20 @@
 #include "macros.h"
 #include "pico/stdlib.h"
 
+#include "sensing/sensors_task.h"
+
 void test_task_init(slate_t *slate)
 {
     LOG_INFO("[test] Initializing test task!");
+
+    sensors_task_init(slate);
 }
 
 void test_task_dispatch(slate_t *slate)
 {
     LOG_INFO("[test] TEST TASK IS DISPATCHING");
+
+    sensors_task_dispatch(slate);
 }
 
 sched_task_t test_task = {.name = "test",
