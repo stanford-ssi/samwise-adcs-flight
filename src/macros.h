@@ -8,6 +8,7 @@
 
 #pragma once
 #include "pico/printf.h"
+#include <stdio.h>
 
 /**
  * Build mode is now controlled via CMake options:
@@ -65,10 +66,16 @@
 /**
  * Log a formatted message at the debug level. Will only do anything in a
  * non-flight build.
+ * In simulation mode, logs to stderr to keep stdout clean for binary packets.
  */
 #ifndef FLIGHT
+#ifdef SIMULATION
+#define LOG_DEBUG(fmt, ...)                                                    \
+    fprintf(stderr, "[DEBUG]   " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+#else
 #define LOG_DEBUG(fmt, ...)                                                    \
     printf("[DEBUG]   " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+#endif
 #else
 #define LOG_DEBUG(fmt, ...) (void)0
 #endif
@@ -76,16 +83,28 @@
 /**
  * Log a printf-style formatted message at the info level. Will log in both
  * flight and test builds.
+ * In simulation mode, logs to stderr to keep stdout clean for binary packets.
  */
+#ifdef SIMULATION
+#define LOG_INFO(fmt, ...)                                                     \
+    fprintf(stderr, "[INFO]    " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+#else
 #define LOG_INFO(fmt, ...)                                                     \
     printf("[INFO]    " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+#endif
 
 /**
  * Log a printf-style formatted error message. Will log in both flight and test
  * builds.
+ * In simulation mode, logs to stderr to keep stdout clean for binary packets.
  */
+#ifdef SIMULATION
+#define LOG_ERROR(fmt, ...)                                                    \
+    fprintf(stderr, "[ERROR]   " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+#else
 #define LOG_ERROR(fmt, ...)                                                    \
     printf("[ERROR]   " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+#endif
 
 /**
  * Log an error message. In flight, does nothing, in non flight locks up and

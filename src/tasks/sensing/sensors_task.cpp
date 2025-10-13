@@ -23,8 +23,8 @@
 #include "drivers/sun_sensors/sun_pyramids.h"
 #endif
 
-#include "gnc/utils/utils.h"
 #include "gnc/utils/mjd.h"
+#include "gnc/utils/utils.h"
 #include "pico/time.h"
 #include <cmath>
 
@@ -52,7 +52,8 @@ void sensors_task_init(slate_t *slate)
     slate->photodiodes_yz_data_valid = false;
     slate->gps_data_valid = false;
 
-    LOG_INFO("[sensors] Simulation interface ready - waiting for sensor data over USB");
+    LOG_INFO("[sensors] Simulation interface ready - waiting for sensor data "
+             "over USB");
 #else
     // Flight mode - initialize real sensors
     // --- ADCS Power Monitor --- //
@@ -138,18 +139,23 @@ void sensors_task_dispatch(slate_t *slate)
 #ifdef SIMULATION
     // Simulation mode - block waiting for sensor data from simulator
     static int sim_iteration = 0;
+    static int dispatch_count = 0;
 
-    // Block with 1000ms timeout waiting for sensor packet
-    bool received = sim_read_sensors(slate, 1000);
+    dispatch_count++;
+    LOG_DEBUG("[sensors] sensors_task_dispatch called (dispatch #%d)", dispatch_count);
+
+    // Block with 5000ms timeout waiting for sensor packet
+    bool received = sim_read_sensors(slate, 5000);
     if (received)
     {
         // Print state info every 10 iterations (1 second at 10Hz)
         if (sim_iteration % 10 == 0)
         {
-            LOG_INFO("[SIM] State: %s | w_mag: %.2f deg/s | Time in state: %.1fs",
-                     slate->current_state->name,
-                     slate->w_mag * 57.2958,  // Convert rad/s to deg/s
-                     slate->time_in_current_state_ms / 1000.0f);
+            LOG_INFO(
+                "[SIM] State: %s | w_mag: %.2f deg/s | Time in state: %.1fs",
+                slate->current_state->name,
+                slate->w_mag * 57.2958, // Convert rad/s to deg/s
+                slate->time_in_current_state_ms / 1000.0f);
         }
         sim_iteration++;
     }
@@ -410,7 +416,11 @@ void sensors_task_dispatch(slate_t *slate)
 }
 
 sched_task_t sensors_task = {.name = "sensors",
+#ifdef SIMULATION
+                             .dispatch_period_ms = 0,  // In simulation, run continuously (blocks waiting for packets)
+#else
                              .dispatch_period_ms = 100,
+#endif
                              .task_init = &sensors_task_init,
                              .task_dispatch = &sensors_task_dispatch,
 

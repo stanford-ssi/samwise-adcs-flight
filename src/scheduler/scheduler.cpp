@@ -73,15 +73,24 @@ void sched_init(slate_t *slate)
 
     for (size_t i = 0; i < n_tasks; i++)
     {
+#ifdef SIMULATION
+        all_tasks[i]->next_dispatch =
+            sim_make_timeout_time_ms(slate, all_tasks[i]->dispatch_period_ms);
+#else
         all_tasks[i]->next_dispatch =
             make_timeout_time_ms(all_tasks[i]->dispatch_period_ms);
+#endif
     }
 
     /*
      * Enter the init state by default
      */
     slate->current_state = initial_state;
+#ifdef SIMULATION
+    slate->entered_current_state_time = sim_get_absolute_time(slate);
+#else
     slate->entered_current_state_time = get_absolute_time();
+#endif
     slate->time_in_current_state_ms = 0;
 
     LOG_DEBUG("sched: Done initializing!");
@@ -97,6 +106,51 @@ void sched_dispatch(slate_t *slate)
 {
     sched_state_t *current_state_info = slate->current_state;
 
+#ifdef SIMULATION
+    // Simulation mode: Run tasks sequentially without time checks
+    // Flow: sensors (blocks) -> other tasks -> loop back
+
+    static size_t task_index = 0;
+
+    // If starting a new cycle, reset to first task
+    if (task_index >= current_state_info->num_tasks)
+    {
+        task_index = 0;
+    }
+
+    // Execute current task
+    if (task_index < current_state_info->num_tasks)
+    {
+        sched_task_t *task = current_state_info->task_list[task_index];
+        LOG_DEBUG("[sched] Dispatching task: %s (index %zu/%zu)",
+                  task->name, task_index, current_state_info->num_tasks - 1);
+        task->task_dispatch(slate);
+        task_index++;
+    }
+
+    // If we've run all tasks, check for state transition
+    if (task_index >= current_state_info->num_tasks)
+    {
+        absolute_time_t current_time = sim_get_absolute_time(slate);
+        slate->time_in_current_state_ms =
+            absolute_time_diff_us(slate->entered_current_state_time, current_time) / 1000;
+
+        sched_state_t *const next_state = current_state_info->get_next_state(slate);
+        if (next_state != current_state_info)
+        {
+            LOG_INFO("sched: State transition: %s -> %s",
+                     current_state_info->name, next_state->name);
+
+            slate->current_state = next_state;
+            slate->entered_current_state_time = current_time;
+            slate->time_in_current_state_ms = 0;
+            task_index = 0;  // Reset for new state
+        }
+    }
+#else
+    // Flight mode: Time-based scheduling
+    absolute_time_t current_time = get_absolute_time();
+
     /*
      * Loop through all of this state's tasks
      */
@@ -107,27 +161,15 @@ void sched_dispatch(slate_t *slate)
         /*
          * Check if this task is due and if so, dispatch it
          */
-        if (absolute_time_diff_us(task->next_dispatch, get_absolute_time()) > 0)
+        if (absolute_time_diff_us(task->next_dispatch, current_time) > 0)
         {
-#ifdef SIMULATION
-            // Apply time acceleration in simulation mode
-            float multiplier = sim_get_time_multiplier();
-            uint32_t accelerated_period_ms =
-                (uint32_t)(task->dispatch_period_ms / multiplier);
-            task->next_dispatch = make_timeout_time_ms(accelerated_period_ms);
-#else
-            task->next_dispatch =
-                make_timeout_time_ms(task->dispatch_period_ms);
-#endif
-
+            task->next_dispatch = make_timeout_time_ms(task->dispatch_period_ms);
             task->task_dispatch(slate);
         }
     }
 
     slate->time_in_current_state_ms =
-        absolute_time_diff_us(slate->entered_current_state_time,
-                              get_absolute_time()) /
-        1000;
+        absolute_time_diff_us(slate->entered_current_state_time, current_time) / 1000;
 
     /*
      * Transition to the next state, if required.
@@ -139,7 +181,8 @@ void sched_dispatch(slate_t *slate)
                  current_state_info->name, next_state->name);
 
         slate->current_state = next_state;
-        slate->entered_current_state_time = get_absolute_time();
+        slate->entered_current_state_time = current_time;
         slate->time_in_current_state_ms = 0;
     }
+#endif
 }
