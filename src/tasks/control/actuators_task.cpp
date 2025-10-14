@@ -51,7 +51,8 @@ void actuators_task_dispatch(slate_t *slate)
 #ifdef SIMULATION
     // Simulation mode - send actuator packet to simulator
     // This completes the handshake: simulator sends sensors, flight computer
-    // processes and sends actuators, simulator waits for actuators before continuing
+    // processes and sends actuators, simulator waits for actuators before
+    // continuing
     LOG_DEBUG("[actuators] Sending actuator commands - Mag: [%.3f, %.3f, "
               "%.3f], RW: [%.3f, %.3f, %.3f]",
               slate->magdrv_requested.x, slate->magdrv_requested.y,

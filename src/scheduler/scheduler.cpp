@@ -122,8 +122,8 @@ void sched_dispatch(slate_t *slate)
     if (task_index < current_state_info->num_tasks)
     {
         sched_task_t *task = current_state_info->task_list[task_index];
-        LOG_DEBUG("[sched] Dispatching task: %s (index %zu/%zu)",
-                  task->name, task_index, current_state_info->num_tasks - 1);
+        LOG_DEBUG("[sched] Dispatching task: %s (index %zu/%zu)", task->name,
+                  task_index, current_state_info->num_tasks - 1);
         task->task_dispatch(slate);
         task_index++;
     }
@@ -133,9 +133,12 @@ void sched_dispatch(slate_t *slate)
     {
         absolute_time_t current_time = sim_get_absolute_time(slate);
         slate->time_in_current_state_ms =
-            absolute_time_diff_us(slate->entered_current_state_time, current_time) / 1000;
+            absolute_time_diff_us(slate->entered_current_state_time,
+                                  current_time) /
+            1000;
 
-        sched_state_t *const next_state = current_state_info->get_next_state(slate);
+        sched_state_t *const next_state =
+            current_state_info->get_next_state(slate);
         if (next_state != current_state_info)
         {
             LOG_INFO("sched: State transition: %s -> %s",
@@ -144,7 +147,7 @@ void sched_dispatch(slate_t *slate)
             slate->current_state = next_state;
             slate->entered_current_state_time = current_time;
             slate->time_in_current_state_ms = 0;
-            task_index = 0;  // Reset for new state
+            task_index = 0; // Reset for new state
         }
     }
 #else
@@ -163,13 +166,15 @@ void sched_dispatch(slate_t *slate)
          */
         if (absolute_time_diff_us(task->next_dispatch, current_time) > 0)
         {
-            task->next_dispatch = make_timeout_time_ms(task->dispatch_period_ms);
+            task->next_dispatch =
+                make_timeout_time_ms(task->dispatch_period_ms);
             task->task_dispatch(slate);
         }
     }
 
     slate->time_in_current_state_ms =
-        absolute_time_diff_us(slate->entered_current_state_time, current_time) / 1000;
+        absolute_time_diff_us(slate->entered_current_state_time, current_time) /
+        1000;
 
     /*
      * Transition to the next state, if required.
@@ -177,8 +182,8 @@ void sched_dispatch(slate_t *slate)
     sched_state_t *const next_state = current_state_info->get_next_state(slate);
     if (next_state != current_state_info)
     {
-        LOG_INFO("sched: State transition: %s -> %s",
-                 current_state_info->name, next_state->name);
+        LOG_INFO("sched: State transition: %s -> %s", current_state_info->name,
+                 next_state->name);
 
         slate->current_state = next_state;
         slate->entered_current_state_time = current_time;

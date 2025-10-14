@@ -106,9 +106,9 @@ typedef struct samwise_adcs_slate
     float MJD;       // Modified Julian Date
 
     // Simulation timing (only used in SIMULATION mode)
-    float sim_t0_mjd;                // MJD of first simulator packet
-    absolute_time_t sim_t0_system;   // System time when first packet received
-    bool sim_time_initialized;       // true after first packet
+    float sim_t0_mjd;              // MJD of first simulator packet
+    absolute_time_t sim_t0_system; // System time when first packet received
+    bool sim_time_initialized;     // true after first packet
 
     float3 sun_vector_eci; // (unit vector)
 
@@ -123,9 +123,9 @@ typedef struct samwise_adcs_slate
     bool bdot_data_has_updated;
 
     // Attitude propagator
-    quaternion q_eci_to_principal;  // principal axes frame
-    float3 w_principal;             // [rad s^-1] in principal axes frame
-    float3 tau_principal;           // [Nm] total torque in principal axes frame
+    quaternion q_eci_to_principal; // principal axes frame
+    float3 w_principal;            // [rad s^-1] in principal axes frame
+    float3 tau_principal;          // [Nm] total torque in principal axes frame
 
     float attitude_covar[7 * 7]; // attitude covariance matrix
 

@@ -65,7 +65,8 @@ int main()
     LOG_INFO("[main] Initialization sequence complete - beginning main loop!");
 
 #ifdef SIMULATION
-    // Send startup marker for simulator to detect (bypasses LOG_INFO which is disabled)
+    // Send startup marker for simulator to detect (bypasses LOG_INFO which is
+    // disabled)
     printf("ADCS_READY\n");
     fflush(stdout);
 #endif

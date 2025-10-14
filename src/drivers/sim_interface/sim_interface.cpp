@@ -16,6 +16,7 @@
 #ifdef SIMULATION
 
 #include "constants.h"
+#include "gnc/utils/utils.h"
 #include "macros.h"
 #include "pico/stdlib.h"
 #include <stddef.h>
@@ -23,10 +24,10 @@
 #include <string.h>
 
 // Static state
-static float time_multiplier = 0.01f;
 static sim_sensor_packet_t sensor_packet;
 static sim_actuator_packet_t actuator_packet;
-static slate_t *global_slate_ptr = nullptr;  // For time functions to access slate
+static slate_t *global_slate_ptr =
+    nullptr; // For time functions to access slate
 
 // Calculate simple checksum
 static uint16_t calculate_checksum(const uint8_t *data, size_t len)
@@ -43,14 +44,7 @@ void sim_init()
 {
     memset(&sensor_packet, 0, sizeof(sensor_packet));
     memset(&actuator_packet, 0, sizeof(actuator_packet));
-    time_multiplier = 1.0f;
     global_slate_ptr = nullptr;
-
-    LOG_INFO("[sim] Interface initialized");
-    LOG_INFO("[sim] Sensor packet: %d bytes, Actuator packet: %d bytes",
-             sizeof(sim_sensor_packet_t), sizeof(sim_actuator_packet_t));
-    LOG_INFO("[sim] Checksum calculation will use %d bytes (total size - 2)",
-             sizeof(sim_sensor_packet_t) - sizeof(uint16_t));
 }
 
 bool sim_read_sensors(slate_t *slate, uint32_t timeout_ms)
@@ -60,14 +54,12 @@ bool sim_read_sensors(slate_t *slate, uint32_t timeout_ms)
     static bool synced = false;
     static int packet_counter = 0;
     static int call_counter = 0;
-
     call_counter++;
-    LOG_DEBUG("[sim] sim_read_sensors called (call #%d), bytes_received=%zu, synced=%d",
-              call_counter, bytes_received, synced);
 
-    // Calculate timeout deadline using REAL system time (not simulated time)
-    // This is critical because slate->MJD doesn't change until we receive a packet,
-    // so using sim_get_absolute_time() would make the timeout check useless
+    // Calculate timeout deadline using system time (not simulated time)
+    // This is critical because slate->MJD doesn't change until we receive a
+    // packet, so using sim_get_absolute_time() would make the timeout check
+    // useless
     absolute_time_t deadline = make_timeout_time_ms(timeout_ms);
 
     while (true)
@@ -101,13 +93,16 @@ bool sim_read_sensors(slate_t *slate, uint32_t timeout_ms)
                 bytes_received = 2;
                 synced = true;
                 packet_counter++;
-                LOG_DEBUG("[sim] Synced on 'SS' header, starting packet #%d reception", packet_counter);
+                LOG_DEBUG("[sim] Synced on 'SS' header, starting packet #%d "
+                          "reception",
+                          packet_counter);
             }
             else
             {
                 if (bytes_received > 0)
                 {
-                    LOG_DEBUG("[sim] Lost sync, got byte 0x%02X instead of 'S'", byte);
+                    LOG_DEBUG("[sim] Lost sync, got byte 0x%02X instead of 'S'",
+                              byte);
                 }
                 bytes_received = 0;
             }
@@ -121,9 +116,11 @@ bool sim_read_sensors(slate_t *slate, uint32_t timeout_ms)
         }
         else
         {
-            // Buffer overflow protection - should never happen but reset if it does
-            LOG_ERROR("[sim] Buffer overflow detected! bytes_received=%zu, max=%zu",
-                     bytes_received, sizeof(sim_sensor_packet_t));
+            // Buffer overflow protection - should never happen but reset if it
+            // does
+            LOG_ERROR(
+                "[sim] Buffer overflow detected! bytes_received=%zu, max=%zu",
+                bytes_received, sizeof(sim_sensor_packet_t));
             bytes_received = 0;
             synced = false;
             continue;
@@ -132,17 +129,18 @@ bool sim_read_sensors(slate_t *slate, uint32_t timeout_ms)
         // Check if complete
         if (bytes_received >= sizeof(sim_sensor_packet_t))
         {
-            // Verify checksum - calculate over bytes up to (but not including) checksum field
-            // This is: header(2) + padding(2) + all data fields(100) = 104 bytes
+            // Verify checksum - calculate over bytes up to (but not including)
+            // checksum field This is: header(2) + padding(2) + all data
+            // fields(100) = 104 bytes
             size_t checksum_offset = offsetof(sim_sensor_packet_t, checksum);
-            uint16_t calc_crc = calculate_checksum(
-                (uint8_t *)&sensor_packet,
-                checksum_offset);
+            uint16_t calc_crc =
+                calculate_checksum((uint8_t *)&sensor_packet, checksum_offset);
 
             if (calc_crc != sensor_packet.checksum)
             {
-                LOG_ERROR("[sim] Checksum mismatch! Calculated: 0x%04X, Received: 0x%04X - discarding packet",
-                         calc_crc, sensor_packet.checksum);
+                LOG_ERROR("[sim] Checksum mismatch! Calculated: 0x%04X, "
+                          "Received: 0x%04X - discarding packet",
+                          calc_crc, sensor_packet.checksum);
                 bytes_received = 0;
                 synced = false;
                 continue;
@@ -154,51 +152,49 @@ bool sim_read_sensors(slate_t *slate, uint32_t timeout_ms)
                 slate->sim_t0_mjd = sensor_packet.sim_mjd;
                 slate->sim_t0_system = get_absolute_time();
                 slate->sim_time_initialized = true;
-                // LOG_INFO("[sim] Time initialized: t0_mjd=%.6f", slate->sim_t0_mjd);
+                // LOG_INFO("[sim] Time initialized: t0_mjd=%.6f",
+                // slate->sim_t0_mjd);
             }
 
             // Update current MJD from simulator
             slate->MJD = sensor_packet.sim_mjd;
 
-            // Populate slate - IMU
-            slate->w_body_raw = sensor_packet.w_body_raw;
-            slate->w_body_filtered = sensor_packet.w_body_raw;
-            slate->w_mag = length(slate->w_body_raw);
-            slate->imu_data_valid = true;
-            slate->imu_alive = true;
-
-            // Magnetometer
-            slate->b_field_local = sensor_packet.b_field_local;
-            slate->b_field_read_time = sim_get_absolute_time(slate);
-            slate->magmeter_data_valid = true;
-            slate->magmeter_alive = true;
-            slate->bdot_data_has_updated = true;  // Signal bdot that new data is available
-
             // GPS
+            slate->gps_alive = true;
             slate->gps_lat = sensor_packet.gps_lat;
             slate->gps_lon = sensor_packet.gps_lon;
             slate->gps_alt = sensor_packet.gps_alt;
             slate->gps_time = sensor_packet.gps_time;
             slate->gps_data_valid = true;
-            slate->gps_alive = true;
+
+            // IMU
+            slate->imu_alive = true;
+            slate->w_body_raw = sensor_packet.w_body_raw;
+            constexpr float imu_lpf_alpha = 0.628318530718;
+            slate->w_body_filtered = low_pass_filter(
+                slate->w_body_filtered, slate->w_body_raw, imu_lpf_alpha);
+            slate->w_mag = length(slate->w_body_filtered);
+            slate->imu_data_valid = true;
+
+            // Magnetometer
+            slate->magmeter_alive = true;
+            slate->b_field_local = sensor_packet.b_field_local;
+            slate->magmeter_data_valid = true;
+            slate->b_field_read_time = sim_get_absolute_time(slate);
+            slate->bdot_data_has_updated = true; // Set flag for bdot
 
             // Sun sensors
             for (int i = 0; i < NUM_SUN_SENSORS; i++)
             {
-                slate->sun_sensors_intensities[i] = sensor_packet.sun_sensors[i];
+                slate->sun_sensors_intensities[i] =
+                    sensor_packet.sun_sensors[i];
                 slate->sun_sensors_voltages[i] =
                     (sensor_packet.sun_sensors[i] / 4095.0f) * 3.3f;
             }
-            slate->sun_pyramids_data_valid = true;
             slate->sun_pyramids_alive = true;
-            slate->photodiodes_yz_data_valid = true;
             slate->photodiodes_yz_alive = true;
-
-            // Log successful read
-            LOG_DEBUG("[sim] Sensor packet received - MJD: %.6f, w: [%.3f, %.3f, %.3f] rad/s, B: [%.3f, %.3f, %.3f]",
-                     sensor_packet.sim_mjd,
-                     sensor_packet.w_body_raw.x, sensor_packet.w_body_raw.y, sensor_packet.w_body_raw.z,
-                     sensor_packet.b_field_local.x, sensor_packet.b_field_local.y, sensor_packet.b_field_local.z);
+            slate->sun_pyramids_data_valid = true;
+            slate->photodiodes_yz_data_valid = true;
 
             // Reset for next packet
             bytes_received = 0;
@@ -233,17 +229,16 @@ void sim_send_actuators(slate_t *slate)
         calculate_checksum((uint8_t *)&actuator_packet, checksum_offset);
 
     // Send packet (binary data)
-    size_t written = fwrite(&actuator_packet, sizeof(sim_actuator_packet_t), 1, stdout);
+    size_t written =
+        fwrite(&actuator_packet, sizeof(sim_actuator_packet_t), 1, stdout);
     fflush(stdout);
-
-    // Log after sending (so it doesn't corrupt binary stream)
-    LOG_DEBUG("[sim] Sent actuator packet: %zu bytes, written=%zu", sizeof(sim_actuator_packet_t), written);
 }
 
 absolute_time_t sim_get_absolute_time(slate_t *slate)
 {
     // Use GPS time directly (GPS time is in seconds, convert to microseconds)
     // This gives us the absolute simulation time based on GPS clock
+    // TODO: Make this pull from an absolute time set by sim w/o noise
     return (absolute_time_t)(slate->gps_time * 1000000.0f);
 }
 

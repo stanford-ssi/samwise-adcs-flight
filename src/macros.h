@@ -16,8 +16,8 @@
  * - TEST: Hardware testing build
  * - SIMULATION: Hardware-in-loop simulation build
  *
- * These symbols are defined automatically by CMakeLists.txt based on build options.
- * Do NOT manually define them here!
+ * These symbols are defined automatically by CMakeLists.txt based on build
+ * options. Do NOT manually define them here!
  */
 
 /**
@@ -66,7 +66,8 @@
 /**
  * Log a formatted message at the debug level. Will only do anything in a
  * non-flight build.
- * In simulation mode, logging is disabled to keep stdout clean for binary packets.
+ * In simulation mode, logging is disabled to keep stdout clean for binary
+ * packets.
  */
 #ifndef FLIGHT
 #ifdef SIMULATION
@@ -82,7 +83,8 @@
 /**
  * Log a printf-style formatted message at the info level. Will log in both
  * flight and test builds.
- * In simulation mode, logging is disabled to keep stdout clean for binary packets.
+ * In simulation mode, logging is disabled to keep stdout clean for binary
+ * packets.
  */
 #ifdef SIMULATION
 #define LOG_INFO(fmt, ...) (void)0
@@ -94,7 +96,8 @@
 /**
  * Log a printf-style formatted error message. Will log in both flight and test
  * builds.
- * In simulation mode, logging is disabled to keep stdout clean for binary packets.
+ * In simulation mode, logging is disabled to keep stdout clean for binary
+ * packets.
  */
 #ifdef SIMULATION
 #define LOG_ERROR(fmt, ...) (void)0

@@ -142,7 +142,8 @@ void sensors_task_dispatch(slate_t *slate)
     static int dispatch_count = 0;
 
     dispatch_count++;
-    LOG_DEBUG("[sensors] sensors_task_dispatch called (dispatch #%d)", dispatch_count);
+    LOG_DEBUG("[sensors] sensors_task_dispatch called (dispatch #%d)",
+              dispatch_count);
 
     // Block with 5000ms timeout waiting for sensor packet
     bool received = sim_read_sensors(slate, 5000);
@@ -415,14 +416,16 @@ void sensors_task_dispatch(slate_t *slate)
 #endif
 }
 
-sched_task_t sensors_task = {.name = "sensors",
+sched_task_t sensors_task = {
+    .name = "sensors",
 #ifdef SIMULATION
-                             .dispatch_period_ms = 0,  // In simulation, run continuously (blocks waiting for packets)
+    .dispatch_period_ms =
+        0, // In simulation, run continuously (blocks waiting for packets)
 #else
-                             .dispatch_period_ms = 100,
+    .dispatch_period_ms = 100,
 #endif
-                             .task_init = &sensors_task_init,
-                             .task_dispatch = &sensors_task_dispatch,
+    .task_init = &sensors_task_init,
+    .task_dispatch = &sensors_task_dispatch,
 
-                             /* Set to an actual value on init */
-                             .next_dispatch = 0};
+    /* Set to an actual value on init */
+    .next_dispatch = 0};

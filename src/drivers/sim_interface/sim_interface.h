@@ -99,9 +99,9 @@ typedef struct
     uint8_t header[2]; // "AA" (0x41 0x41)
 
     // Attitude state
-    quaternion q_eci_to_principal;  // unit quaternion in principal axes frame
-    float3 w_principal;             // [rad/s] in principal axes frame
-    float3 sun_vector_principal;         // unit vector in body axes frame
+    quaternion q_eci_to_principal; // unit quaternion in principal axes frame
+    float3 w_principal;            // [rad/s] in principal axes frame
+    float3 sun_vector_principal;   // unit vector in body axes frame
 
     // Magnetorquer requests
     float3 magdrv_requested; // [-1.0 to 1.0] in body frame
