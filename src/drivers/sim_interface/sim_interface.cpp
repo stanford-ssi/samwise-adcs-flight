@@ -172,6 +172,7 @@ bool sim_read_sensors(slate_t *slate, uint32_t timeout_ms)
             slate->b_field_read_time = sim_get_absolute_time(slate);
             slate->magmeter_data_valid = true;
             slate->magmeter_alive = true;
+            slate->bdot_data_has_updated = true;  // Signal bdot that new data is available
 
             // GPS
             slate->gps_lat = sensor_packet.gps_lat;
@@ -241,19 +242,9 @@ void sim_send_actuators(slate_t *slate)
 
 absolute_time_t sim_get_absolute_time(slate_t *slate)
 {
-    // If time not initialized, fall back to system time
-    if (!slate->sim_time_initialized)
-    {
-        return get_absolute_time();
-    }
-
-    // Convert current simulator MJD to microseconds since t0
-    // MJD is in days, so: (current_mjd - t0_mjd) * 86400 * 1000000 = microseconds
-    float mjd_diff = slate->MJD - slate->sim_t0_mjd;
-    int64_t us_since_t0 = (int64_t)(mjd_diff * 86400.0f * 1000000.0f);
-
-    // Add to system t0 to get absolute time (absolute_time_t is just uint64_t)
-    return slate->sim_t0_system + us_since_t0;
+    // Use GPS time directly (GPS time is in seconds, convert to microseconds)
+    // This gives us the absolute simulation time based on GPS clock
+    return (absolute_time_t)(slate->gps_time * 1000000.0f);
 }
 
 absolute_time_t sim_make_timeout_time_ms(slate_t *slate, uint32_t ms)
