@@ -345,7 +345,7 @@ function example_simulation_loop(port_name::String; update_rate_hz::Int=1000)
 
     # Initial simulation time
     sim_mjd_start = 59000.5f0  # Starting Modified Julian Date
-    dt_seconds = Float32(1.0 / update_rate_hz)  # Time step in seconds (0.001 s at 1000 Hz)
+    dt_seconds = 0.1f0
     dt_days = dt_seconds / 86400.0f0  # Time step in days
     gps_time_start = 120000.0f0
 
