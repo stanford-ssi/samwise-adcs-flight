@@ -129,6 +129,43 @@ bool sim_read_sensors(slate_t *slate, uint32_t timeout_ms)
         // Check if complete
         if (bytes_received >= sizeof(sim_sensor_packet_t))
         {
+            // Check for reset packet (all zeros) - do this BEFORE checksum
+            // validation An all-zero packet will have checksum=0 (since sum of
+            // zeros is zero) This is the reset signal from the simulator to
+            // return to init state
+            bool is_reset_packet = true;
+            const uint8_t *packet_bytes = (const uint8_t *)&sensor_packet;
+            for (size_t i = 0; i < sizeof(sim_sensor_packet_t); i++)
+            {
+                if (packet_bytes[i] != 0)
+                {
+                    is_reset_packet = false;
+                    break;
+                }
+            }
+
+            if (is_reset_packet)
+            {
+                LOG_INFO("[sim] *** RESET PACKET RECEIVED - Returning to init "
+                         "state ***");
+                bytes_received = 0;
+                synced = false;
+
+                // Reset simulation time
+                slate->sim_time_initialized = false;
+
+                // Transition to init state
+                extern sched_state_t init_state;
+                slate->current_state = &init_state;
+                slate->entered_current_state_time = get_absolute_time();
+
+                // Signal that ADCS is ready after reset
+                printf("ADCS_READY\n");
+                fflush(stdout);
+
+                return false; // Return false to indicate reset (no sensor data)
+            }
+
             // Verify checksum - calculate over bytes up to (but not including)
             // checksum field This is: header(2) + padding(2) + all data
             // fields(100) = 104 bytes

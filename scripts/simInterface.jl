@@ -10,6 +10,7 @@ flight software via serial. Designed to be integrated into physics-based simulat
 - `send_sensor_packet!(driver, sensor_data)`: Send sensor data to ADCS
 - `receive_actuator_packet(driver)`: Receive actuator commands from ADCS
 - `wait_for_ready(driver)`: Wait for ADCS initialization
+- `reset_adcs!(driver)`: Reset the ADCS flight computer to initial state
 
 # Example Usage in Physics Simulator:
 ```julia
@@ -250,6 +251,35 @@ function wait_for_ready(driver::ADCSDriver; timeout_s::Float64=10.0)
 end
 
 """
+Reset the ADCS flight computer by sending a packet of all zeros.
+This triggers the flight computer to return to its initial state.
+After sending the reset packet, waits for the ADCS to reboot and send ADCS_READY.
+"""
+function reset_adcs!(driver::ADCSDriver; timeout_s::Float64=10.0)
+    println("🔄 Resetting ADCS flight computer...")
+
+    # Clear driver's receive buffer to avoid stale data
+    empty!(driver.rx_buffer)
+    driver.header_search_pos = 1
+
+    # Send a packet of all zeros (SENSOR_PACKET_SIZE bytes)
+    fill!(driver.tx_buffer, 0x00)
+    packet_view = view(driver.tx_buffer, 1:SENSOR_PACKET_SIZE)
+    write(driver.port, packet_view)
+
+    println("   Reset packet sent, waiting for reboot...")
+
+    # Wait for ADCS to reboot and send ready signal
+    if wait_for_ready(driver, timeout_s=timeout_s)
+        println("✅ ADCS reset complete and ready!\n")
+        return true
+    else
+        println("⚠️  Warning: ADCS_READY not received after reset\n")
+        return false
+    end
+end
+
+"""
 Send sensor packet to ADCS flight software.
 This is non-blocking - data is written to serial and returns immediately.
 """
@@ -335,13 +365,8 @@ function example_simulation_loop(port_name::String; update_rate_hz::Int=1000)
     println("📡 Connecting to $port_name...")
     driver = ADCSDriver(port_name)
 
-    # Wait for ADCS initialization
-    println("⏳ Waiting for ADCS_READY...")
-    if wait_for_ready(driver, timeout_s=10.0)
-        println("✅ ADCS is ready!\n")
-    else
-        println("⚠️  Warning: ADCS_READY not received, continuing anyway...\n")
-    end
+    # Reset ADCS to ensure clean state before simulation
+    reset_adcs!(driver)
 
     # Initial simulation time
     sim_mjd_start = 59000.5f0  # Starting Modified Julian Date
