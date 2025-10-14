@@ -124,30 +124,13 @@ function test_packets(port_name::String)
                 rethrow(e)
             end
             print(".")
-            sleep(0.5)
+            sleep(0.01)
         end
     end
 
     LibSerialPort.open(port_name, 115200) do sp
         println("\n⏳ Waiting for initialization...")
-        text_buffer = ""
-        while true
-            bytes_available = LibSerialPort.sp_input_waiting(sp.ref)
-            if bytes_available > 0
-                text_buffer *= String(read(sp, bytes_available))
-                while occursin('\n', text_buffer)
-                    line_end = findfirst('\n', text_buffer)
-                    print(text_buffer[1:line_end])
-                    text_buffer = text_buffer[line_end+1:end]
-                    if occursin("beginning main loop", text_buffer) || occursin("Done initializing", text_buffer)
-                        println("\n✅ Ready!\n")
-                        @goto ready
-                    end
-                end
-            end
-            sleep(0.01)
-        end
-        @label ready
+        sleep(5.0)  # Wait for device to initialize
 
         try
             packet_count = 0
@@ -174,10 +157,10 @@ function test_packets(port_name::String)
 
                     # Print every byte as hex
                     push!(buffer, byte)
-                    r, g, bl = byte_to_rgb(byte)
-                    print("\e[48;2;$(r);$(g);$(bl)m")
-                    @printf("%02X", byte)
-                    print("\e[0m ")
+                    # r, g, bl = byte_to_rgb(byte)
+                    # print("\e[48;2;$(r);$(g);$(bl)m")
+                    # @printf("%02X", byte)
+                    # print("\e[0m ")
 
                     # Look for "AA" header
                     if length(buffer) >= 2 && buffer[end-1] == UInt8('A') && buffer[end] == UInt8('A')
@@ -189,9 +172,9 @@ function test_packets(port_name::String)
                         actuator_pkt = parse_actuator_packet(buffer)
                         if !isnothing(actuator_pkt)
                             println("\n📥 Actuator packet #$packet_count received ✅")
-                            println("   q: $(actuator_pkt.q_eci_to_principal)")
-                            println("   ω: $(actuator_pkt.w_principal) rad/s")
-                            println("   mag: $(actuator_pkt.magdrv_requested) A·m²\n")
+                            # println("   q: $(actuator_pkt.q_eci_to_principal)")
+                            # println("   ω: $(actuator_pkt.w_principal) rad/s")
+                            # println("   mag: $(actuator_pkt.magdrv_requested) A·m²\n")
                             break
                         else
                             println("\n   ❌ Checksum failed!")
@@ -199,8 +182,7 @@ function test_packets(port_name::String)
                         buffer = UInt8[]
                     end
                 end
-
-                sleep(0.1)  # 10Hz update rate
+                sleep(0.01)  # 100Hz update rate
             end
         catch e
             isa(e, InterruptException) && println("\n\n✅ Sent $packet_count packets successfully")

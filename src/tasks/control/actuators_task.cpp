@@ -49,14 +49,18 @@ void actuators_task_init(slate_t *slate)
 void actuators_task_dispatch(slate_t *slate)
 {
 #ifdef SIMULATION
-    // Simulation mode - actuator packets are sent by sensors_task after receiving
-    // sensor data from simulator. This task just updates internal state.
-    LOG_DEBUG("[actuators] Actuator commands ready - Mag: [%.3f, %.3f, "
+    // Simulation mode - send actuator packet to simulator
+    // This completes the handshake: simulator sends sensors, flight computer
+    // processes and sends actuators, simulator waits for actuators before continuing
+    LOG_DEBUG("[actuators] Sending actuator commands - Mag: [%.3f, %.3f, "
               "%.3f], RW: [%.3f, %.3f, %.3f]",
               slate->magdrv_requested.x, slate->magdrv_requested.y,
               slate->magdrv_requested.z, slate->reaction_wheels_w_requested[0],
               slate->reaction_wheels_w_requested[1],
               slate->reaction_wheels_w_requested[2]);
+
+    // Send actuator packet to simulator (this is the handshake response)
+    sim_send_actuators(slate);
 
     // Mark magnetorquers as "running" in simulation
     slate->magnetorquers_running = true;

@@ -65,8 +65,20 @@ bool sim_read_sensors(slate_t *slate, uint32_t timeout_ms)
     LOG_DEBUG("[sim] sim_read_sensors called (call #%d), bytes_received=%zu, synced=%d",
               call_counter, bytes_received, synced);
 
+    // Calculate timeout deadline using REAL system time (not simulated time)
+    // This is critical because slate->MJD doesn't change until we receive a packet,
+    // so using sim_get_absolute_time() would make the timeout check useless
+    absolute_time_t deadline = make_timeout_time_ms(timeout_ms);
+
     while (true)
     {
+        // Check if we've exceeded timeout using real system time
+        if (absolute_time_diff_us(get_absolute_time(), deadline) <= 0)
+        {
+            LOG_DEBUG("[sim] Timeout waiting for sensor packet");
+            return false;
+        }
+
         // Read byte with short timeout
         int byte = getchar_timeout_us(1000);
         if (byte == PICO_ERROR_TIMEOUT)
@@ -102,8 +114,20 @@ bool sim_read_sensors(slate_t *slate, uint32_t timeout_ms)
             continue;
         }
 
-        // Accumulate packet
-        packet_ptr[bytes_received++] = byte;
+        // Accumulate packet (with bounds checking)
+        if (bytes_received < sizeof(sim_sensor_packet_t))
+        {
+            packet_ptr[bytes_received++] = byte;
+        }
+        else
+        {
+            // Buffer overflow protection - should never happen but reset if it does
+            LOG_ERROR("[sim] Buffer overflow detected! bytes_received=%zu, max=%zu",
+                     bytes_received, sizeof(sim_sensor_packet_t));
+            bytes_received = 0;
+            synced = false;
+            continue;
+        }
 
         // Check if complete
         if (bytes_received >= sizeof(sim_sensor_packet_t))
@@ -145,7 +169,7 @@ bool sim_read_sensors(slate_t *slate, uint32_t timeout_ms)
 
             // Magnetometer
             slate->b_field_local = sensor_packet.b_field_local;
-            slate->b_field_read_time = get_absolute_time();
+            slate->b_field_read_time = sim_get_absolute_time(slate);
             slate->magmeter_data_valid = true;
             slate->magmeter_alive = true;
 
@@ -174,9 +198,6 @@ bool sim_read_sensors(slate_t *slate, uint32_t timeout_ms)
                      sensor_packet.sim_mjd,
                      sensor_packet.w_body_raw.x, sensor_packet.w_body_raw.y, sensor_packet.w_body_raw.z,
                      sensor_packet.b_field_local.x, sensor_packet.b_field_local.y, sensor_packet.b_field_local.z);
-
-            // Send actuator command as handshake
-            sim_send_actuators(slate);
 
             // Reset for next packet
             bytes_received = 0;

@@ -66,12 +66,11 @@
 /**
  * Log a formatted message at the debug level. Will only do anything in a
  * non-flight build.
- * In simulation mode, logs to stderr to keep stdout clean for binary packets.
+ * In simulation mode, logging is disabled to keep stdout clean for binary packets.
  */
 #ifndef FLIGHT
 #ifdef SIMULATION
-#define LOG_DEBUG(fmt, ...)                                                    \
-    fprintf(stderr, "[DEBUG]   " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+#define LOG_DEBUG(fmt, ...) (void)0
 #else
 #define LOG_DEBUG(fmt, ...)                                                    \
     printf("[DEBUG]   " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
@@ -83,11 +82,10 @@
 /**
  * Log a printf-style formatted message at the info level. Will log in both
  * flight and test builds.
- * In simulation mode, logs to stderr to keep stdout clean for binary packets.
+ * In simulation mode, logging is disabled to keep stdout clean for binary packets.
  */
 #ifdef SIMULATION
-#define LOG_INFO(fmt, ...)                                                     \
-    fprintf(stderr, "[INFO]    " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+#define LOG_INFO(fmt, ...) (void)0
 #else
 #define LOG_INFO(fmt, ...)                                                     \
     printf("[INFO]    " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
@@ -96,11 +94,10 @@
 /**
  * Log a printf-style formatted error message. Will log in both flight and test
  * builds.
- * In simulation mode, logs to stderr to keep stdout clean for binary packets.
+ * In simulation mode, logging is disabled to keep stdout clean for binary packets.
  */
 #ifdef SIMULATION
-#define LOG_ERROR(fmt, ...)                                                    \
-    fprintf(stderr, "[ERROR]   " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+#define LOG_ERROR(fmt, ...) (void)0
 #else
 #define LOG_ERROR(fmt, ...)                                                    \
     printf("[ERROR]   " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
