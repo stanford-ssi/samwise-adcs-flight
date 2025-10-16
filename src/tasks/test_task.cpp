@@ -11,6 +11,8 @@
 #include "tasks/sensing/sensors_task.h"
 #include "tests/hardware/ekf.h"
 
+#include "sensing/sensors_task.h"
+
 void test_task_init(slate_t *slate)
 {
     LOG_INFO("[test] Initializing test task!");
@@ -23,8 +25,6 @@ void test_task_dispatch(slate_t *slate)
     LOG_INFO("[test] TEST TASK IS DISPATCHING");
 
     sensors_task_dispatch(slate);
-
-    ekf_test(slate);
 }
 
 sched_task_t test_task = {.name = "test",
