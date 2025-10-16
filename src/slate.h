@@ -132,13 +132,18 @@ typedef struct samwise_adcs_slate
     bool af_is_initialized; // true if attitude filter has been
                             // initialized
     int af_init_count; // number of times attitude filter has been initialized
-    quaternion q_eci_to_principal;      // scalar-last x,y,z,w
-    float attitude_covar_log_frobenius; // log frobenius norm of attitude
-                                        // covariance
+    absolute_time_t af_last_propagate_time; // time of last propagate call
+    float P[6 * 6];                         // attitude covariance matrix (6x6)
+                    // used in attitude filter, so no need for principal axes
+    float P_log_frobenius; // log frobenius norm of attitude
+                           // covariance
+    quaternion
+        q_eci_to_body; // scalar-last x,y,z,w in body frame. no inertia tensor
+    float3 p_eci_to_body; // modified Rodrigues parameter from ECI to body frame
+    float3 b_gyro_drift;  // gyro drift
 
-    float attitude_covar[7 * 7]; // attitude covariance matrix
-    float3 w_principal;          // [rad s^-1] in principal axes frame
-    float3 tau_principal;        // [Nm] total torque in principal axes frame
+    float3 w_body;   // [rad s^-1] in body frame
+    float3 tau_body; // [Nm] total torque in body frame
 
     // Attitude control
     float3 tau_control_principal; // [Nm] total torque in principal axes frame

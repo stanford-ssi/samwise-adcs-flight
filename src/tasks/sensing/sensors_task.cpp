@@ -170,7 +170,9 @@ void sensors_task_dispatch(slate_t *slate)
             slate->magnetorquers_running = false;
 
             // Wait for magnetometer field to settle
-            sleep_ms(MAGNETOMETER_FIELD_SETTLE_TIME_MS);
+            sleep_ms(MAGNETOMETER_FIELD_SETTLE_TIME_MS); // TODO: this is a
+                                                         // blocking delay and
+                                                         // thus a terrible idea
 
             // Read magnetometer
             result = rm3100_get_reading(&slate->b_body);

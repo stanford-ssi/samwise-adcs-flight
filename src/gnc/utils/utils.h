@@ -37,13 +37,17 @@ T low_pass_filter(T prev, T current, float alpha)
 
 // Quaternions
 quaternion quaternion_by_axis_angle(float3 axis, float angle_rad);
+float3x3 quaternion_to_dcm(quaternion q);
 
 // Modified Rodrigues Parameters (MRPs)
 float3 quat_to_mrp(quaternion q);
+float3 mrp_shadow(float3 mrp);
 float3 mrp_wrap_shadow_set(float3 mrp);
 quaternion mrp_to_quat(float3 mrp);
 float3x3 mrp_to_dcm(float3 mrp);
+float3x3 cross_matrix(float3 v);
 
 #ifdef TEST
+void test_quaternions();
 void test_mrps();
 #endif

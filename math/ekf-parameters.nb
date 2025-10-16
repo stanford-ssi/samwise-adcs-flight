@@ -1,0 +1,481 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 14.1' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[     17113,        473]
+NotebookOptionsPosition[     14717,        434]
+NotebookOutlinePosition[     15111,        450]
+CellTagsIndexPosition[     15068,        447]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"IMU", " ", "GYRO", " ", "VARIANCE"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"BMI270", " ", 
+     RowBox[{"Datasheet", ":", " ", "https", ":"}]}], "//", 
+    RowBox[{
+     RowBox[{"www", ".", "bosch"}], "-", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{"sensortec", ".", "com"}], "/", "media"}], "/", 
+         "boschsensortec"}], "/", "downloads"}], "/", "datasheets"}], "/", 
+      "bst"}], "-", "bmi270", "-", 
+     RowBox[{"ds000", ".", "pdf"}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", 
+   RowBox[{"Given", " ", "noise", " ", "density", " ", "in", " ", 
+    RowBox[{
+     RowBox[{"deg", "/", "s"}], "/", 
+     RowBox[{"\[Sqrt]", "Hz"}]}]}], "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"noiseDensityDegPerSqrtHz", "=", "0.010"}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", 
+    RowBox[{"Convert", " ", "to", " ", 
+     RowBox[{
+      RowBox[{"rad", "/", "s"}], "/", 
+      RowBox[{"\[Sqrt]", "Hz"}]}]}], "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"noiseDensityRadPerSqrtHz", "=", 
+     RowBox[{"noiseDensityDegPerSqrtHz", "*", 
+      RowBox[{"(", 
+       RowBox[{"Pi", "/", "180"}], ")"}]}]}], ";"}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", 
+    RowBox[{
+    "Square", " ", "to", " ", "get", " ", "noise", " ", "power", " ", 
+     "spectral", " ", "density", " ", 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"rad\.b2", "/", "s\.b2"}], "/", "Hz"}], ")"}]}], "*)"}], "\n", 
+   
+   RowBox[{
+    RowBox[{"noisePSD", "=", 
+     RowBox[{"noiseDensityRadPerSqrtHz", "^", "2"}]}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", 
+    RowBox[{"Display", " ", "results"}], "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{
+     "\"\<Noise density: \>\"", ",", "noiseDensityRadPerSqrtHz", ",", 
+      "\"\< rad/s/\[Sqrt]Hz\>\""}], "]"}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{
+     "\"\<Noise PSD: \>\"", ",", "noisePSD", ",", 
+      "\"\< rad\.b2/s\.b2/Hz\>\""}], "]"}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Noise PSD (scientific): \>\"", ",", 
+      RowBox[{"ScientificForm", "[", "noisePSD", "]"}]}], "]"}], ";"}], 
+   "\[IndentingNewLine]", "\n", 
+   RowBox[{"(*", 
+    RowBox[{
+    "If", " ", "you", " ", "have", " ", "a", " ", "specific", " ", 
+     "bandwidth"}], "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"bandwidth", "=", "50"}], ";"}], " ", 
+   RowBox[{"(*", "Hz", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"variance", "=", 
+     RowBox[{"noisePSD", "*", "bandwidth"}]}], ";"}], "\n", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{
+     "\"\<\\nFor bandwidth = \>\"", ",", "bandwidth", ",", "\"\< Hz:\>\""}], 
+     "]"}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{
+     "\"\<Gyro variance: \>\"", ",", "variance", ",", 
+      "\"\< rad\.b2/s\.b2\>\""}], "]"}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Gyro variance (scientific): \>\"", ",", 
+      RowBox[{"ScientificForm", "[", "variance", "]"}]}], "]"}], ";"}], "\n", 
+   
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Gyro std dev: \>\"", ",", 
+      RowBox[{"Sqrt", "[", "variance", "]"}], ",", "\"\< rad/s\>\""}], "]"}], 
+    ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"IMU", " ", "DRIFT", " ", "VARIANCE"}], "*)"}], 
+   "\[IndentingNewLine]"}]}]], "Input",
+ CellChangeTimes->{{3.969658047888001*^9, 3.969658088219696*^9}, {
+  3.969658267367436*^9, 3.96965829238603*^9}, {3.9696589439164047`*^9, 
+  3.969658949859824*^9}},
+ CellLabel->
+  "In[1483]:=",ExpressionUUID->"c5cfe238-6f2a-4b5a-b823-e1a58f115dc2"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Noise density: \"\>", "\[InvisibleSpace]", 
+   "0.00017453292519943296`", 
+   "\[InvisibleSpace]", "\<\" rad/s/\[Sqrt]Hz\"\>"}],
+  SequenceForm["Noise density: ", 0.00017453292519943296`, " rad/s/\[Sqrt]Hz"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.969658090428316*^9},
+ CellLabel->
+  "During evaluation of \
+In[1459]:=",ExpressionUUID->"decfe8ea-fbae-4848-be8a-00ae22b88f63"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Noise PSD: \"\>", "\[InvisibleSpace]", 
+   "3.0461741978670866`*^-8", 
+   "\[InvisibleSpace]", "\<\" rad\.b2/s\.b2/Hz\"\>"}],
+  SequenceForm["Noise PSD: ", 3.0461741978670866`*^-8, " rad\.b2/s\.b2/Hz"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.969658090429248*^9},
+ CellLabel->
+  "During evaluation of \
+In[1459]:=",ExpressionUUID->"0865c801-e634-4089-b254-1b23ee5e1497"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Noise PSD (scientific): \"\>", "\[InvisibleSpace]", 
+   TagBox[
+    InterpretationBox[
+     StyleBox[
+      RowBox[{"\<\"3.04617\"\>", "\[Times]", 
+       SuperscriptBox["10", "\<\"-8\"\>"]}],
+      ShowStringCharacters->False],
+     3.0461741978670866`*^-8,
+     AutoDelete->True],
+    ScientificForm]}],
+  SequenceForm["Noise PSD (scientific): ", 
+   ScientificForm[3.0461741978670866`*^-8]],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.9696580904299603`*^9},
+ CellLabel->
+  "During evaluation of \
+In[1459]:=",ExpressionUUID->"d04b570a-0242-4025-99a5-4b76f7f80ca8"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"\\nFor bandwidth = \"\>", "\[InvisibleSpace]", "50", 
+   "\[InvisibleSpace]", "\<\" Hz:\"\>"}],
+  SequenceForm["\nFor bandwidth = ", 50, " Hz:"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.969658090430478*^9},
+ CellLabel->
+  "During evaluation of \
+In[1459]:=",ExpressionUUID->"91a50d30-a588-48d2-ae4e-cbd981e7f934"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Gyro variance: \"\>", "\[InvisibleSpace]", 
+   "1.5230870989335433`*^-6", "\[InvisibleSpace]", "\<\" rad\.b2/s\.b2\"\>"}],
+  
+  SequenceForm["Gyro variance: ", 1.5230870989335433`*^-6, " rad\.b2/s\.b2"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.969658090430871*^9},
+ CellLabel->
+  "During evaluation of \
+In[1459]:=",ExpressionUUID->"a78c02ec-71fa-4dff-b228-6ecca04c7ada"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Gyro variance (scientific): \"\>", "\[InvisibleSpace]", 
+   TagBox[
+    InterpretationBox[
+     StyleBox[
+      RowBox[{"\<\"1.52309\"\>", "\[Times]", 
+       SuperscriptBox["10", "\<\"-6\"\>"]}],
+      ShowStringCharacters->False],
+     1.5230870989335433`*^-6,
+     AutoDelete->True],
+    ScientificForm]}],
+  SequenceForm["Gyro variance (scientific): ", 
+   ScientificForm[1.5230870989335433`*^-6]],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.969658090431291*^9},
+ CellLabel->
+  "During evaluation of \
+In[1459]:=",ExpressionUUID->"54a46791-a9d1-4e33-9933-498894749acc"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Noise density: \"\>", "\[InvisibleSpace]", 
+   "0.00017453292519943296`", 
+   "\[InvisibleSpace]", "\<\" rad/s/\[Sqrt]Hz\"\>"}],
+  SequenceForm["Noise density: ", 0.00017453292519943296`, " rad/s/\[Sqrt]Hz"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.9696589452875423`*^9},
+ CellLabel->
+  "During evaluation of \
+In[1471]:=",ExpressionUUID->"4d32aa7f-46d4-428a-8f35-488d2fc8f74d"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Noise PSD: \"\>", "\[InvisibleSpace]", 
+   "3.0461741978670866`*^-8", 
+   "\[InvisibleSpace]", "\<\" rad\.b2/s\.b2/Hz\"\>"}],
+  SequenceForm["Noise PSD: ", 3.0461741978670866`*^-8, " rad\.b2/s\.b2/Hz"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.9696589452885036`*^9},
+ CellLabel->
+  "During evaluation of \
+In[1471]:=",ExpressionUUID->"57435be0-0d5b-4866-a589-05b530a3d827"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Noise PSD (scientific): \"\>", "\[InvisibleSpace]", 
+   TagBox[
+    InterpretationBox[
+     StyleBox[
+      RowBox[{"\<\"3.04617\"\>", "\[Times]", 
+       SuperscriptBox["10", "\<\"-8\"\>"]}],
+      ShowStringCharacters->False],
+     3.0461741978670866`*^-8,
+     AutoDelete->True],
+    ScientificForm]}],
+  SequenceForm["Noise PSD (scientific): ", 
+   ScientificForm[3.0461741978670866`*^-8]],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.969658945289187*^9},
+ CellLabel->
+  "During evaluation of \
+In[1471]:=",ExpressionUUID->"35a4c54a-5a36-42e6-8a9d-cec8beb43044"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"\\nFor bandwidth = \"\>", "\[InvisibleSpace]", "10", 
+   "\[InvisibleSpace]", "\<\" Hz:\"\>"}],
+  SequenceForm["\nFor bandwidth = ", 10, " Hz:"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.9696589452897863`*^9},
+ CellLabel->
+  "During evaluation of \
+In[1471]:=",ExpressionUUID->"1d40a2a8-6d25-4946-bcf8-f9776d79976c"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Gyro variance: \"\>", "\[InvisibleSpace]", 
+   "3.0461741978670863`*^-7", "\[InvisibleSpace]", "\<\" rad\.b2/s\.b2\"\>"}],
+  
+  SequenceForm["Gyro variance: ", 3.0461741978670863`*^-7, " rad\.b2/s\.b2"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.96965894529038*^9},
+ CellLabel->
+  "During evaluation of \
+In[1471]:=",ExpressionUUID->"7002a2c2-8f3a-4fb5-8589-8340a232c14c"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Gyro variance (scientific): \"\>", "\[InvisibleSpace]", 
+   TagBox[
+    InterpretationBox[
+     StyleBox[
+      RowBox[{"\<\"3.04617\"\>", "\[Times]", 
+       SuperscriptBox["10", "\<\"-7\"\>"]}],
+      ShowStringCharacters->False],
+     3.0461741978670863`*^-7,
+     AutoDelete->True],
+    ScientificForm]}],
+  SequenceForm["Gyro variance (scientific): ", 
+   ScientificForm[3.0461741978670863`*^-7]],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.969658945291012*^9},
+ CellLabel->
+  "During evaluation of \
+In[1471]:=",ExpressionUUID->"96faacc4-dc63-4a21-961b-7970e3941570"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Gyro std dev: \"\>", "\[InvisibleSpace]", 
+   "0.0005519215703220057`", "\[InvisibleSpace]", "\<\" rad/s\"\>"}],
+  SequenceForm["Gyro std dev: ", 0.0005519215703220057, " rad/s"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.969658945291621*^9},
+ CellLabel->
+  "During evaluation of \
+In[1471]:=",ExpressionUUID->"de05292b-6fa1-4530-a542-42b81387388e"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Noise density: \"\>", "\[InvisibleSpace]", 
+   "0.00017453292519943296`", 
+   "\[InvisibleSpace]", "\<\" rad/s/\[Sqrt]Hz\"\>"}],
+  SequenceForm["Noise density: ", 0.00017453292519943296`, " rad/s/\[Sqrt]Hz"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.969658951825612*^9},
+ CellLabel->
+  "During evaluation of \
+In[1483]:=",ExpressionUUID->"6d490888-267b-4639-be3c-d0a9dba472b4"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Noise PSD: \"\>", "\[InvisibleSpace]", 
+   "3.0461741978670866`*^-8", 
+   "\[InvisibleSpace]", "\<\" rad\.b2/s\.b2/Hz\"\>"}],
+  SequenceForm["Noise PSD: ", 3.0461741978670866`*^-8, " rad\.b2/s\.b2/Hz"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.969658951826766*^9},
+ CellLabel->
+  "During evaluation of \
+In[1483]:=",ExpressionUUID->"e35f4f49-b9d7-4f76-95e7-d57a17784740"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Noise PSD (scientific): \"\>", "\[InvisibleSpace]", 
+   TagBox[
+    InterpretationBox[
+     StyleBox[
+      RowBox[{"\<\"3.04617\"\>", "\[Times]", 
+       SuperscriptBox["10", "\<\"-8\"\>"]}],
+      ShowStringCharacters->False],
+     3.0461741978670866`*^-8,
+     AutoDelete->True],
+    ScientificForm]}],
+  SequenceForm["Noise PSD (scientific): ", 
+   ScientificForm[3.0461741978670866`*^-8]],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.969658951827621*^9},
+ CellLabel->
+  "During evaluation of \
+In[1483]:=",ExpressionUUID->"8bb573d5-371b-4c45-95f6-021b54716822"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"\\nFor bandwidth = \"\>", "\[InvisibleSpace]", "50", 
+   "\[InvisibleSpace]", "\<\" Hz:\"\>"}],
+  SequenceForm["\nFor bandwidth = ", 50, " Hz:"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.969658951828421*^9},
+ CellLabel->
+  "During evaluation of \
+In[1483]:=",ExpressionUUID->"5ff2d92e-533f-4252-8ac2-cc1f9410938e"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Gyro variance: \"\>", "\[InvisibleSpace]", 
+   "1.5230870989335433`*^-6", "\[InvisibleSpace]", "\<\" rad\.b2/s\.b2\"\>"}],
+  
+  SequenceForm["Gyro variance: ", 1.5230870989335433`*^-6, " rad\.b2/s\.b2"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.9696589518292217`*^9},
+ CellLabel->
+  "During evaluation of \
+In[1483]:=",ExpressionUUID->"3efb3de3-6762-470e-bca1-ade5f4e5eecb"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Gyro variance (scientific): \"\>", "\[InvisibleSpace]", 
+   TagBox[
+    InterpretationBox[
+     StyleBox[
+      RowBox[{"\<\"1.52309\"\>", "\[Times]", 
+       SuperscriptBox["10", "\<\"-6\"\>"]}],
+      ShowStringCharacters->False],
+     1.5230870989335433`*^-6,
+     AutoDelete->True],
+    ScientificForm]}],
+  SequenceForm["Gyro variance (scientific): ", 
+   ScientificForm[1.5230870989335433`*^-6]],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.9696589518300543`*^9},
+ CellLabel->
+  "During evaluation of \
+In[1483]:=",ExpressionUUID->"77158aba-21cd-4462-b627-0d29f81d8ffd"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Gyro std dev: \"\>", "\[InvisibleSpace]", 
+   "0.001234134149488435`", "\[InvisibleSpace]", "\<\" rad/s\"\>"}],
+  SequenceForm["Gyro std dev: ", 0.001234134149488435, " rad/s"],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.969658951830648*^9},
+ CellLabel->
+  "During evaluation of \
+In[1483]:=",ExpressionUUID->"ea036245-fee8-4a78-998b-81d6cdc700e3"],
+
+Cell[BoxData[
+ RowBox[{
+  InterpretationBox[
+   RowBox[{"\<\"Gyro std dev: \"\>", "\[InvisibleSpace]", 
+    "0.001234134149488435`", "\[InvisibleSpace]", "\<\" rad/s\"\>"}],
+   SequenceForm["Gyro std dev: ", 0.001234134149488435, " rad/s"],
+   Editable->False], "\[IndentingNewLine]", "\[IndentingNewLine]"}]], "Print",\
+
+ GeneratedCell->False,
+ CellAutoOverwrite->False,
+ CellChangeTimes->{
+  3.969658090431686*^9, {3.9696582748098097`*^9, 
+   3.969658275324197*^9}},ExpressionUUID->"239e3cd2-ea22-405c-b2ab-\
+4a74239d0cde"]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{808, 911},
+WindowMargins->{{Automatic, 233}, {Automatic, 87}},
+FrontEndVersion->"14.1 for Mac OS X ARM (64-bit) (July 16, 2024)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"26546aea-bdf3-4381-ba3c-981a10cc62d5"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[576, 22, 3914, 108, 635, "Input",ExpressionUUID->"c5cfe238-6f2a-4b5a-b823-e1a58f115dc2"],
+Cell[CellGroupData[{
+Cell[4515, 134, 436, 10, 28, "Print",ExpressionUUID->"decfe8ea-fbae-4848-be8a-00ae22b88f63"],
+Cell[4954, 146, 430, 10, 23, "Print",ExpressionUUID->"0865c801-e634-4089-b254-1b23ee5e1497"],
+Cell[5387, 158, 624, 18, 23, "Print",ExpressionUUID->"d04b570a-0242-4025-99a5-4b76f7f80ca8"],
+Cell[6014, 178, 373, 9, 41, "Print",ExpressionUUID->"91a50d30-a588-48d2-ae4e-cbd981e7f934"],
+Cell[6390, 189, 431, 10, 23, "Print",ExpressionUUID->"a78c02ec-71fa-4dff-b228-6ecca04c7ada"],
+Cell[6824, 201, 630, 18, 23, "Print",ExpressionUUID->"54a46791-a9d1-4e33-9933-498894749acc"],
+Cell[7457, 221, 438, 10, 28, "Print",ExpressionUUID->"4d32aa7f-46d4-428a-8f35-488d2fc8f74d"],
+Cell[7898, 233, 432, 10, 23, "Print",ExpressionUUID->"57435be0-0d5b-4866-a589-05b530a3d827"],
+Cell[8333, 245, 622, 18, 23, "Print",ExpressionUUID->"35a4c54a-5a36-42e6-8a9d-cec8beb43044"],
+Cell[8958, 265, 375, 9, 41, "Print",ExpressionUUID->"1d40a2a8-6d25-4946-bcf8-f9776d79976c"],
+Cell[9336, 276, 430, 10, 23, "Print",ExpressionUUID->"7002a2c2-8f3a-4fb5-8589-8340a232c14c"],
+Cell[9769, 288, 630, 18, 23, "Print",ExpressionUUID->"96faacc4-dc63-4a21-961b-7970e3941570"],
+Cell[10402, 308, 407, 9, 23, "Print",ExpressionUUID->"de05292b-6fa1-4530-a542-42b81387388e"],
+Cell[10812, 319, 436, 10, 28, "Print",ExpressionUUID->"6d490888-267b-4639-be3c-d0a9dba472b4"],
+Cell[11251, 331, 430, 10, 23, "Print",ExpressionUUID->"e35f4f49-b9d7-4f76-95e7-d57a17784740"],
+Cell[11684, 343, 622, 18, 23, "Print",ExpressionUUID->"8bb573d5-371b-4c45-95f6-021b54716822"],
+Cell[12309, 363, 373, 9, 41, "Print",ExpressionUUID->"5ff2d92e-533f-4252-8ac2-cc1f9410938e"],
+Cell[12685, 374, 433, 10, 23, "Print",ExpressionUUID->"3efb3de3-6762-470e-bca1-ade5f4e5eecb"],
+Cell[13121, 386, 632, 18, 23, "Print",ExpressionUUID->"77158aba-21cd-4462-b627-0d29f81d8ffd"],
+Cell[13756, 406, 405, 9, 23, "Print",ExpressionUUID->"ea036245-fee8-4a78-998b-81d6cdc700e3"],
+Cell[14164, 417, 525, 13, 60, "Print",ExpressionUUID->"239e3cd2-ea22-405c-b2ab-4a74239d0cde"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+

@@ -64,3 +64,32 @@ float3 ecef_to_eci(const float3 &ecef, const float &MJD)
         ecef[2]                                  // ECI K
     };
 }
+
+/**
+ * @brief Rotate a vector from ECI frame to body frame using quaternion
+ * @param eci Vector in ECI frame
+ * @param q_eci_to_body Quaternion representing rotation from ECI to body frame
+ * @return Vector in body frame
+ */
+float3 eci_to_body(const float3 &eci, const quaternion &q_eci_to_body)
+{
+    float3x3 dcm = quaternion_to_dcm(
+        q_eci_to_body); // Convert quaternion to direction cosine matrix
+    return mul(dcm, eci);
+}
+
+/**
+ * @brief Rotate a vector from body frame to ECI frame using quaternion
+ * @param body Vector in body frame
+ * @param q_eci_to_body Quaternion representing rotation from ECI to body frame
+ * @return Vector in ECI frame
+ */
+float3 body_to_eci(const float3 &body, const quaternion &q_eci_to_body)
+{
+    quaternion q_conjugate = {-q_eci_to_body.x, -q_eci_to_body.y,
+                              -q_eci_to_body.z,
+                              q_eci_to_body.w}; // Conjugate of quaternion
+    float3x3 dcm = quaternion_to_dcm(
+        q_conjugate); // Convert quaternion to direction cosine matrix
+    return mul(dcm, body);
+}

@@ -1,176 +1,317 @@
 /**
- * @author Niklas Vainio
- * @brief This file implements the main attitude EFK
- * @date 2025-05-03
+ * @author Lundeen Cahilly, Niklas Vainio, Chen Li
+ * @brief This file implements an attitude EKF
+ * using modified Rodrigues parameters (MRPs)
+ * @date 2025-10-16
  *
- * Information largely sourced from
- * https://ahrs.readthedocs.io/en/latest/filters/ekf.html#initial-values
+ * Based on this paper:
+ * https://ntrs.nasa.gov/api/citations/19960035754/downloads/19960035754.pdf
+ * General EKF info from
+ * https://stanfordasl.github.io/PoRA-I/aa174a_aut2526/resources/PoRA.pdf
  */
 
 #include "attitude_filter.h"
 #include "constants.h"
 #include "gnc/utils/matrix_utils.h"
+#include "gnc/utils/utils.h"
 #include "linalg.h"
 #include "macros.h"
+#include "pico/time.h"
 
-// Sep 4 testing note: Change of vari names: b_unit_local -> b_field_local
-// Sep 4 testing note: Change of vari names: sun_vector_local -> sun_vector_body
-// Sep 5 testing note: Change of vari names: b_unit_eci ->b_eci
+constexpr float3x3 identity3x3 = {
+    {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}};
 
-// State is just the quaternion
-#define AF_STATE_SIZE (4)
+float identity6x6[6 * 6] = {
+    1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 
-// Measurement is local sun and magnetic field vectors
-#define AF_MEASUREMENT_SIZE (6)
-
-// Identity matrix instantiation
-// clang-format off
-const float I_4[AF_STATE_SIZE * AF_STATE_SIZE] = {
-    1, 0, 0, 0, 
-    0, 1, 0, 0,
-    0, 0, 1, 0,
-    0, 0, 0, 1
+// ========================================================================
+//      COVARIANCE MATRICES
+// ========================================================================
+// Process noise covariance matrix  - TODO: use (more) reasonable values
+// Datasheet:
+// https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmi270-ds000.pdf
+constexpr float GYRO_VARIANCE =
+    1.52309e-6f; // rad^2/s^2 For BMI270 at 50hz - TODO: change the update rate,
+                 // we are not doing 50hz
+constexpr float DRIFT_VARIANCE =
+    1.52309e-8f; // rad^2/s^4 (~100x smaller than gyro variance) - TODO: measure
+                 // this!
+float Q[6 * 6] = {
+    GYRO_VARIANCE,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    GYRO_VARIANCE,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    GYRO_VARIANCE,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    DRIFT_VARIANCE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    DRIFT_VARIANCE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    DRIFT_VARIANCE,
 };
-// clang-format on
 
-// Measurement covariance matrix
-// clang-format off
-const float af_measurement_covariance[AF_MEASUREMENT_SIZE * AF_MEASUREMENT_SIZE] = {
-    SUN_SENSOR_STD, 0, 0, 0, 0, 0,
-    0, SUN_SENSOR_STD, 0, 0, 0, 0,
-    0, 0, SUN_SENSOR_STD, 0, 0, 0,
-    0, 0, 0, MAG_SENSOR_STD, 0, 0,
-    0, 0, 0, 0, MAG_SENSOR_STD, 0,
-    0, 0, 0, 0, 0, MAG_SENSOR_STD,
-};
-// clang-format on
+// Measurement noise covariance matrix - TODO: use reasonable values from
+// datasheet and testing Magnetometer datasheet:
+// https://www.tri-m.com/products/pni/RM3100-User-Manual.pdf
+constexpr float SUN_VECTOR_VARIANCE =
+    (1.0f * DEG_TO_RAD) * (1.0f * DEG_TO_RAD); // Sun sensor noise ~+-2 degrees
+constexpr float MAGNETOMETER_VARIANCE =
+    (0.02f * DEG_TO_RAD) *
+    (0.02f * DEG_TO_RAD); // Magnetometer noise ~ 2 degrees
+float R_sun[3 * 3] = {SUN_VECTOR_VARIANCE, 0.0f, 0.0f, 0.0f,
+                      SUN_VECTOR_VARIANCE, 0.0f, 0.0f, 0.0f,
+                      SUN_VECTOR_VARIANCE};
+float R_mag[3 * 3] = {MAGNETOMETER_VARIANCE, 0.0f, 0.0f, 0.0f,
+                      MAGNETOMETER_VARIANCE, 0.0f, 0.0f, 0.0f,
+                      MAGNETOMETER_VARIANCE};
 
-static void populate_af_jacobian(float *J, float3 w_vec, float dt)
-{
-    // Populate J with jacobian
-    // Since the state only contains the quaternion and we just propagate based
-    // on the gyro, this has a relatively simple closed form
-
-    const float wx = w_vec.x;
-    const float wy = w_vec.y;
-    const float wz = w_vec.z;
-
-    // clang-format off
-    const float J_[AF_STATE_SIZE * AF_STATE_SIZE] = {
-                 1,  dt/2 * wz, -dt/2 * wy,  dt/2 * wx,
-        -dt/2 * wz,          1,  dt/2 * wx,  dt/2 * wy,
-         dt/2 * wy, -dt/2 * wx,          1,  dt/2 * wz,
-        -dt/2 * wx, -dt/2 * wy, -dt/2 * wz,          1, 
-    };
-    // clang-format on
-
-    // Copy into J
-    for (int i = 0; i < AF_STATE_SIZE * AF_STATE_SIZE; i++)
-    {
-        J[i] = J_[i];
-    }
-}
-
-static void populate_af_process_noise(float *Q, quaternion q, float dt)
-{
-    // Populate Q with process noise
-
-    // clang-format off
-    const float W[AF_STATE_SIZE * 3] = {
-         q.w, -q.z,  q.y,
-         q.z,  q.w, -q.x,
-        -q.y,  q.x,  q.w,
-        -q.x, -q.y, -q.z,
-    };
-    // clang-format on
-
-    float W_T[3 * AF_STATE_SIZE];
-    mat_transpose(W, W_T, AF_STATE_SIZE, 3);
-
-    float Q_[AF_STATE_SIZE * AF_STATE_SIZE];
-    mat_mul(W, W_T, Q_, AF_STATE_SIZE, 3, AF_STATE_SIZE);
-
-    // Copy into Q, multiplying by noise and dt^2
-    const float scale = (GYRO_STD_DEV * GYRO_STD_DEV) * (dt * dt);
-
-    for (int i = 0; i < AF_STATE_SIZE * AF_STATE_SIZE; i++)
-    {
-        Q[i] = scale * Q_[i];
-    }
-}
-
-static void populate_measurement_jacobian(float *H, float3 S, float3 B,
-                                          quaternion q)
-{
-    // Populate H with measurement jacobian
-    // S and B are the actual vectors in ECI
-
-    // clang-format off
-    const float H_[AF_MEASUREMENT_SIZE * AF_STATE_SIZE] = {
-        S.x*q.x + S.y*q.y + S.z*q.z, -S.x*q.y + S.y*q.x - S.z*q.w, -S.x*q.z + S.y*q.w + S.z*q.x,  S.x*q.w + S.y*q.z - S.z*q.y,
-        S.x*q.y - S.y*q.x + S.z*q.w,  S.x*q.x + S.y*q.y + S.z*q.z, -S.x*q.w - S.y*q.z + S.z*q.y, -S.x*q.z + S.y*q.w + S.z*q.x,
-        S.x*q.z - S.y*q.w - S.z*q.x,  S.x*q.w + S.y*q.z - S.z*q.y,  S.x*q.x + S.y*q.y + S.z*q.z,  S.x*q.y - S.y*q.x + S.z*q.w,
-         
-        B.x*q.x + B.y*q.y + B.z*q.z, -B.x*q.y + B.y*q.x - B.z*q.w, -B.x*q.z + B.y*q.w + B.z*q.x,  B.x*q.w + B.y*q.z - B.z*q.y,
-        B.x*q.y - B.y*q.x + B.z*q.w,  B.x*q.x + B.y*q.y + B.z*q.z, -B.x*q.w - B.y*q.z + B.z*q.y, -B.x*q.z + B.y*q.w + B.z*q.x,
-        B.x*q.z - B.y*q.w - B.z*q.x,  B.x*q.w + B.y*q.z - B.z*q.y,  B.x*q.x + B.y*q.y + B.z*q.z,  B.x*q.y - B.y*q.x + B.z*q.w,
-    };
-    // clang-format on
-
-    for (int i = 0; i < AF_MEASUREMENT_SIZE * AF_STATE_SIZE; i++)
-    {
-        H[i] = 2 * H_[i];
-    }
-
-    return;
-}
-
-static void populate_expected_measurement(float *z,
-                                          quaternion q_eci_to_principal,
-                                          float3 S_eci, float3 b_eci)
-{
-    // Populate z with the expected measurement given S and B fields in ECI
-    float3 S_local_expected = qrot(q_eci_to_principal, S_eci);
-    float3 B_local_expected = qrot(q_eci_to_principal, b_eci);
-
-    z[0] = S_local_expected.x;
-    z[1] = S_local_expected.y;
-    z[2] = S_local_expected.z;
-    z[3] = B_local_expected.x;
-    z[4] = B_local_expected.y;
-    z[5] = B_local_expected.z;
-}
-
-static void populate_actual_measurement(float *z, float3 S, float3 B)
-{
-    // Populate z with the actual Sun + B field measurements
-    z[0] = S.x;
-    z[1] = S.y;
-    z[2] = S.z;
-    z[3] = B.x;
-    z[4] = B.y;
-    z[5] = B.z;
-}
-
-// ****************************************************************************
-// ***************     PUBLIC FUNCTIONS                ************************
-// ****************************************************************************
+// ========================================================================
+//      JACOBIAN AND STATE TRANSITION MATRIX UTILITIES
+// ========================================================================
 
 /**
- * @brief Initialize the state of the attitude filter
+ * @brief Compute the state derivative x_dot = f(x, w)
+ * where x = [p; b] (MRP and gyro bias) and w is the angular velocity
+ * measurement from the gyroscope. See equation 20a in the MRP EKF paper.
  *
- * @param slate
+ * @param x_dot Output state derivative (6-vector)
+ * @param x Current state (6-vector)
+ * @param w Measured angular velocity from gyroscope (3-vector)
+ */
+void compute_x_dot(float *x_dot, const float *x, const float3 w)
+{
+    // Extract state components
+    float3 p = {x[0], x[1], x[2]}; // MRP
+    float3 b = {x[3], x[4], x[5]}; // Angular velocity bias from gyro
+
+    // Reconstruct MRP kinematics equation 20(a)
+    // f(p) = 0.5 * [0.5 * (1 - p^T p) * I + cross_matrix(p) + outerprod(p, p)]
+    // * w
+    float p_dot_p = dot(p, p);
+    float scalar_coeff = 0.5f * (1.0f - p_dot_p);
+
+    // Identity component: 0.5 * scalar_coeff * I
+    float3x3 identity_term = {{0.5f * scalar_coeff, 0.0f, 0.0f},
+                              {0.0f, 0.5f * scalar_coeff, 0.0f},
+                              {0.0f, 0.0f, 0.5f * scalar_coeff}};
+
+    float3x3 cross_term = 0.5f * cross_matrix(p);
+    float3x3 outer_term = 0.5f * outerprod(p, p);
+    float3x3 G = identity_term + cross_term + outer_term;
+
+    float3 w_minus_b = w - b;
+    float3 p_dot = mul(G, w_minus_b);
+
+    // Populate output: [p_dot; b_dot] where b_dot = 0
+    x_dot[0] = p_dot.x;
+    x_dot[1] = p_dot.y;
+    x_dot[2] = p_dot.z;
+    x_dot[3] = 0.0f; // b_dot = 0 (assume constant bias model)
+    x_dot[4] = 0.0f;
+    x_dot[5] = 0.0f;
+}
+
+void compute_B_B(float *B_B, const float *x, const float3 B_I)
+{
+    // Reconstruct equation (10)
+    // Extract MRP from state
+    float3 p = {x[0], x[1], x[2]};
+
+    // Rotate inertial reference vector to body frame
+    float3 z = mul(mrp_to_dcm(p), B_I);
+
+    // Output expected measurement in body frame
+    B_B[0] = z.x;
+    B_B[1] = z.y;
+    B_B[2] = z.z;
+}
+
+void compute_F(float *F, const float *x, const float3 w)
+{
+    // Compute the Jacobian F = df/dx with respect to state x = [p; b]
+    float3 p = {x[0], x[1], x[2]};
+    float3 b = {x[3], x[4], x[5]};
+    float3 w_hat = w - b;
+
+    // Reconstruct equations (25a)
+    // df_dp = 0.5 * (outer(p, w_hat) - outer(w_hat, p) - cross_matrix(w_hat) +
+    // dot(w_hat, p) * I)
+    float p_dot_w_hat = dot(p, w_hat);
+    float3x3 outer_p_w_hat = outerprod(p, w_hat);
+    float3x3 cross_w_hat = cross_matrix(w_hat);
+    float3x3 outer_w_hat_p = outerprod(w_hat, p);
+
+    float3x3 df_dp = 0.5f * (outer_p_w_hat - outer_w_hat_p - cross_w_hat +
+                             p_dot_w_hat * identity3x3);
+
+    // Reconstruct equation (25b)
+    // df_db = -0.5 * (0.5 * (1 - dot(p, p)) * I + cross_matrix(p) +
+    // outerprod(p, p))
+    float3x3 cross_p = cross_matrix(p);
+    float3x3 outer_p_p = outerprod(p, p);
+    float p_dot_p = dot(p, p);
+
+    float3x3 df_db =
+        -0.5f * (0.5f * (1 - p_dot_p) * identity3x3 + cross_p + outer_p_p);
+
+    // Reconstruct equation (22a)
+    // F = [df_dp  df_db; 0_3x3  0_3x3]
+    // Top-left 3x3 block: df_dp
+    F[0] = df_dp[0][0];
+    F[1] = df_dp[0][1];
+    F[2] = df_dp[0][2];
+    F[6] = df_dp[1][0];
+    F[7] = df_dp[1][1];
+    F[8] = df_dp[1][2];
+    F[12] = df_dp[2][0];
+    F[13] = df_dp[2][1];
+    F[14] = df_dp[2][2];
+    // Top-right 3x3 block: df_db
+    F[3] = df_db[0][0];
+    F[4] = df_db[0][1];
+    F[5] = df_db[0][2];
+    F[9] = df_db[1][0];
+    F[10] = df_db[1][1];
+    F[11] = df_db[1][2];
+    F[15] = df_db[2][0];
+    F[16] = df_db[2][1];
+    F[17] = df_db[2][2];
+    // Bottom-left and bottom-right 3x3 blocks: zeros
+    for (int i = 18; i < 36; i++)
+    {
+        F[i] = 0.0f;
+    }
+}
+
+void compute_G(float *G, const float *x)
+{
+    // Compute jacobian of process noise G = df/dw
+    float3 p = {x[0], x[1], x[2]};
+
+    // Reconstruct equation (23a)
+    float3x3 outer_p_p = outerprod(p, p);
+    float p_dot_p = dot(p, p);
+    float3x3 p_cross = cross_matrix(p);
+    float3x3 G11 =
+        -0.5f * (0.5f * (1 - p_dot_p) * identity3x3 + p_cross + outer_p_p);
+
+    // Reconstruct equation (22b)
+    // F = [G11  0_3x3; 0_3x3  identity]
+    // Top-left 3x3 block: G11
+    G[0] = G11[0][0];
+    G[1] = G11[0][1];
+    G[2] = G11[0][2];
+    G[6] = G11[1][0];
+    G[7] = G11[1][1];
+    G[8] = G11[1][2];
+    G[12] = G11[2][0];
+    G[13] = G11[2][1];
+    G[14] = G11[2][2];
+    // Top-right block: 0_3x3
+    G[3] = 0;
+    G[4] = 0;
+    G[5] = 0;
+    G[9] = 0;
+    G[10] = 0;
+    G[11] = 0;
+    G[15] = 0;
+    G[16] = 0;
+    G[17] = 0;
+    // Bottom-left block: 0_3x3
+    G[18] = 0;
+    G[19] = 0;
+    G[20] = 0;
+    G[24] = 0;
+    G[25] = 0;
+    G[26] = 0;
+    G[30] = 0;
+    G[31] = 0;
+    G[32] = 0;
+    // Bottom-right block: identity
+    G[21] = 1;
+    G[22] = 0;
+    G[23] = 0;
+    G[27] = 0;
+    G[28] = 1;
+    G[29] = 0;
+    G[33] = 0;
+    G[34] = 0;
+    G[35] = 1;
+}
+
+void compute_H(float *H, const float *x, const float3 B_I)
+{
+    // Compute jacobian of measurement model with respect to the state
+    float3 p = {x[0], x[1], x[2]};
+    float3x3 A = mrp_to_dcm(p);
+
+    // Reconstruct equation (39)
+    float p_dot_p = dot(p, p);
+    float3x3 outer_p_p = outerprod(p, p);
+    float3x3 A_B_I_cross = cross_matrix(mul(A, B_I));
+    float3x3 p_cross = cross_matrix(p);
+    float3x3 bracket =
+        (1.0f - p_dot_p) * identity3x3 - 2.0f * p_cross + 2.0f * outer_p_p;
+    float scalar = (4.0f / (1 + p_dot_p) * (1 + p_dot_p));
+
+    float3x3 L;
+    mat_mul_square(&A_B_I_cross.x.x, &bracket.x.x, &L.x.x, 3);
+    L = scalar * L;
+
+    // Reconstruct eqn (30)
+    // H = [L  0_3x3]
+    // Left 3x3 block: L
+    H[0] = L[0][0];
+    H[1] = L[0][1];
+    H[2] = L[0][2];
+    H[6] = L[1][0];
+    H[7] = L[1][1];
+    H[8] = L[1][2];
+    H[12] = L[2][0];
+    H[13] = L[2][1];
+    H[14] = L[2][2];
+    // Right 3x3 block: 0
+    H[3] = 0;
+    H[4] = 0;
+    H[5] = 0;
+    H[9] = 0;
+    H[10] = 0;
+    H[11] = 0;
+    H[15] = 0;
+    H[16] = 0;
+    H[17] = 0;
+}
+
+// ========================================================================
+//      ATTITUDE FILTER STEPS
+// ========================================================================
+
+/**
+ * @brief Initialize the attitude filter state and covariance
+ *
+ * @param slate Pointer to the ADCS slate structure
  */
 void attitude_filter_init(slate_t *slate)
 {
-    // Set q to identity, and covariance to initial value (4x4 identity)
-    slate->q_eci_to_principal = {0.0f, 0.0f, 0.0f, 1.0f};
-
-    for (int i = 0; i < AF_STATE_SIZE * AF_STATE_SIZE; i++)
+    // Set MRP to identity
+    slate->p_eci_to_body = float3(0.0f, 0.0f, 0.0f);
+    slate->q_eci_to_body = quaternion(1.0f, 0.0f, 0.0f, 0.0f);
+    slate->b_gyro_drift = float3(0.0f, 0.0f, 0.0f);
+    // Fill attitude covariance matrix P
+    for (int i = 0; i < 6 * 6; i++)
     {
-        slate->attitude_covar[i] = I_4[i];
+        if (i % 7 == 0 and i < 18)
+        {
+            slate->P[i] = 1.0f; // initial variance of 1.0 on diagonal for MRP
+        }
+        else if (i % 7 == 0 and i >= 18)
+        {
+            slate->P[i] =
+                GYRO_VARIANCE; // initial variance on diagonal for gyro bias
+        }
+        else
+        {
+            slate->P[i] = 0.0f; // rest zeros
+        }
     }
-
+    slate->P_log_frobenius = mat_log_frobenius(slate->P, 6);
     slate->af_is_initialized = true;
     slate->af_init_count++;
     LOG_INFO("Initialized attitude filter! (%d times so far)",
@@ -178,322 +319,453 @@ void attitude_filter_init(slate_t *slate)
 }
 
 /**
- * @brief Propagate the attitude filter following satellite dynamics over a time
- * dt
+ * @brief Propagate the attitude filter state and covariance
+ * using Euler integration over the time step since last propagate.
  *
- * @param slate
- * @param dt
+ * @param slate Pointer to the ADCS slate structure
  */
-void attitude_filter_propagate(slate_t *slate, float dt)
+void attitude_filter_propagate(slate_t *slate)
 {
-    // Initialize if not already
-    if (!slate->af_is_initialized)
+    // Get dt since last propagate
+    absolute_time_t current_time = get_absolute_time();
+    if (!slate->af_last_propagate_time)
     {
-        attitude_filter_init(slate);
+        // If first time propagating, just set last run time and return
+        slate->af_last_propagate_time = get_absolute_time();
+        return;
     }
+    float dt =
+        absolute_time_diff_us(slate->af_last_propagate_time, current_time) *
+        1e-6f; // Convert to seconds
+    slate->af_last_propagate_time = current_time;
 
-    // Propagate attitude using gyro
-    const float3 w = slate->w_principal;
-    quaternion dq;
+    // Grab state vector and covariance from slate
+    float x[6] = {
+        slate->p_eci_to_body[0], slate->p_eci_to_body[1],
+        slate->p_eci_to_body[2], slate->b_gyro_drift[0],
+        slate->b_gyro_drift[1],  slate->b_gyro_drift[2],
+    };
 
-    if (length(w) > 1e-10)
+    // Propagate state from equation (40a)
+    // x_dot = f(x,t)
+    // x_new = x + x_dot * dt
+    float x_dot[6];
+    float3 w = slate->w_body; // TODO: make sure this fills from sensor data
+    compute_x_dot(x_dot, x, w);
+    float x_new[6];
+    for (int i = 0; i < 6; i++)
     {
-        const float3 w_hat = normalize(w);
-        const float d_theta = dt * length(w);
-
-        // Quaternion update
-        const float3 dq_vec_part = w_hat * sin(d_theta / 2);
-        dq = {dq_vec_part[0], dq_vec_part[1], dq_vec_part[2], cos(d_theta / 2)};
+        x_new[i] = x[i] + dt * x_dot[i];
     }
-    else
+    // Write propagated state back to slate
+    float3 p_eci_to_body = float3(x_new[0], x_new[1], x_new[2]);
+    slate->p_eci_to_body = mrp_wrap_shadow_set(
+        p_eci_to_body); // Wrap MRP to avoid it blowing up (IMPORTANT!)
+    slate->q_eci_to_body = mrp_to_quat(slate->p_eci_to_body);
+    slate->b_gyro_drift = float3(x_new[3], x_new[4], x_new[5]);
+
+    // Propagate covariance from equation (40b)
+    // P_dot = F @ P + P @ F^T + G @ Q @ G^T
+    // Note: paper has an error in equation (40b),
+    // where the term P^T @ F should be P @ F^T.
+    float F[6 * 6];
+    compute_F(F, x, w);
+    float G[6 * 6];
+    compute_G(G, x);
+
+    float F_T[6 * 6];
+    float G_T[6 * 6];
+    float FP[6 * 6];
+    float PF_T[6 * 6];
+    float GQ[6 * 6];
+    float GQG_T[6 * 6];
+    mat_transpose(F, F_T, 6, 6);
+    mat_transpose(G, G_T, 6, 6);
+    mat_mul_square(F, slate->P, FP, 6);
+    mat_mul_square(slate->P, F_T, PF_T, 6);
+    mat_mul_square(G, Q, GQ, 6);
+    mat_mul_square(GQ, G_T, GQG_T, 6);
+
+    float FP_plus_PF_T[6 * 6];
+    mat_add(FP, PF_T, FP_plus_PF_T, 6, 6);
+
+    float P_dot[6 * 6];
+    mat_add(FP_plus_PF_T, GQG_T, P_dot, 6, 6);
+
+    // Propagate covariance matrix P_new = P + dt * P_dot
+    for (int i = 0; i < 36; i++)
     {
-        dq = {0.0f, 0.0f, 0.0f, 1.0f};
+        slate->P[i] = slate->P[i] + dt * P_dot[i];
     }
-
-    // Calculate attitude jacobian and process noise matrices
-    float J[AF_STATE_SIZE * AF_STATE_SIZE];
-    float Q[AF_STATE_SIZE * AF_STATE_SIZE];
-    populate_af_jacobian(J, slate->w_principal, dt);
-    populate_af_process_noise(Q, slate->q_eci_to_principal, dt);
-
-    // Update state and covariance matrix
-    // C = J @ C @ J.T + Q
-    slate->q_eci_to_principal = qmul(slate->q_eci_to_principal, dq);
-
-    float J_T[AF_STATE_SIZE * AF_STATE_SIZE];
-    mat_transpose(J, J_T, AF_STATE_SIZE, AF_STATE_SIZE);
-
-    float temp[AF_STATE_SIZE * AF_STATE_SIZE];
-    mat_mul_square(slate->attitude_covar, J_T, temp, AF_STATE_SIZE);
-    mat_mul_square(J, temp, slate->attitude_covar, AF_STATE_SIZE);
-
-    mat_add(slate->attitude_covar, Q, slate->attitude_covar, AF_STATE_SIZE,
-            AF_STATE_SIZE);
-
-    // Compute log frobenius
-    slate->attitude_covar_log_frobenius =
-        mat_log_frobenius(slate->attitude_covar, AF_STATE_SIZE);
-
-    // Check for NaN and de-initialize if so
-    if (mat_contains_nan(slate->attitude_covar, AF_STATE_SIZE, AF_STATE_SIZE))
-    {
-        LOG_ERROR(
-            "Attitude covariance contains NaN after propagate: resetting!");
-        attitude_filter_init(slate);
-    }
+    // Update log frobenius norm of attitude covariance matrix
+    slate->P_log_frobenius = mat_log_frobenius(slate->P, 6);
 }
 
 /**
- * @brief Perform a measurement update on the attitude filter
+ * @brief Update the attitude filter state and covariance
+ * using a measurement from either the sun sensor or magnetometer.
  *
- * @param slate
+ * @param slate Pointer to the ADCS slate structure
+ * @param sensor_type 'S' for sun sensor, 'M' for magnetometer
  */
-void attitude_filter_update(slate_t *slate)
+void attitude_filter_update(slate_t *slate, char sensor_type)
 {
-    if (!slate->af_is_initialized)
+    // Update filter given one measurement from sun sensor OR magnetometer
+    // TODO: figure out how to tell the filter which measurement was updated
+    // this should likely be done in the task and passed via slate
+    float x[6] = {
+        slate->p_eci_to_body[0], slate->p_eci_to_body[1],
+        slate->p_eci_to_body[2], slate->b_gyro_drift[0],
+        slate->b_gyro_drift[1],  slate->b_gyro_drift[2],
+    };
+    if (sensor_type != 'S' && sensor_type != 'M')
     {
-        LOG_ERROR("Attempt to call update on uninitialized attitude filter! "
-                  "Exiting...");
+        LOG_ERROR("Attitude filter update called with invalid sensor type!");
         return;
     }
-
-    // Compute expected and actual measurements
-    float z_expected[AF_MEASUREMENT_SIZE];
-    float z_actual[AF_MEASUREMENT_SIZE];
-
-    populate_expected_measurement(z_expected, slate->q_eci_to_principal,
-                                  slate->sun_vector_eci, slate->b_eci);
-    populate_actual_measurement(z_actual, slate->sun_vector_body,
-                                slate->b_body);
-
-    float z_diff[AF_MEASUREMENT_SIZE];
-    mat_sub(z_actual, z_expected, z_diff, AF_MEASUREMENT_SIZE, 1);
-
-    // Compute innovation (S) and Kalman gain (K)
-    // S = H @ C @ H.T + R
-    // K = C @ H.T @ inv(S)
-    float H[AF_MEASUREMENT_SIZE * AF_STATE_SIZE];
-    populate_measurement_jacobian(H, slate->sun_vector_eci, slate->b_eci,
-                                  slate->q_eci_to_principal);
-
-    float H_T[AF_STATE_SIZE * AF_MEASUREMENT_SIZE];
-    mat_transpose(H, H_T, AF_MEASUREMENT_SIZE, AF_STATE_SIZE);
-
-    float tmp[AF_MEASUREMENT_SIZE * AF_STATE_SIZE];
-    float S[AF_MEASUREMENT_SIZE * AF_MEASUREMENT_SIZE];
-    mat_mul(H, slate->attitude_covar, tmp, AF_MEASUREMENT_SIZE, AF_STATE_SIZE,
-            AF_STATE_SIZE);
-    mat_mul(tmp, H_T, S, AF_MEASUREMENT_SIZE, AF_STATE_SIZE,
-            AF_MEASUREMENT_SIZE);
-    mat_add(S, af_measurement_covariance, S, AF_MEASUREMENT_SIZE,
-            AF_MEASUREMENT_SIZE);
-
-    float S_inv[AF_MEASUREMENT_SIZE * AF_MEASUREMENT_SIZE];
-    mat_inverse(S, S_inv, AF_MEASUREMENT_SIZE);
-
-    float K[AF_STATE_SIZE * AF_MEASUREMENT_SIZE];
-    float tmp2[AF_STATE_SIZE * AF_MEASUREMENT_SIZE];
-    mat_mul(H_T, S_inv, tmp2, AF_STATE_SIZE, AF_MEASUREMENT_SIZE,
-            AF_MEASUREMENT_SIZE);
-    mat_mul(slate->attitude_covar, tmp2, K, AF_STATE_SIZE, AF_STATE_SIZE,
-            AF_MEASUREMENT_SIZE);
-
-    // Update quaternion (with normalization)
-    float dq[AF_STATE_SIZE];
-    mat_mul(K, z_diff, dq, AF_STATE_SIZE, AF_MEASUREMENT_SIZE, 1);
-
-    quaternion dq_quat;
-    dq_quat.x = dq[0];
-    dq_quat.y = dq[1];
-    dq_quat.z = dq[2];
-    dq_quat.w = dq[3];
-
-    slate->q_eci_to_principal = normalize(slate->q_eci_to_principal + dq_quat);
-
-    // Update covariance matrix
-    // C' = (I - K @ H) @ C
-    float KH[AF_STATE_SIZE * AF_STATE_SIZE];
-    mat_mul(K, H, KH, AF_STATE_SIZE, AF_MEASUREMENT_SIZE, AF_STATE_SIZE);
-
-    float tmp3[AF_STATE_SIZE * AF_STATE_SIZE];
-    mat_sub(I_4, KH, tmp3, AF_STATE_SIZE, AF_STATE_SIZE);
-
-    float tmp4[AF_STATE_SIZE * AF_STATE_SIZE];
-    mat_mul_square(tmp3, slate->attitude_covar, tmp4, AF_STATE_SIZE);
-
-    for (int i = 0; i < AF_STATE_SIZE * AF_STATE_SIZE; i++)
+    float3 B_I;     // measured vector in body frame
+    float3 B_B;     // reference vector in inertial frame
+    float R[3 * 3]; // measurement noise covariance
+    // Sun sensor update
+    if (sensor_type == 'S')
     {
-        slate->attitude_covar[i] = tmp4[i];
+        B_B = slate->sun_vector_body;
+        B_I = slate->sun_vector_eci; // TODO: make sure the sun vector model is
+                                     // called
+        for (int i = 0; i < 3 * 3; i++)
+        {
+            R[i] = R_sun[i];
+        }
+    }
+    // Magnetometer update
+    else if (sensor_type == 'M')
+    {
+        B_B = slate->b_body;
+        B_I = slate->b_eci; // TODO: make sure the B field model is called
+        for (int i = 0; i < 3 * 3; i++)
+        {
+            R[i] = R_mag[i];
+        }
+    }
+    // Compute Kalman gain (40e)
+    float K[6 * 3];
+    float H[3 * 6];
+    float H_T[6 * 3];
+    float PH_T[6 * 3];
+    float HPH_T[3 * 3];
+    float HPH_T_plus_R[3 * 3];
+    float HPH_T_plus_R_inv[3 * 3];
+    compute_H(H, x, B_I);
+    mat_transpose(H, H_T, 3, 6);
+    mat_mul(slate->P, H_T, PH_T, 6, 6, 3);
+    mat_mul(H, PH_T, HPH_T, 3, 6, 3);
+    mat_add(HPH_T, R, HPH_T_plus_R, 3, 3);
+    mat_inverse(HPH_T_plus_R, HPH_T_plus_R_inv, 3);
+    mat_mul(PH_T, HPH_T_plus_R_inv, K, 6, 3, 3);
+
+    // Update state (40c)
+    float B_B_expected[3];
+    compute_B_B(B_B_expected, x, B_I);
+    float innovation[3] = {
+        B_B.x - B_B_expected[0],
+        B_B.y - B_B_expected[1],
+        B_B.z - B_B_expected[2],
+    };
+    float K_innovation[6];
+    float x_new[6];
+    mat_mul(K, innovation, K_innovation, 6, 3, 1);
+    mat_add(x, K_innovation, x_new, 6, 1);
+
+    // Write updated state back to slate
+    float3 p_eci_to_body = float3(x_new[0], x_new[1], x_new[2]);
+    slate->p_eci_to_body = mrp_wrap_shadow_set(
+        p_eci_to_body); // Wrap MRP to avoid it blowing up (IMPORTANT!)
+    slate->q_eci_to_body = mrp_to_quat(slate->p_eci_to_body);
+    slate->b_gyro_drift = float3(x_new[3], x_new[4], x_new[5]);
+
+    // Update covariance (40d)
+    float P_new[6 * 6];
+    float KH[6 * 6];
+    float I_minus_KH[6 * 6];
+    mat_mul(K, H, KH, 6, 3, 6);
+    mat_sub(identity6x6, KH, I_minus_KH, 6, 6);
+    mat_mul(I_minus_KH, slate->P, P_new, 6, 6, 6);
+
+    // Write updated covariance back to slate
+    for (int i = 0; i < 36; i++)
+    {
+        slate->P[i] = P_new[i];
     }
 
-    // Compute log frobenius
-    slate->attitude_covar_log_frobenius =
-        mat_log_frobenius(slate->attitude_covar, AF_STATE_SIZE);
-
-    // Check for NaN and de-initialize if so
-    if (mat_contains_nan(dq, AF_STATE_SIZE, 1))
-    {
-        LOG_ERROR("Attitude quat contains NaN after update: resetting!");
-        attitude_filter_init(slate);
-    }
-
-    if (mat_contains_nan(slate->attitude_covar, AF_STATE_SIZE, AF_STATE_SIZE))
-    {
-        LOG_ERROR("Attitude covariance contains NaN after update: resetting!");
-        attitude_filter_init(slate);
-    }
+    // Update log frobenius norm
+    slate->P_log_frobenius = mat_log_frobenius(slate->P, 6);
 }
 
 #ifdef TEST
-#include "gnc/estimation/attitude_filter.h"
-#include "gnc/estimation/sun_sensor_to_vector.h"
-#include "gnc/utils/mjd.h"
-#include "gnc/utils/utils.h"
-#include "gnc/world/b_field.h"
-#include "gnc/world/sun_vector.h"
-#include "tasks/sensing/sensors_task.h"
-
-static const float STANFORD_LAT = 37.4379532f;
-static const float STANFORD_LON = -122.1667524f;
-static const float TEST_GPS_TIME = 160500.0f;
-static const float EKF_TIMESTEP = 0.1f;
-static const int EKF_PROPAGATION_STEPS = 10;
-
-void ekf_test(slate_t *slate)
+void ekf_time_test(slate_t *slate)
 {
-    // Write to slate in case GPS not connected / fixed
-    slate->gps_time = TEST_GPS_TIME;
-    slate->gps_lat = STANFORD_LAT;
-    slate->gps_lon = STANFORD_LON;
-    slate->gps_alive = true;
-    slate->gps_data_valid = true;
+    printf("\n><=><=><=><=><= Benchmarking EKF! ><=><=><=><=><=\n");
+    attitude_filter_init(slate);
+    int time = 3600;  // seconds
+    float dt = 0.01f; // 10ms propagate rate
+    int steps = 50000;
 
-    LOG_DEBUG("[ekf_test] GPS data: Lat: %.6f, Lon: %.6f, Time: %.3f",
-              slate->gps_lat, slate->gps_lon, slate->gps_time);
-
-    compute_MJD(slate);
-    compute_sun_vector_eci(slate);
-    compute_B(slate);
-    sun_sensors_to_vector(slate);
-
-    LOG_DEBUG("[ekf_test] MJD: %.6f", slate->MJD);
-
-    slate->w_principal = {0.0f, 0.0f, 0.0f};
-
-    for (int i = 0; i < EKF_PROPAGATION_STEPS; i++)
+    LOG_INFO("Propagating EKF for %d steps...", steps);
+    slate->w_body = {0.1f, 0.2f, 0.3f};
+    for (int i = 0; i < steps; i++)
     {
-        attitude_filter_propagate(slate, EKF_TIMESTEP);
+        // Simulate dt by setting last propagate time
+        slate->af_last_propagate_time =
+            get_absolute_time() - static_cast<uint64_t>(dt * 1e6);
+        attitude_filter_propagate(slate);
     }
+    LOG_INFO("Finished propagating EKF for %d steps", steps);
 
-    attitude_filter_update(slate);
-
-    LOG_DEBUG("[ekf_test] %.6f, %.6f, %.6f, %.6f, %.6f",
-              slate->q_eci_to_principal[0], slate->q_eci_to_principal[1],
-              slate->q_eci_to_principal[2], slate->q_eci_to_principal[3],
-              slate->attitude_covar_log_frobenius);
-
-    quaternion q_expected;
-    expected_quaternion(slate, q_expected);
-
-    LOG_DEBUG(
-        "[ekf_test] Expected quaternion [x,y,z,w]: %.6f, %.6f, %.6f, %.6f",
-        q_expected[0], q_expected[1], q_expected[2], q_expected[3]);
-}
-
-void expected_quaternion(slate_t *slate, quaternion &q_expected)
-{
-    const float gmst =
-        wrapTo360(280.4606f + 360.9856473f * (slate->MJD - 51544.5f)) *
-        DEG_TO_RAD;
-    const float lat_rad = STANFORD_LAT * DEG_TO_RAD;
-    const float lon_offset_rad = gmst + (180.0f - STANFORD_LON) * DEG_TO_RAD;
-    const float cy = cosf(lat_rad);
-    const float sy = sinf(lat_rad);
-    const float cz = cosf(lon_offset_rad);
-    const float sz = sinf(lon_offset_rad);
-
-    const float R[9] = {cy * cz, cy * sz,  sy,       -sz, cz,
-                        0.0f,    -sy * cz, -sy * sz, cy};
-
-    const float trace = R[0] + R[4] + R[8];
-    float x, y, z, w;
-
-    if (trace > 0.0f)
-    {
-        const float s = std::sqrt(trace + 1.0f) * 2.0f;
-        w = 0.25f * s;
-        x = (R[7] - R[5]) / s;
-        y = (R[2] - R[6]) / s;
-        z = (R[3] - R[1]) / s;
-    }
-    else if (R[0] > R[4] && R[0] > R[8])
-    {
-        const float s = std::sqrt(1.0f + R[0] - R[4] - R[8]) * 2.0f;
-        w = (R[7] - R[5]) / s;
-        x = 0.25f * s;
-        y = (R[1] + R[3]) / s;
-        z = (R[2] + R[6]) / s;
-    }
-    else if (R[4] > R[8])
-    {
-        const float s = std::sqrt(1.0f + R[4] - R[0] - R[8]) * 2.0f;
-        w = (R[2] - R[6]) / s;
-        x = (R[1] + R[3]) / s;
-        y = 0.25f * s;
-        z = (R[5] + R[7]) / s;
-    }
-    else
-    {
-        const float s = std::sqrt(1.0f + R[8] - R[0] - R[4]) * 2.0f;
-        w = (R[3] - R[1]) / s;
-        x = (R[2] + R[6]) / s;
-        y = (R[5] + R[7]) / s;
-        z = 0.25f * s;
-    }
-
-    const float norm = std::sqrt(x * x + y * y + z * z + w * w);
-    if (norm > 0.0f)
-    {
-        x /= norm;
-        y /= norm;
-        z /= norm;
-        w /= norm;
-    }
-    else
-    {
-        x = y = z = 0.0f;
-        w = 1.0f;
-    }
-
-    if (w < 0.0f)
-    {
-        x = -x;
-        y = -y;
-        z = -z;
-        w = -w;
-    }
-
-    q_expected = {x, y, z, w};
-}
-
-void attitude_filter_software_test(slate_t *slate)
-{
-    slate->w_principal = {0.0f, 0.0f, 0.0f};
+    attitude_filter_init(slate);
+    LOG_INFO("Updating EKF for %d steps...", steps);
+    slate->w_body = {0.0f, 0.0f, 0.0f};
     slate->sun_vector_eci = {1.0f, 0.0f, 0.0f};
-    slate->b_eci = {0.0f, 1.0f, 0.0f};
-    slate->sun_vector_body = {0.0f, 1.0f, 0.0f};
-    slate->b_body = {0.0f, 0.0f, -1.0f};
-
-    for (int i = 0; i < EKF_PROPAGATION_STEPS; i++)
+    slate->sun_vector_body = {0.0f, -1.0f, 0.0f};
+    for (int i = 0; i < steps; i++)
     {
-        attitude_filter_propagate(slate, EKF_TIMESTEP);
+        attitude_filter_update(slate, 'S'); // Update with sun vector
+        attitude_filter_update(slate, 'M'); // Update with magnetic field vector
+    }
+    printf("><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=\n\n");
+}
+
+void ekf_convergence_test(slate_t *slate)
+{
+    printf("\n><=><=><=><=><= Testing EKF Convergence! ><=><=><=><=><=\n");
+    attitude_filter_init(slate);
+    int time = 3600;  // seconds
+    float dt = 0.01f; // 10ms propagate rate
+    int steps = time / dt;
+    int sun_measurement_hz = 20; // 20 Hz sun sensor
+    int b_measurement_hz = 10;   // 10 Hz magnetometer
+    int sun_measurement_interval =
+        static_cast<int>(1.0f / (sun_measurement_hz * dt));
+    int b_measurement_interval =
+        static_cast<int>(1.0f / (b_measurement_hz * dt));
+
+    slate->w_body = {0.0f, 0.0f, 0.0f};
+    bool passed = true;
+    for (int i = 0; i < steps; i++)
+    {
+        // Simulate dt by setting last propagate time
+        slate->af_last_propagate_time =
+            get_absolute_time() - static_cast<uint64_t>(dt * 1e6);
+        attitude_filter_propagate(slate);
+        // Vectors in inertial frame
+        slate->sun_vector_eci = {1.0f, 0.0f, 0.0f};
+        slate->b_eci = {0.0f, 1.0f, 0.0f};
+
+        // Vectors in body frame
+        slate->sun_vector_body = {0.0f, -1.0f, 0.0f};
+        slate->b_body = {1.0f, 0.0f, 0.0f};
+
+        if (i % sun_measurement_interval == 0)
+        {
+            attitude_filter_update(slate, 'S'); // Update with sun vector
+        }
+        if (i % b_measurement_interval == 0)
+        {
+            attitude_filter_update(slate, 'M'); // Update with magnetic field
+                                                // vector
+        }
+    }
+    quaternion q_expected = {0.0f, 0.0f, 0.7071068f, 0.7071068f}; // 90 deg rot
+    float3 p_expected = quat_to_mrp(q_expected);
+    if (length(slate->p_eci_to_body - p_expected) > 0.01f)
+    {
+        LOG_ERROR("EKF did not converge to expected MRP!");
+        passed = false;
+    }
+    if (length(slate->q_eci_to_body - q_expected) > 0.01f)
+    {
+        LOG_ERROR("EKF did not converge to expected quaternion!");
+        passed = false;
+    }
+    LOG_INFO("Final quaternion [x,y,z,w]: %.6f, %.6f, %.6f, %.6f",
+             slate->q_eci_to_body[0], slate->q_eci_to_body[1],
+             slate->q_eci_to_body[2], slate->q_eci_to_body[3]);
+    LOG_INFO("Final MRP [x,y,z]: %.6f, %.6f, %.6f", slate->p_eci_to_body[0],
+             slate->p_eci_to_body[1], slate->p_eci_to_body[2]);
+    LOG_INFO("Final gyro bias [x,y,z]: %.6f, %.6f, %.6f",
+             slate->b_gyro_drift[0], slate->b_gyro_drift[1],
+             slate->b_gyro_drift[2]);
+    LOG_INFO("Final P log frobenius: %.6f", slate->P_log_frobenius);
+    LOG_INFO("Test %s", passed ? "PASSED" : "FAILED");
+    printf("><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=\n\n");
+}
+
+void ekf_mrp_wrapping_test(slate_t *slate)
+{
+    printf(
+        "\n><=><=><=> Testing MRP Wrapping (No Singularity)! ><=><=><=><=\n");
+    attitude_filter_init(slate);
+    int steps = 2000;
+    float dt = 0.01f;
+    slate->w_body = {5.0f, 3.0f, 2.0f}; // High angular velocity
+
+    bool passed = true;
+    for (int i = 0; i < steps; i++)
+    {
+        slate->af_last_propagate_time =
+            get_absolute_time() - static_cast<uint64_t>(dt * 1e6);
+        attitude_filter_propagate(slate);
+        float mrp_norm = length(slate->p_eci_to_body);
+
+        if (mrp_norm > 1.0f)
+        {
+            LOG_ERROR("MRP norm exceeded 1.0! Norm: %.6f at step %d", mrp_norm,
+                      i);
+            passed = false;
+            break;
+        }
+
+        if (std::isnan(slate->p_eci_to_body[0]))
+        {
+            LOG_ERROR("MRP contains NaN at step %d", i);
+            passed = false;
+            break;
+        }
     }
 
-    attitude_filter_update(slate);
+    LOG_INFO("Final MRP norm: %.6f", length(slate->p_eci_to_body));
+    LOG_INFO("Final quaternion norm: %.6f", length(slate->q_eci_to_body));
+    LOG_INFO("Test %s", passed ? "PASSED" : "FAILED");
+    printf("><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=\n\n");
+}
 
-    LOG_DEBUG("[ekf_test] %.6f, %.6f, %.6f, %.6f, %.6f",
-              slate->q_eci_to_principal[0], slate->q_eci_to_principal[1],
-              slate->q_eci_to_principal[2], slate->q_eci_to_principal[3],
-              slate->attitude_covar_log_frobenius);
+void ekf_high_rate_tumble_test(slate_t *slate)
+{
+    printf("\n><=><=><=> Testing High Rate Tumble! ><=><=><=><=\n");
+    attitude_filter_init(slate);
+    int steps = 500;
+    float dt = 0.05f;
+    slate->w_body = {10.0f, -8.0f, 6.0f}; // Fast tumble
+
+    bool passed = true;
+    float initial_w_mag = length(slate->w_body);
+
+    for (int i = 0; i < steps; i++)
+    {
+        slate->w_body = slate->w_body * 0.995f; // Damp like bdot
+        // Simulate dt by setting last propagate time
+        slate->af_last_propagate_time =
+            get_absolute_time() - static_cast<uint64_t>(dt * 1e6);
+        attitude_filter_propagate(slate);
+
+        float mrp_norm = length(slate->p_eci_to_body);
+        if (mrp_norm > 1.0f)
+        {
+            LOG_ERROR("MRP norm exceeded 1.0! Norm: %.6f at step %d", mrp_norm,
+                      i);
+            passed = false;
+            break;
+        }
+
+        if (std::isnan(slate->p_eci_to_body[0]) ||
+            std::isnan(slate->q_eci_to_body[0]))
+        {
+            LOG_ERROR("State contains NaN at step %d", i);
+            passed = false;
+            break;
+        }
+    }
+
+    float final_w_mag = length(slate->w_body);
+    LOG_INFO("Initial w magnitude: %.6f rad/s", initial_w_mag);
+    LOG_INFO("Final w magnitude: %.6f rad/s", final_w_mag);
+    LOG_INFO("Final MRP norm: %.6f", length(slate->p_eci_to_body));
+    LOG_INFO("Test %s", passed ? "PASSED" : "FAILED");
+    printf("><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=\n\n");
+}
+
+void ekf_convergence_logging_test(slate_t *slate)
+{
+    printf(
+        "\n><=><=><=> EKF Convergence Logging Test (1M steps) ><=><=><=><=\n");
+    printf("Logging format: "
+           "step,time,P_log_frobenius,mrp_error,quat_error,p_x,p_y,p_z,q_w,q_x,"
+           "q_y,q_z,b_x,b_y,b_z\n");
+    printf("DATA_START\n");
+
+    attitude_filter_init(slate);
+    int steps = 10000000;
+    float dt = 0.05f;            // 50ms propagate rate
+    int sun_measurement_hz = 20; // 20 Hz sun sensor
+    int b_measurement_hz = 10;   // 10 Hz magnetometer
+    int sun_measurement_interval =
+        static_cast<int>(1.0f / (sun_measurement_hz * dt));
+    int b_measurement_interval =
+        static_cast<int>(1.0f / (b_measurement_hz * dt));
+
+    // Expected final state
+    quaternion q_expected = {0.0f, 0.0f, 0.7071068f, 0.7071068f}; // 90 deg rot
+    float3 p_expected = quat_to_mrp(q_expected);
+
+    slate->w_body = {0.0f, 0.0f, 0.0f};
+
+    // Log every N steps to reduce output size
+    int log_interval = 1000;
+
+    for (int i = 0; i < steps; i++)
+    {
+        // Simulate dt by setting last propagate time
+        slate->af_last_propagate_time =
+            get_absolute_time() - static_cast<uint64_t>(dt * 1e6);
+        attitude_filter_propagate(slate);
+
+        // Vectors in inertial frame
+        slate->sun_vector_eci = {1.0f, 0.0f, 0.0f};
+        slate->b_eci = {0.0f, 1.0f, 0.0f};
+
+        // Vectors in body frame (90 degree rotation around z-axis)
+        slate->sun_vector_body = {0.0f, -1.0f, 0.0f};
+        slate->b_body = {1.0f, 0.0f, 0.0f};
+
+        if (i % sun_measurement_interval == 0)
+        {
+            attitude_filter_update(slate, 'S'); // Update with sun vector
+        }
+        if (i % b_measurement_interval == 0)
+        {
+            attitude_filter_update(slate, 'M'); // Update with magnetic field
+        }
+
+        // Log data at specified interval
+        if (i % log_interval == 0)
+        {
+            float time_sec = i * dt;
+            float mrp_error = length(slate->p_eci_to_body - p_expected);
+            float quat_error = length(slate->q_eci_to_body - q_expected);
+
+            printf("%d,%.3f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%"
+                   ".6f,%.6f,%.6f\n",
+                   i, time_sec, slate->P_log_frobenius, mrp_error, quat_error,
+                   slate->p_eci_to_body.x, slate->p_eci_to_body.y,
+                   slate->p_eci_to_body.z, slate->q_eci_to_body.w,
+                   slate->q_eci_to_body.x, slate->q_eci_to_body.y,
+                   slate->q_eci_to_body.z, slate->b_gyro_drift.x,
+                   slate->b_gyro_drift.y, slate->b_gyro_drift.z);
+        }
+    }
+
+    printf("DATA_END\n");
+    printf("\nFinal State Summary:\n");
+    LOG_INFO("Final quaternion [w,x,y,z]: %.6f, %.6f, %.6f, %.6f",
+             slate->q_eci_to_body.w, slate->q_eci_to_body.x,
+             slate->q_eci_to_body.y, slate->q_eci_to_body.z);
+    LOG_INFO("Final MRP [x,y,z]: %.6f, %.6f, %.6f", slate->p_eci_to_body.x,
+             slate->p_eci_to_body.y, slate->p_eci_to_body.z);
+    LOG_INFO("Final gyro bias [x,y,z]: %.6f, %.6f, %.6f", slate->b_gyro_drift.x,
+             slate->b_gyro_drift.y, slate->b_gyro_drift.z);
+    LOG_INFO("Final P log frobenius: %.6f", slate->P_log_frobenius);
+    LOG_INFO("MRP error: %.6f", length(slate->p_eci_to_body - p_expected));
+    LOG_INFO("Quaternion error: %.6f",
+             length(slate->q_eci_to_body - q_expected));
+    printf("><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=\n\n");
 }
 #endif
