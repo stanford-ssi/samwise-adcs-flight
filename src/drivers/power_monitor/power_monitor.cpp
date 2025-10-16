@@ -269,8 +269,6 @@ bool adm_get_status(uint8_t *status_out)
         LOG_ERROR("Failed to read status from ADM1176");
         return false;
     }
-
-    // LOG_DEBUG("[adm1176] status: 0x%02X", *status_out);
     return true;
 }
 
@@ -316,3 +314,59 @@ bool adm_get_power(slate_t *slate)
 
     return true;
 }
+
+#ifdef TEST
+/**
+ * @brief Initialize power monitoring and log initial power state
+ */
+void init_power_monitor()
+{
+    LOG_DEBUG("[adm1176_test] Attempting to initialize ADM1176...");
+
+    if (adm_init())
+    {
+        // Power on the device after initialization
+        if (!adm_power_on())
+        {
+            LOG_ERROR("[adm1176_test] Failed to power on ADM1176 after "
+                      "initialization");
+            return;
+        }
+
+        float voltage, current;
+
+        // Get initial power readings
+        if (adm_get_voltage(&voltage) && adm_get_current(&current))
+        {
+            float power = voltage * current;
+            LOG_INFO(
+                "[adm1176_test] Initial power state: %.3f V, %.3f A, %.3f W",
+                voltage, current, power);
+        }
+        else
+        {
+            LOG_INFO("[adm1176_test] ADM1176 initialized but unable to read "
+                     "initial power");
+        }
+        return;
+    }
+    LOG_ERROR("[adm1176_test] Failed to initialize ADM1176 power monitor");
+}
+
+/**
+ * @brief Read power monitor and log current power state
+ */
+void read_power_monitor()
+{
+    float voltage, current;
+
+    if (adm_get_voltage(&voltage) && adm_get_current(&current))
+    {
+        float power = voltage * current;
+        LOG_INFO("[adm1176_test] Current power state: %.3f V, %.3f A, %.3f W",
+                 voltage, current, power);
+        return;
+    }
+    LOG_INFO("[adm1176_test] Failed to read power state");
+}
+#endif

@@ -10,5 +10,8 @@
 #include "slate.h"
 
 void compute_sun_vector_eci(slate_t *slate);
+
+#ifdef TEST
 void test_sun_vector_eci(slate_t *slate);
 void test_sun_vector_year(slate_t *slate);
+#endif

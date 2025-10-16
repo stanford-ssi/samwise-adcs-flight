@@ -15,8 +15,7 @@
 #include "pico/stdlib.h"
 
 /**
- * @brief Initialize pins for IMU busses
- *
+ * @brief Initialize pins for IMU and ADM1776 sun sensor i2c buses
  */
 static void init_i2c_buses()
 {

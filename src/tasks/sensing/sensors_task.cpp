@@ -2,8 +2,8 @@
  * @author Niklas Vainio
  * @date 2025-06-02
  *
- * This task is responsible for reading data from sensors (magmeter, IMU, GPS,
- * sun sensors) and putting in in the slate. It runs in all states.
+ * This task is responsible for reading data from sensors (magetometer, IMU,
+ * GPS, sun sensors) and putting in in the slate. It runs in all states.
  *
  */
 
@@ -16,13 +16,19 @@
 #include "drivers/magnetometer/magnetometer.h"
 #include "drivers/magnetorquers/magnetorquers.h"
 #include "drivers/power_monitor/power_monitor.h"
-#include "drivers/sun_sensors/photodiodes_yz.h"
-#include "drivers/sun_sensors/sun_pyramids.h"
+#include "drivers/sun_sensors/ads7830.h"
+#include "drivers/sun_sensors/rp2350b_adc.h"
 #include "gnc/utils/mjd.h"
 #include "gnc/utils/utils.h"
 #include "pico/time.h"
 #include <cmath>
 
+/**
+ * @brief Initialize sensors task. Initializes all sensors and sets alive
+ * and data valid flags in the slate.
+ *
+ * @param slate Pointer to the current satellite slate
+ */
 void sensors_task_init(slate_t *slate)
 {
     LOG_INFO("[sensors] Initializing sensors");
@@ -30,7 +36,7 @@ void sensors_task_init(slate_t *slate)
     // --- ADCS Power Monitor --- //
     LOG_INFO("[sensors] Initializing ADCS Power Monitor...");
     bool adm1176_result = adm_init();
-    slate->adm1176_alive = adm1176_result;
+    slate->power_monitor_alive = adm1176_result;
 
     if (!adm1176_result)
     {
@@ -60,23 +66,34 @@ void sensors_task_init(slate_t *slate)
     }
 
     // --- Sun Sensors --- //
-    LOG_INFO("[sensors] Initializing sun pyramids...");
-    bool sun_pyramids_result = sun_pyramids_init();
-    slate->sun_pyramids_alive = sun_pyramids_result;
-
-    if (!sun_pyramids_result)
+    LOG_INFO("[sensors] Initializing sun sensors rp2350b adc...");
+    bool rp2350b_adc_result = rp2350b_adc_init();
+    if (!rp2350b_adc_result)
     {
-        LOG_ERROR("[sensors] Error initializing sun pyramids - deactivating!");
+        LOG_ERROR("[sensors] Error initializing rp2350b_adc - deactivating!");
     }
 
-    LOG_INFO("[sensors] Initializing photodiodes_yz...");
-    bool photodiodes_yz_result = photodiodes_yz_init();
-    slate->photodiodes_yz_alive = photodiodes_yz_result;
-
-    if (!photodiodes_yz_result)
+    LOG_INFO("[sensors] Initializing sun sensors ads7830...");
+    bool ads7830_result = ads7830_init();
+    if (!ads7830_result)
     {
-        LOG_ERROR(
-            "[sensors] Error initializing photodiodes_yz - deactivating!");
+        LOG_ERROR("[sensors] Error initializing ads7830 - deactivating!");
+    }
+
+    // Write alive status for each sun sensor
+    for (uint8_t i = 0; i < NUM_SUN_SENSORS / 2;
+         i++) // first 8 are from rp2350b adc
+    {
+        if (i < NUM_SUN_SENSORS / 2)
+        { // first 8 are from rp2350b adc
+            slate->sun_sensor_alive[i] = rp2350b_adc_result;
+        }
+        else
+        { // last 8 are from ads7830
+            slate->sun_sensor_alive[i] = ads7830_result;
+        }
+        slate->sun_sensor_data_valid[i] =
+            false; // initialize data valid to false
     }
 
     // --- IMU --- //
@@ -92,25 +109,41 @@ void sensors_task_init(slate_t *slate)
     // Ensure all sensor data valid flags are false
     slate->magmeter_data_valid = false;
     slate->imu_data_valid = false;
-    slate->sun_pyramids_data_valid = false;
     slate->gps_data_valid = false;
+    for (uint8_t i = 0; i < NUM_SUN_SENSORS; i++)
+    {
+        slate->sun_sensor_data_valid[i] = false;
+    }
+    slate->sun_vector_valid = false;
 
     LOG_INFO("[sensors] Sensor Initialization Complete! Magmeter alive: %s, "
              "IMU alive: %s",
              "Sun pyramids alive: %s, GPS alive: %s",
              slate->magmeter_alive ? "true" : "false",
              slate->imu_alive ? "true" : "false",
-             slate->sun_pyramids_alive ? "true" : "false",
              slate->gps_alive ? "true" : "false");
+    // log sun sensors alive by each but in one line
+    LOG_INFO("[sensors] Sun sensors alive status:");
+    for (uint8_t i = 0; i < NUM_SUN_SENSORS; i++)
+    {
+        LOG_INFO("  Sensor %2d: %s", i,
+                 slate->sun_sensor_alive[i] ? "true" : "false");
+    }
 }
 
+/**
+ * @brief Dispatch sensors task. Reads all sensors and updates the slate
+ * accordingly.
+ *
+ * @param slate Pointer to the current satellite slate
+ */
 void sensors_task_dispatch(slate_t *slate)
 {
     // Read all sensors
     LOG_INFO("[sensors] Sensors task dispatching...");
 
     // --- ADCS Power Monitor --- //
-    if (slate->adm1176_alive)
+    if (slate->power_monitor_alive)
     {
         bool result = adm_get_power(slate);
         LOG_DEBUG("[sensors] ADCS Power Monitor [%.3fW, %.3fV, "
@@ -140,10 +173,10 @@ void sensors_task_dispatch(slate_t *slate)
             sleep_ms(MAGNETOMETER_FIELD_SETTLE_TIME_MS);
 
             // Read magnetometer
-            result = rm3100_get_reading(&slate->b_field_local);
+            result = rm3100_get_reading(&slate->b_body);
 
             // Turn magnetorquers back on after reading
-            bool mag_result = do_magnetorquer_pwm(slate->magdrv_requested);
+            bool mag_result = do_magnetorquer_pwm(slate->magnetorquer_moment);
             if (!mag_result)
             {
                 LOG_ERROR("[sensors] Error reactivating magnetorquers");
@@ -152,14 +185,13 @@ void sensors_task_dispatch(slate_t *slate)
         else
         {
             // Magnetorquers not running, read directly
-            result = rm3100_get_reading(&slate->b_field_local);
+            result = rm3100_get_reading(&slate->b_body);
         }
         LOG_DEBUG("[sensors] Magnetometer reading: [%.3f, %.3f, %.3f] | ",
-                  slate->b_field_local.x, slate->b_field_local.y,
-                  slate->b_field_local.z);
+                  slate->b_body.x, slate->b_body.y, slate->b_body.z);
 
         slate->magmeter_data_valid = (result == RM3100_OK);
-        slate->b_field_read_time = get_absolute_time();
+        slate->b_body_read_time = get_absolute_time();
 
         slate->bdot_data_has_updated = true; // Set flag for bdot
     }
@@ -245,108 +277,89 @@ void sensors_task_dispatch(slate_t *slate)
     }
 
     // --- Sun Sensors --- //
-    if (slate->sun_pyramids_alive)
+    bool rp2350b_adc_alive =
+        slate->sun_sensor_alive[0]; // first 8 are from rp2350b adc
+    bool ads7830_alive = slate->sun_sensor_alive[8]; // last 8 are from ads7830
+
+    if (rp2350b_adc_alive)
     {
-        uint8_t adc_values[8];
+        uint16_t intensities[8];
         float voltages[8];
-        bool result = sun_pyramids_read_all_channels(adc_values);
-        bool voltage_result = sun_pyramids_read_all_voltages(voltages);
+        bool result = rp2350b_adc_read_all_channels(intensities);
+        bool voltage_result = rp2350b_adc_read_all_voltages(voltages);
 
-        if (result)
+        // Write intensities, voltages, and sensor status for channels 0-7 (sun
+        // pyramids)
+        int end = NUM_SUN_SENSORS / 2;
+        for (int i = 0; i < end; i++)
         {
-            for (int i = 0; i < 8; i++)
+            if (result)
             {
-                // Scale to 12-bit range (0-4095) for consistency
+                // Clip to 2.5V max value for consistency
                 uint16_t normalized_intensity =
-                    static_cast<uint16_t>(adc_values[i]) *
-                    SUN_SENSOR_CLIP_VALUE / MAX_VALUE_ADS7830;
-                slate->sun_sensors_intensities[i] = normalized_intensity;
+                    min(intensities[i], SUN_SENSOR_CLIP_VALUE);
+                slate->sun_sensor_intensities[i] = normalized_intensity;
+                slate->sun_sensor_data_valid[i] = true;
             }
-
-            // Set remaining sun sensor values to 0 if not connected
-            for (int i = 8; i < NUM_SUN_SENSORS; i++)
+            if (voltage_result)
             {
-                slate->sun_sensors_intensities[i] = 0.0f;
+                slate->sun_sensor_voltages[i] = voltages[i];
             }
         }
-
-        if (voltage_result)
-        {
-            // Store voltage readings for sun pyramids (channels 0-7)
-            for (int i = 0; i < 8; i++)
-            {
-                slate->sun_sensors_voltages[i] = voltages[i];
-            }
-        }
-        slate->sun_pyramids_data_valid = result;
     }
     else
     {
         LOG_DEBUG(
-            "[sensors] Skipping sun pyramids due to invalid initialization!");
+            "[sensors] Skipping rp2350b_adc due to invalid initialization!");
     }
-
-    if (slate->photodiodes_yz_alive)
+    if (ads7830_alive)
     {
-        uint16_t adc_values[8];
+        uint8_t intensities[8];
         float voltages[8];
-        bool result = photodiodes_yz_read_all_channels(adc_values);
-        bool voltage_result = photodiodes_yz_read_all_voltages(voltages);
+        bool result = ads7830_read_all_channels(intensities);
+        bool voltage_result = ads7830_read_all_voltages(voltages);
 
-        if (result)
+        // Write intensities, voltages, and sensor status for channels 8-15 (YZ
+        // sensors)
+        int start = NUM_SUN_SENSORS / 2;
+        for (int i = 0; i < start; i++)
         {
-            for (int i = 0; i < 8; i++)
+            if (result)
             {
-                // Clip to 2.5V max value for consistency
+                // Scale to 12-bit range (0-4095) for consistency
                 uint16_t normalized_intensity =
-                    min(adc_values[i], SUN_SENSOR_CLIP_VALUE);
-                slate->sun_sensors_intensities[i + 8] = normalized_intensity;
+                    static_cast<uint16_t>(intensities[i]) *
+                    SUN_SENSOR_CLIP_VALUE / MAX_VALUE_ADS7830;
+                slate->sun_sensor_intensities[i + start] = normalized_intensity;
+                slate->sun_sensor_data_valid[i + start] = true;
             }
-        }
-
-        if (voltage_result)
-        {
-            // Store voltage readings for YZ sensors (channels 8-15)
-            for (int i = 0; i < 8; i++)
+            if (voltage_result)
             {
-                slate->sun_sensors_voltages[i + 8] = voltages[i];
+                slate->sun_sensor_voltages[i + start] = voltages[i];
             }
         }
-        slate->photodiodes_yz_data_valid = result;
     }
-
-    // Log all sun sensor readings after collecting all data
-    // LOG_DEBUG(
-    //     "[sensors] Sun sensor readings: [%u, %u, %u, %u, "
-    //     "%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, "
-    //     "%u, %u]",
-    //     slate->sun_sensors_intensities[0], slate->sun_sensors_intensities[1],
-    //     slate->sun_sensors_intensities[2], slate->sun_sensors_intensities[3],
-    //     slate->sun_sensors_intensities[4], slate->sun_sensors_intensities[5],
-    //     slate->sun_sensors_intensities[6], slate->sun_sensors_intensities[7],
-    //     slate->sun_sensors_intensities[8], slate->sun_sensors_intensities[9],
-    //     slate->sun_sensors_intensities[10],
-    //     slate->sun_sensors_intensities[11],
-    //     slate->sun_sensors_intensities[12],
-    //     slate->sun_sensors_intensities[13],
-    //     slate->sun_sensors_intensities[14],
-    //     slate->sun_sensors_intensities[15]);
+    else
+    {
+        LOG_DEBUG("[sensors] Skipping ads7830 due to invalid initialization!");
+    }
 
     LOG_DEBUG("[sensors] Sun sensor voltages: [%.2f, %.2f, %.2f, %.2f, "
               "%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, "
               "%.2f, %.2f]",
-              slate->sun_sensors_voltages[0], slate->sun_sensors_voltages[1],
-              slate->sun_sensors_voltages[2], slate->sun_sensors_voltages[3],
-              slate->sun_sensors_voltages[4], slate->sun_sensors_voltages[5],
-              slate->sun_sensors_voltages[6], slate->sun_sensors_voltages[7],
-              slate->sun_sensors_voltages[8], slate->sun_sensors_voltages[9],
-              slate->sun_sensors_voltages[10], slate->sun_sensors_voltages[11],
-              slate->sun_sensors_voltages[12], slate->sun_sensors_voltages[13],
-              slate->sun_sensors_voltages[14], slate->sun_sensors_voltages[15]);
+              slate->sun_sensor_voltages[0], slate->sun_sensor_voltages[1],
+              slate->sun_sensor_voltages[2], slate->sun_sensor_voltages[3],
+              slate->sun_sensor_voltages[4], slate->sun_sensor_voltages[5],
+              slate->sun_sensor_voltages[6], slate->sun_sensor_voltages[7],
+              slate->sun_sensor_voltages[8], slate->sun_sensor_voltages[9],
+              slate->sun_sensor_voltages[10], slate->sun_sensor_voltages[11],
+              slate->sun_sensor_voltages[12], slate->sun_sensor_voltages[13],
+              slate->sun_sensor_voltages[14], slate->sun_sensor_voltages[15]);
 }
 
 sched_task_t sensors_task = {.name = "sensors",
-                             .dispatch_period_ms = 100,
+                             .dispatch_period_ms =
+                                 100, // TODO: determine appropriate rate
                              .task_init = &sensors_task_init,
                              .task_dispatch = &sensors_task_dispatch,
 

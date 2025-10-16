@@ -9,6 +9,7 @@
 #include "macros.h"
 #include "pico/stdlib.h"
 
+#ifdef TEST
 void blink(void)
 {
     while (1)
@@ -28,3 +29,4 @@ void blink(void)
         sleep_ms(1000);
     }
 }
+#endif

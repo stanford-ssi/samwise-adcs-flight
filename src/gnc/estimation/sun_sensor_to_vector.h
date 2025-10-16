@@ -1,5 +1,5 @@
 /**
- * @author Lundeen Cahilly, Chen Li, and Tactical Cinderblock
+ * @author Lundeen Cahilly, Chen Li, Tactical Cinderblock
  * @date 2025-08-24
  */
 
@@ -9,7 +9,11 @@
 #include "linalg.h"
 #include "slate.h"
 
+using namespace linalg::aliases;
+
 void sun_sensors_to_vector(slate_t *slate);
 
-// External access to sensor configuration for testing
-extern const float sensor_normals[NUM_SUN_SENSORS][3];
+#ifdef TEST
+void test_sun_sensor_cases(slate_t *slate);
+void test_sun_sensor_monte_carlo(slate_t *slate);
+#endif

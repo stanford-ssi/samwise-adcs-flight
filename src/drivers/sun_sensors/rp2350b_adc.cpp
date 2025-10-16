@@ -18,10 +18,9 @@
 // that's worth checking on the schematic
 // ---------------------------------------------------- //
 
-#include "photodiodes_yz.h"
+#include "rp2350b_adc.h"
 
 #include "constants.h"
-#include "macros.h"
 #include "pins.h"
 
 #include "hardware/adc.h"
@@ -40,7 +39,7 @@ constexpr float VREF_YZ =
  * Initialize the YZ sun sensors by setting up the ADC hardware
  * @return true if initialization successful, false otherwise
  */
-bool photodiodes_yz_init(void)
+bool rp2350b_adc_init(void)
 {
     // Make sure photodiodes are enabled
     gpio_init(SAMWISE_ADCS_EN_PD);
@@ -64,11 +63,11 @@ bool photodiodes_yz_init(void)
  * @param value Pointer to store the 12-bit ADC value (0-4095)
  * @return true if reading successful, false otherwise
  */
-bool photodiodes_yz_get_reading(uint8_t channel, uint16_t *value)
+bool rp2350b_adc_get_reading(uint8_t channel, uint16_t *value)
 {
     if (channel >= 8 || value == NULL)
     {
-        LOG_ERROR("[photodiodes_yz] Invalid channel or null pointer for value");
+        LOG_ERROR("[rp2350b_adc] Invalid channel or null pointer for value");
         return false;
     }
 
@@ -84,7 +83,7 @@ bool photodiodes_yz_get_reading(uint8_t channel, uint16_t *value)
 
     if (*value > MAX_VALUE_RP2350B_ADC)
     {
-        LOG_ERROR("[photodiodes_yz] ADC value out of range: %d", *value);
+        LOG_ERROR("[rp2350b_adc] ADC value out of range: %d", *value);
         return false;
     }
 
@@ -97,19 +96,18 @@ bool photodiodes_yz_get_reading(uint8_t channel, uint16_t *value)
  * @param voltage Pointer to store the calculated voltage
  * @return true if reading successful, false otherwise
  */
-bool photodiodes_yz_get_voltage(uint8_t channel, float *voltage)
+bool rp2350b_adc_get_voltage(uint8_t channel, float *voltage)
 {
     if (channel >= 8 || voltage == NULL)
     {
-        LOG_ERROR(
-            "[photodiodes_yz] Invalid channel or null pointer for voltage");
+        LOG_ERROR("[rp2350b_adc] Invalid channel or null pointer for voltage");
         return false;
     }
 
     uint16_t value;
-    if (!photodiodes_yz_get_reading(channel, &value))
+    if (!rp2350b_adc_get_reading(channel, &value))
     {
-        LOG_ERROR("[photodiodes_yz] Failed to get reading for channel %d",
+        LOG_ERROR("[rp2350b_adc] Failed to get reading for channel %d",
                   channel);
         return false;
     }
@@ -120,7 +118,7 @@ bool photodiodes_yz_get_voltage(uint8_t channel, float *voltage)
 
     if (*voltage < 0.0f || *voltage > VREF_YZ)
     {
-        LOG_ERROR("[photodiodes_yz] Voltage out of range: %f", *voltage);
+        LOG_ERROR("[rp2350b_adc] Voltage out of range: %f", *voltage);
         return false;
     }
 
@@ -132,21 +130,19 @@ bool photodiodes_yz_get_voltage(uint8_t channel, float *voltage)
  * @param values_out Array to store 8-bit ADC values for all channels
  * @return true if all readings successful, false otherwise
  */
-bool photodiodes_yz_read_all_channels(uint16_t values_out[8])
+bool rp2350b_adc_read_all_channels(uint16_t values_out[8])
 {
     if (values_out == NULL)
     {
-        LOG_ERROR(
-            "[photodiodes_yz] Null pointer provided for ADC values array");
+        LOG_ERROR("[rp2350b_adc] Null pointer provided for ADC values array");
         return false;
     }
 
     for (uint8_t channel = 0; channel < 8; channel++)
     {
-        if (!photodiodes_yz_get_reading(channel, &values_out[channel]))
+        if (!rp2350b_adc_get_reading(channel, &values_out[channel]))
         {
-            LOG_ERROR("[photodiodes_yz] Failed to read ADC channel %d",
-                      channel);
+            LOG_ERROR("[rp2350b_adc] Failed to read ADC channel %d", channel);
             return false;
         }
 
@@ -162,19 +158,19 @@ bool photodiodes_yz_read_all_channels(uint16_t values_out[8])
  * @param voltages_out Array to store voltage values for all channels
  * @return true if all readings successful, false otherwise
  */
-bool photodiodes_yz_read_all_voltages(float voltages_out[8])
+bool rp2350b_adc_read_all_voltages(float voltages_out[8])
 {
     if (voltages_out == NULL)
     {
-        LOG_ERROR("[photodiodes_yz] Null pointer provided for voltage array");
+        LOG_ERROR("[rp2350b_adc] Null pointer provided for voltage array");
         return false;
     }
 
     for (uint8_t channel = 0; channel < 8; channel++)
     {
-        if (!photodiodes_yz_get_voltage(channel, &voltages_out[channel]))
+        if (!rp2350b_adc_get_voltage(channel, &voltages_out[channel]))
         {
-            LOG_ERROR("[photodiodes_yz] Failed to read voltage for channel %d",
+            LOG_ERROR("[rp2350b_adc] Failed to read voltage for channel %d",
                       channel);
             return false;
         }

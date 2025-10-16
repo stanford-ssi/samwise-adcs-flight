@@ -26,11 +26,12 @@
 #define PWM_DEFAULT_MAX_CURRENT (384)
 
 /**
- * Initialize PWM for magnetorquers
+ * @brief Initialize PWM for magnetorquers
  *
  * This function configures the GPIO pins for PWM operation on all three
  * magnetorquer axes (X, Y, Z). Each axis has two PWM outputs (bidirectional
  * control)
+ *
  */
 void init_magnetorquer_pwm()
 {
@@ -69,16 +70,19 @@ void init_magnetorquer_pwm()
 /**
  * Set PWM duty cycles for magnetorquer control
  *
- * @param float3 magdrv_requested [-1, 1] in principal axes frame
+ * @param float3 magnetorquer_moment [-1, 1] in principal axes frame
  * @param slate_t *slate Pointer to the slate structure for state management
  * @return true if success, false if error
  */
-bool do_magnetorquer_pwm(float3 magdrv_requested)
+bool do_magnetorquer_pwm(float3 magnetorquer_moment)
 {
     // Set magnetorquer PWM duty cycles
-    int8_t xdn = static_cast<int8_t>(magdrv_requested[0] * PWM_MAX_DUTY_CYCLE);
-    int8_t ydn = static_cast<int8_t>(magdrv_requested[1] * PWM_MAX_DUTY_CYCLE);
-    int8_t zdn = static_cast<int8_t>(magdrv_requested[2] * PWM_MAX_DUTY_CYCLE);
+    int8_t xdn =
+        static_cast<int8_t>(magnetorquer_moment[0] * PWM_MAX_DUTY_CYCLE);
+    int8_t ydn =
+        static_cast<int8_t>(magnetorquer_moment[1] * PWM_MAX_DUTY_CYCLE);
+    int8_t zdn =
+        static_cast<int8_t>(magnetorquer_moment[2] * PWM_MAX_DUTY_CYCLE);
 
     // Validate input ranges
     if ((xdn > PWM_MAX_DUTY_CYCLE || xdn < PWM_MIN_DUTY_CYCLE) ||
@@ -135,7 +139,7 @@ bool do_magnetorquer_pwm(float3 magdrv_requested)
 }
 
 /**
- * Stop all magnetorquer PWM outputs
+ * @brief Stop all magnetorquer PWM outputs
  *
  * This function disables all PWM outputs and sets duty cycles to zero
  * for safe shutdown of the magnetorquer system.
@@ -161,3 +165,49 @@ void stop_magnetorquer_pwm(void)
 
     LOG_DEBUG("[magnetorquer] All magnetorquer outputs stopped");
 }
+
+#ifdef TEST
+void test_magnetorquer_axis(const char *axis_name, float3 magnetorquer_moment,
+                            int test_time_ms)
+{
+    LOG_INFO("[mag_test] Testing %s magnetorquer at duty: %d,%d,%d", axis_name,
+             magnetorquer_moment.x, magnetorquer_moment.y,
+             magnetorquer_moment.z);
+
+    bool result = do_magnetorquer_pwm(magnetorquer_moment);
+
+    if (!result)
+    {
+        LOG_ERROR("[mag_test] %s magnetorquer PWM failed", axis_name);
+    }
+
+    sleep_ms(test_time_ms);
+
+    stop_magnetorquer_pwm();
+    LOG_INFO("[mag_test] %s magnetorquer test complete", axis_name);
+}
+
+void magnetorquer_tests_init(void)
+{
+    LOG_INFO("[mag_test] Initializing magnetorquer PWM tests");
+    init_magnetorquer_pwm();
+}
+
+bool magnetorquer_tests_dispatch(void)
+{
+    LOG_INFO("[mag_test] Running magnetorquer axis tests");
+
+    int test_time = 5000; // 5 seconds for each axis
+
+    // Test each axis at 100% duty cycle
+    test_magnetorquer_axis("X", float3(127, 0, 0), test_time);
+    test_magnetorquer_axis("X", float3(-128, 0, 0), test_time);
+    test_magnetorquer_axis("Y", float3(0, 127, 0), test_time);
+    test_magnetorquer_axis("Y", float3(0, -128, 0), test_time);
+    test_magnetorquer_axis("Z", float3(0, 0, 127), test_time);
+    test_magnetorquer_axis("Z", float3(0, 0, -128), test_time);
+
+    LOG_INFO("[mag_test] All magnetorquer axis tests complete");
+    return true;
+}
+#endif

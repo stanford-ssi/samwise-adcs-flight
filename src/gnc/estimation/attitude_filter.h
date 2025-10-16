@@ -15,3 +15,9 @@ void attitude_filter_propagate(slate_t *slate, float dt);
 // void attitude_filter_update(slate_t *slate, quaternion
 // q_meas_eci_to_principal);
 void attitude_filter_update(slate_t *slate);
+
+#ifdef TEST
+void ekf_test(slate_t *slate);
+void expected_quaternion(slate_t *slate, quaternion &q_expected);
+void attitude_filter_software_test(slate_t *slate);
+#endif

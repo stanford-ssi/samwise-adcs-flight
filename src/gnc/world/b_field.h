@@ -9,8 +9,13 @@
 
 #pragma once
 
+#include "macros.h"
 #include "slate.h"
 
-// compute_B computes the magnetic field
-// returns true if successful, false if there was an error
 bool compute_B(slate_t *slate);
+
+#ifdef TEST
+void test_b_field_reference_points(slate_t *slate);
+void test_b_field_mapping(slate_t *slate);
+void test_b_field_ecef_conversion(slate_t *slate);
+#endif

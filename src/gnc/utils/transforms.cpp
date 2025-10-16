@@ -6,7 +6,7 @@
  * provides conversions between different reference frames.
  */
 
-#include "frame_transforms.h"
+#include "transforms.h"
 
 #include "constants.h"
 #include "gnc/utils/matrix_utils.h"

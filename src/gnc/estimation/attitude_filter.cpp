@@ -15,7 +15,7 @@
 
 // Sep 4 testing note: Change of vari names: b_unit_local -> b_field_local
 // Sep 4 testing note: Change of vari names: sun_vector_local -> sun_vector_body
-// Sep 5 testing note: Change of vari names: b_unit_eci ->B_est_eci
+// Sep 5 testing note: Change of vari names: b_unit_eci ->b_eci
 
 // State is just the quaternion
 #define AF_STATE_SIZE (4)
@@ -125,12 +125,13 @@ static void populate_measurement_jacobian(float *H, float3 S, float3 B,
     return;
 }
 
-static void populate_expected_measurement(float *z, quaternion q_eci_to_body,
-                                          float3 S_eci, float3 B_eci)
+static void populate_expected_measurement(float *z,
+                                          quaternion q_eci_to_principal,
+                                          float3 S_eci, float3 b_eci)
 {
     // Populate z with the expected measurement given S and B fields in ECI
-    float3 S_local_expected = qrot(q_eci_to_body, S_eci);
-    float3 B_local_expected = qrot(q_eci_to_body, B_eci);
+    float3 S_local_expected = qrot(q_eci_to_principal, S_eci);
+    float3 B_local_expected = qrot(q_eci_to_principal, b_eci);
 
     z[0] = S_local_expected.x;
     z[1] = S_local_expected.y;
@@ -163,7 +164,7 @@ static void populate_actual_measurement(float *z, float3 S, float3 B)
 void attitude_filter_init(slate_t *slate)
 {
     // Set q to identity, and covariance to initial value (4x4 identity)
-    slate->q_eci_to_body = {0.0f, 0.0f, 0.0f, 1.0f};
+    slate->q_eci_to_principal = {0.0f, 0.0f, 0.0f, 1.0f};
 
     for (int i = 0; i < AF_STATE_SIZE * AF_STATE_SIZE; i++)
     {
@@ -192,7 +193,7 @@ void attitude_filter_propagate(slate_t *slate, float dt)
     }
 
     // Propagate attitude using gyro
-    const float3 w = slate->w_body;
+    const float3 w = slate->w_principal;
     quaternion dq;
 
     if (length(w) > 1e-10)
@@ -212,12 +213,12 @@ void attitude_filter_propagate(slate_t *slate, float dt)
     // Calculate attitude jacobian and process noise matrices
     float J[AF_STATE_SIZE * AF_STATE_SIZE];
     float Q[AF_STATE_SIZE * AF_STATE_SIZE];
-    populate_af_jacobian(J, slate->w_body, dt);
-    populate_af_process_noise(Q, slate->q_eci_to_body, dt);
+    populate_af_jacobian(J, slate->w_principal, dt);
+    populate_af_process_noise(Q, slate->q_eci_to_principal, dt);
 
     // Update state and covariance matrix
     // C = J @ C @ J.T + Q
-    slate->q_eci_to_body = qmul(slate->q_eci_to_body, dq);
+    slate->q_eci_to_principal = qmul(slate->q_eci_to_principal, dq);
 
     float J_T[AF_STATE_SIZE * AF_STATE_SIZE];
     mat_transpose(J, J_T, AF_STATE_SIZE, AF_STATE_SIZE);
@@ -260,10 +261,10 @@ void attitude_filter_update(slate_t *slate)
     float z_expected[AF_MEASUREMENT_SIZE];
     float z_actual[AF_MEASUREMENT_SIZE];
 
-    populate_expected_measurement(z_expected, slate->q_eci_to_body,
-                                  slate->sun_vector_eci, slate->B_est_eci);
+    populate_expected_measurement(z_expected, slate->q_eci_to_principal,
+                                  slate->sun_vector_eci, slate->b_eci);
     populate_actual_measurement(z_actual, slate->sun_vector_body,
-                                slate->b_field_local);
+                                slate->b_body);
 
     float z_diff[AF_MEASUREMENT_SIZE];
     mat_sub(z_actual, z_expected, z_diff, AF_MEASUREMENT_SIZE, 1);
@@ -272,8 +273,8 @@ void attitude_filter_update(slate_t *slate)
     // S = H @ C @ H.T + R
     // K = C @ H.T @ inv(S)
     float H[AF_MEASUREMENT_SIZE * AF_STATE_SIZE];
-    populate_measurement_jacobian(H, slate->sun_vector_eci, slate->B_est_eci,
-                                  slate->q_eci_to_body);
+    populate_measurement_jacobian(H, slate->sun_vector_eci, slate->b_eci,
+                                  slate->q_eci_to_principal);
 
     float H_T[AF_STATE_SIZE * AF_MEASUREMENT_SIZE];
     mat_transpose(H, H_T, AF_MEASUREMENT_SIZE, AF_STATE_SIZE);
@@ -307,7 +308,7 @@ void attitude_filter_update(slate_t *slate)
     dq_quat.z = dq[2];
     dq_quat.w = dq[3];
 
-    slate->q_eci_to_body = normalize(slate->q_eci_to_body + dq_quat);
+    slate->q_eci_to_principal = normalize(slate->q_eci_to_principal + dq_quat);
 
     // Update covariance matrix
     // C' = (I - K @ H) @ C
@@ -342,3 +343,157 @@ void attitude_filter_update(slate_t *slate)
         attitude_filter_init(slate);
     }
 }
+
+#ifdef TEST
+#include "gnc/estimation/attitude_filter.h"
+#include "gnc/estimation/sun_sensor_to_vector.h"
+#include "gnc/utils/mjd.h"
+#include "gnc/utils/utils.h"
+#include "gnc/world/b_field.h"
+#include "gnc/world/sun_vector.h"
+#include "tasks/sensing/sensors_task.h"
+
+static const float STANFORD_LAT = 37.4379532f;
+static const float STANFORD_LON = -122.1667524f;
+static const float TEST_GPS_TIME = 160500.0f;
+static const float EKF_TIMESTEP = 0.1f;
+static const int EKF_PROPAGATION_STEPS = 10;
+
+void ekf_test(slate_t *slate)
+{
+    // Write to slate in case GPS not connected / fixed
+    slate->gps_time = TEST_GPS_TIME;
+    slate->gps_lat = STANFORD_LAT;
+    slate->gps_lon = STANFORD_LON;
+    slate->gps_alive = true;
+    slate->gps_data_valid = true;
+
+    LOG_DEBUG("[ekf_test] GPS data: Lat: %.6f, Lon: %.6f, Time: %.3f",
+              slate->gps_lat, slate->gps_lon, slate->gps_time);
+
+    compute_MJD(slate);
+    compute_sun_vector_eci(slate);
+    compute_B(slate);
+    sun_sensors_to_vector(slate);
+
+    LOG_DEBUG("[ekf_test] MJD: %.6f", slate->MJD);
+
+    slate->w_principal = {0.0f, 0.0f, 0.0f};
+
+    for (int i = 0; i < EKF_PROPAGATION_STEPS; i++)
+    {
+        attitude_filter_propagate(slate, EKF_TIMESTEP);
+    }
+
+    attitude_filter_update(slate);
+
+    LOG_DEBUG("[ekf_test] %.6f, %.6f, %.6f, %.6f, %.6f",
+              slate->q_eci_to_principal[0], slate->q_eci_to_principal[1],
+              slate->q_eci_to_principal[2], slate->q_eci_to_principal[3],
+              slate->attitude_covar_log_frobenius);
+
+    quaternion q_expected;
+    expected_quaternion(slate, q_expected);
+
+    LOG_DEBUG(
+        "[ekf_test] Expected quaternion [x,y,z,w]: %.6f, %.6f, %.6f, %.6f",
+        q_expected[0], q_expected[1], q_expected[2], q_expected[3]);
+}
+
+void expected_quaternion(slate_t *slate, quaternion &q_expected)
+{
+    const float gmst =
+        wrapTo360(280.4606f + 360.9856473f * (slate->MJD - 51544.5f)) *
+        DEG_TO_RAD;
+    const float lat_rad = STANFORD_LAT * DEG_TO_RAD;
+    const float lon_offset_rad = gmst + (180.0f - STANFORD_LON) * DEG_TO_RAD;
+    const float cy = cosf(lat_rad);
+    const float sy = sinf(lat_rad);
+    const float cz = cosf(lon_offset_rad);
+    const float sz = sinf(lon_offset_rad);
+
+    const float R[9] = {cy * cz, cy * sz,  sy,       -sz, cz,
+                        0.0f,    -sy * cz, -sy * sz, cy};
+
+    const float trace = R[0] + R[4] + R[8];
+    float x, y, z, w;
+
+    if (trace > 0.0f)
+    {
+        const float s = std::sqrt(trace + 1.0f) * 2.0f;
+        w = 0.25f * s;
+        x = (R[7] - R[5]) / s;
+        y = (R[2] - R[6]) / s;
+        z = (R[3] - R[1]) / s;
+    }
+    else if (R[0] > R[4] && R[0] > R[8])
+    {
+        const float s = std::sqrt(1.0f + R[0] - R[4] - R[8]) * 2.0f;
+        w = (R[7] - R[5]) / s;
+        x = 0.25f * s;
+        y = (R[1] + R[3]) / s;
+        z = (R[2] + R[6]) / s;
+    }
+    else if (R[4] > R[8])
+    {
+        const float s = std::sqrt(1.0f + R[4] - R[0] - R[8]) * 2.0f;
+        w = (R[2] - R[6]) / s;
+        x = (R[1] + R[3]) / s;
+        y = 0.25f * s;
+        z = (R[5] + R[7]) / s;
+    }
+    else
+    {
+        const float s = std::sqrt(1.0f + R[8] - R[0] - R[4]) * 2.0f;
+        w = (R[3] - R[1]) / s;
+        x = (R[2] + R[6]) / s;
+        y = (R[5] + R[7]) / s;
+        z = 0.25f * s;
+    }
+
+    const float norm = std::sqrt(x * x + y * y + z * z + w * w);
+    if (norm > 0.0f)
+    {
+        x /= norm;
+        y /= norm;
+        z /= norm;
+        w /= norm;
+    }
+    else
+    {
+        x = y = z = 0.0f;
+        w = 1.0f;
+    }
+
+    if (w < 0.0f)
+    {
+        x = -x;
+        y = -y;
+        z = -z;
+        w = -w;
+    }
+
+    q_expected = {x, y, z, w};
+}
+
+void attitude_filter_software_test(slate_t *slate)
+{
+    slate->w_principal = {0.0f, 0.0f, 0.0f};
+    slate->sun_vector_eci = {1.0f, 0.0f, 0.0f};
+    slate->b_eci = {0.0f, 1.0f, 0.0f};
+    slate->sun_vector_body = {0.0f, 1.0f, 0.0f};
+    slate->b_body = {0.0f, 0.0f, -1.0f};
+
+    for (int i = 0; i < EKF_PROPAGATION_STEPS; i++)
+    {
+        attitude_filter_propagate(slate, EKF_TIMESTEP);
+    }
+
+    attitude_filter_update(slate);
+
+    LOG_DEBUG("[ekf_test] %.6f, %.6f, %.6f, %.6f, %.6f",
+              slate->q_eci_to_principal[0], slate->q_eci_to_principal[1],
+              slate->q_eci_to_principal[2], slate->q_eci_to_principal[3],
+              slate->attitude_covar_log_frobenius);
+}
+#endif
