@@ -24,6 +24,10 @@ include(${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 # ====================================================================================
 set(PICO_BOARD adcs CACHE STRING "Board type")
 
+# Build mode options
+option(TEST_MODE "Enable test mode" OFF)
+option(SIMULATION_MODE "Enable simulation mode with fake sensor data" OFF)
+
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(${CMAKE_CURRENT_LIST_DIR}/pico-sdk/pico_sdk_init.cmake)
 
@@ -58,6 +62,7 @@ file(GLOB drivers_neopixel CONFIGURE_DEPENDS "src/drivers/neopixel/*.cpp")
 file(GLOB drivers_sun_sensors CONFIGURE_DEPENDS "src/drivers/sun_sensors/*.cpp")
 file(GLOB drivers_picubed CONFIGURE_DEPENDS "src/drivers/picubed/*.cpp")
 file(GLOB drivers_watchdog CONFIGURE_DEPENDS "src/drivers/watchdog/*.cpp")
+file(GLOB drivers_sim_interface CONFIGURE_DEPENDS "src/drivers/sim_interface/*.cpp")
 file(GLOB drivers_external CONFIGURE_DEPENDS "src/drivers/external/*.[c|cpp]")
 
 # System Components
@@ -98,6 +103,7 @@ add_executable(samwise-adcs
     ${drivers_sun_sensors}
     ${drivers_picubed}
     ${drivers_watchdog}
+    ${drivers_sim_interface}
     ${drivers_external}
     
     # System Components
@@ -117,6 +123,18 @@ add_executable(samwise-adcs
 
 pico_set_program_name(samwise-adcs "samwise_adcs")
 pico_set_program_version(samwise-adcs "0.1")
+
+# Set build mode definitions
+if(SIMULATION_MODE)
+  add_definitions(-DSIMULATION)
+  message(STATUS "Building in SIMULATION mode")
+elseif(TEST_MODE)
+  add_definitions(-DTEST)
+  message(STATUS "Building in TEST mode")
+else()
+  add_definitions(-DFLIGHT)
+  message(STATUS "Building in FLIGHT mode (default)")
+endif()
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(samwise-adcs 0)

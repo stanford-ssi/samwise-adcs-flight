@@ -8,17 +8,17 @@
 
 #pragma once
 #include "pico/printf.h"
+#include <stdio.h>
 
 /**
- * If this symbol is defined, we are configured to run a flight build.
+ * Build mode is now controlled via CMake options:
+ * - FLIGHT (default): Production flight build
+ * - TEST: Hardware testing build
+ * - SIMULATION: Hardware-in-loop simulation build
  *
- * All flight/non-flight-secific behavior should check this symbol, or the
- * convenience macros below (#ifdef FLIGHT... / if (IS_FLIGHT)...)
- *
- * IMPORTANT: Uncomment before flight!
+ * These symbols are defined automatically by CMakeLists.txt based on build
+ * options. Do NOT manually define them here!
  */
-// #define FLIGHT
-#define TEST
 
 /**
  * Convenience macros to get whether we are in flight in a runtime build.
@@ -40,17 +40,42 @@
 #error "TEST and FLIGHT should never be defined at the same time!"
 #endif
 
+#ifdef SIMULATION
+#error "TEST and SIMULATION should never be defined at the same time!"
+#endif
+
 #else
 #define IS_TEST false
 #endif
 
 /**
+ * Convenience macro to determine if we are in a simulation build.
+ */
+#ifdef SIMULATION
+#define IS_SIMULATION true
+
+// Simulation and flight should never both be defined
+#ifdef FLIGHT
+#error "SIMULATION and FLIGHT should never be defined at the same time!"
+#endif
+
+#else
+#define IS_SIMULATION false
+#endif
+
+/**
  * Log a formatted message at the debug level. Will only do anything in a
  * non-flight build.
+ * In simulation mode, logging is disabled to keep stdout clean for binary
+ * packets.
  */
 #ifndef FLIGHT
+#ifdef SIMULATION
+#define LOG_DEBUG(fmt, ...) (void)0
+#else
 #define LOG_DEBUG(fmt, ...)                                                    \
     printf("[DEBUG]   " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+#endif
 #else
 #define LOG_DEBUG(fmt, ...) (void)0
 #endif
@@ -58,16 +83,28 @@
 /**
  * Log a printf-style formatted message at the info level. Will log in both
  * flight and test builds.
+ * In simulation mode, logging is disabled to keep stdout clean for binary
+ * packets.
  */
+#ifdef SIMULATION
+#define LOG_INFO(fmt, ...) (void)0
+#else
 #define LOG_INFO(fmt, ...)                                                     \
     printf("[INFO]    " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+#endif
 
 /**
  * Log a printf-style formatted error message. Will log in both flight and test
  * builds.
+ * In simulation mode, logging is disabled to keep stdout clean for binary
+ * packets.
  */
+#ifdef SIMULATION
+#define LOG_ERROR(fmt, ...) (void)0
+#else
 #define LOG_ERROR(fmt, ...)                                                    \
     printf("[ERROR]   " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+#endif
 
 /**
  * Log an error message. In flight, does nothing, in non flight locks up and

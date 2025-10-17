@@ -11,6 +11,9 @@
 #include "constants.h"
 #include "macros.h"
 
+#ifdef SIMULATION
+#include "drivers/sim_interface/sim_interface.h"
+#endif
 #include "drivers/gps/gps.h"
 #include "drivers/imu/imu.h"
 #include "drivers/magnetometer/magnetometer.h"
@@ -27,6 +30,30 @@ void sensors_task_init(slate_t *slate)
 {
     LOG_INFO("[sensors] Initializing sensors");
 
+#ifdef SIMULATION
+    // Simulation mode - initialize simulation interface
+    LOG_INFO("[sensors] SIMULATION MODE - Initializing simulation interface");
+    sim_init();
+
+    // Mark all sensors as "alive" in simulation mode
+    slate->adm1176_alive = true;
+    slate->magmeter_alive = true;
+    slate->gps_alive = true;
+    slate->sun_pyramids_alive = true;
+    slate->photodiodes_yz_alive = true;
+    slate->imu_alive = true;
+
+    // Initialize data valid flags to false
+    slate->magmeter_data_valid = false;
+    slate->imu_data_valid = false;
+    slate->sun_pyramids_data_valid = false;
+    slate->photodiodes_yz_data_valid = false;
+    slate->gps_data_valid = false;
+
+    LOG_INFO("[sensors] Simulation interface ready - waiting for sensor data "
+             "over USB");
+#else
+    // Flight mode - initialize real sensors
     // --- ADCS Power Monitor --- //
     LOG_INFO("[sensors] Initializing ADCS Power Monitor...");
     bool adm1176_result = adm_init();
@@ -102,11 +129,43 @@ void sensors_task_init(slate_t *slate)
              slate->imu_alive ? "true" : "false",
              slate->sun_pyramids_alive ? "true" : "false",
              slate->gps_alive ? "true" : "false");
+#endif
 }
 
 void sensors_task_dispatch(slate_t *slate)
 {
-    // Read all sensors
+#ifdef SIMULATION
+    // Simulation mode - block waiting for sensor data from simulator
+    static int sim_iteration = 0;
+    static int dispatch_count = 0;
+
+    dispatch_count++;
+    LOG_DEBUG("[sensors] sensors_task_dispatch called (dispatch #%d)",
+              dispatch_count);
+
+    // Block with 5000ms timeout waiting for sensor packet
+    bool received = sim_read_sensors(slate, 5000);
+    if (received)
+    {
+        // Print state info every 10 iterations (1 second at 10Hz)
+        if (sim_iteration % 10 == 0)
+        {
+            LOG_INFO(
+                "[SIM] State: %s | w_mag: %.2f deg/s | Time in state: %.1fs",
+                slate->current_state->name,
+                slate->w_mag * 57.2958, // Convert rad/s to deg/s
+                slate->time_in_current_state_ms / 1000.0f);
+        }
+        sim_iteration++;
+    }
+    else
+    {
+        LOG_ERROR("[sensors] Timeout waiting for simulator - is it running?");
+    }
+
+    return;
+#else
+    // Flight mode - read all real sensors
     LOG_INFO("[sensors] Sensors task dispatching...");
 
     // --- ADCS Power Monitor --- //
@@ -312,23 +371,6 @@ void sensors_task_dispatch(slate_t *slate)
         slate->photodiodes_yz_data_valid = result;
     }
 
-    // Log all sun sensor readings after collecting all data
-    // LOG_DEBUG(
-    //     "[sensors] Sun sensor readings: [%u, %u, %u, %u, "
-    //     "%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, "
-    //     "%u, %u]",
-    //     slate->sun_sensors_intensities[0], slate->sun_sensors_intensities[1],
-    //     slate->sun_sensors_intensities[2], slate->sun_sensors_intensities[3],
-    //     slate->sun_sensors_intensities[4], slate->sun_sensors_intensities[5],
-    //     slate->sun_sensors_intensities[6], slate->sun_sensors_intensities[7],
-    //     slate->sun_sensors_intensities[8], slate->sun_sensors_intensities[9],
-    //     slate->sun_sensors_intensities[10],
-    //     slate->sun_sensors_intensities[11],
-    //     slate->sun_sensors_intensities[12],
-    //     slate->sun_sensors_intensities[13],
-    //     slate->sun_sensors_intensities[14],
-    //     slate->sun_sensors_intensities[15]);
-
     LOG_DEBUG("[sensors] Sun sensor voltages: [%.2f, %.2f, %.2f, %.2f, "
               "%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, "
               "%.2f, %.2f]",
@@ -340,12 +382,19 @@ void sensors_task_dispatch(slate_t *slate)
               slate->sun_sensors_voltages[10], slate->sun_sensors_voltages[11],
               slate->sun_sensors_voltages[12], slate->sun_sensors_voltages[13],
               slate->sun_sensors_voltages[14], slate->sun_sensors_voltages[15]);
+#endif
 }
 
-sched_task_t sensors_task = {.name = "sensors",
-                             .dispatch_period_ms = 100,
-                             .task_init = &sensors_task_init,
-                             .task_dispatch = &sensors_task_dispatch,
+sched_task_t sensors_task = {
+    .name = "sensors",
+#ifdef SIMULATION
+    .dispatch_period_ms =
+        0, // In simulation, run continuously (blocks waiting for packets)
+#else
+    .dispatch_period_ms = 100,
+#endif
+    .task_init = &sensors_task_init,
+    .task_dispatch = &sensors_task_dispatch,
 
-                             /* Set to an actual value on init */
-                             .next_dispatch = 0};
+    /* Set to an actual value on init */
+    .next_dispatch = 0};

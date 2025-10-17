@@ -26,6 +26,25 @@ int main()
 
     sleep_ms(5000);
 
+#ifdef SIMULATION
+    LOG_INFO("========================================");
+    LOG_INFO("  SIMULATION MODE - Hardware-in-Loop");
+    LOG_INFO("========================================");
+    LOG_INFO("[main] Build mode: SIMULATION");
+    LOG_INFO("[main] Sensor data will be received via USB");
+    LOG_INFO("[main] Actuator commands will be sent via USB");
+#elif defined(TEST)
+    LOG_INFO("========================================");
+    LOG_INFO("  TEST MODE - Hardware Testing");
+    LOG_INFO("========================================");
+    LOG_INFO("[main] Build mode: TEST");
+#else
+    LOG_INFO("========================================");
+    LOG_INFO("  FLIGHT MODE - Production");
+    LOG_INFO("========================================");
+    LOG_INFO("[main] Build mode: FLIGHT");
+#endif
+
     /*
      * Run global initialization
      */
@@ -44,6 +63,7 @@ int main()
      * Run the state machine for all of time
      */
     LOG_INFO("[main] Initialization sequence complete - beginning main loop!");
+
     while (1)
     {
         sched_dispatch(&slate);

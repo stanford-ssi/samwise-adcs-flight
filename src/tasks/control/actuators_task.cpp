@@ -10,19 +10,30 @@
 #include "actuators_task.h"
 #include "macros.h"
 
+#ifdef SIMULATION
+#include "drivers/sim_interface/sim_interface.h"
+#else
 #include "drivers/magnetorquers/magnetorquers.h"
+#endif
+
 #include "pico/time.h"
 
 void actuators_task_init(slate_t *slate)
 {
     LOG_INFO("[actuators] Initializing actuators...");
 
+#ifdef SIMULATION
+    // Simulation mode - no hardware initialization needed
+    LOG_INFO(
+        "[actuators] SIMULATION MODE - Actuator commands will be sent via USB");
+#else
     // Initialize magnetorquer PWM
     LOG_INFO("[actuators] Initializing magnetorquer PWM...");
     init_magnetorquer_pwm();
 
     // TODO: Initialize reaction wheels
     LOG_INFO("[actuators] Reaction wheel control ready");
+#endif
 
     // Initialize actuator request values to safe defaults
     slate->magdrv_requested = float3(0.0f, 0.0f, 0.0f);
@@ -37,6 +48,31 @@ void actuators_task_init(slate_t *slate)
 
 void actuators_task_dispatch(slate_t *slate)
 {
+#ifdef SIMULATION
+    // Simulation mode - send actuator packet to simulator
+    // This completes the handshake: simulator sends sensors, flight computer
+    // processes and sends actuators, simulator waits for actuators before
+    // continuing
+    LOG_DEBUG("[actuators] Sending actuator commands - Mag: [%.3f, %.3f, "
+              "%.3f], RW: [%.3f, %.3f, %.3f]",
+              slate->magdrv_requested.x, slate->magdrv_requested.y,
+              slate->magdrv_requested.z, slate->reaction_wheels_w_requested[0],
+              slate->reaction_wheels_w_requested[1],
+              slate->reaction_wheels_w_requested[2]);
+
+    // Send actuator packet to simulator (this is the handshake response)
+    sim_send_actuators(slate);
+
+    // Mark magnetorquers as "running" in simulation
+    slate->magnetorquers_running = true;
+
+    // Copy requested speeds to actual speeds (simulator handles the physics)
+    for (int i = 0; i < NUM_REACTION_WHEELS; i++)
+    {
+        slate->reaction_wheel_speeds[i] = slate->reaction_wheels_w_requested[i];
+    }
+#else
+    // Flight mode - drive real hardware
     // Drive magnetorquers based on slate requests
     bool mag_result = do_magnetorquer_pwm(slate->magdrv_requested);
     slate->magnetorquers_running = mag_result;
@@ -62,6 +98,7 @@ void actuators_task_dispatch(slate_t *slate)
     {
         slate->reaction_wheel_speeds[i] = slate->reaction_wheels_w_requested[i];
     }
+#endif
 }
 
 sched_task_t actuators_task = {

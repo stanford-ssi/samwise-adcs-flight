@@ -27,6 +27,12 @@ static void populate_telemetry(slate_t *slate)
 
 void telemetry_task_init(slate_t *slate)
 {
+#ifdef SIMULATION
+    // Skip PiCubed UART initialization in simulation mode
+    LOG_INFO("[telem] Skipping PiCubed UART init (simulation mode)");
+    return;
+#endif
+
     LOG_INFO("[telem] Initializing picubed UART...");
 
     picubed_uart_init();
@@ -36,6 +42,11 @@ void telemetry_task_init(slate_t *slate)
 
 void telemetry_task_dispatch(slate_t *slate)
 {
+#ifdef SIMULATION
+    // Skip telemetry in simulation mode - no PiCubed connected
+    return;
+#endif
+
     LOG_INFO("[telem] Telemetry task dispatching...");
     populate_telemetry(slate);
     picubed_uart_handle_commands(slate);
