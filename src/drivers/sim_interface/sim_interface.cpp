@@ -135,7 +135,8 @@ bool sim_read_sensors(slate_t *slate, uint32_t timeout_ms)
             // return to init state
             bool is_reset_packet = true;
             const uint8_t *packet_bytes = (const uint8_t *)&sensor_packet;
-            for (size_t i = 2; i < sizeof(sim_sensor_packet_t); i++)  // ignore header and start reading at third bit
+            for (size_t i = 2; i < sizeof(sim_sensor_packet_t);
+                 i++) // ignore header and start reading at third bit
             {
                 if (packet_bytes[i] != 0)
                 {
