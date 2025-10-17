@@ -262,8 +262,10 @@ function reset_adcs!(driver::ADCSDriver; timeout_s::Float64=10.0)
     empty!(driver.rx_buffer)
     driver.header_search_pos = 1
 
-    # Send a packet of all zeros (SENSOR_PACKET_SIZE bytes)
+    # Send a packet of all zeros WITH HEADER 'SS' (SENSOR_PACKET_SIZE bytes)
     fill!(driver.tx_buffer, 0x00)
+    @inbounds driver.tx_buffer[1] = UInt8('S')
+    @inbounds driver.tx_buffer[2] = UInt8('S')
     packet_view = view(driver.tx_buffer, 1:SENSOR_PACKET_SIZE)
     write(driver.port, packet_view)
 
