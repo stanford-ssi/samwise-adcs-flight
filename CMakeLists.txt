@@ -43,7 +43,9 @@ file(GLOB top CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB gnc CONFIGURE_DEPENDS "src/gnc/*.cpp")
 file(GLOB gnc_estimation CONFIGURE_DEPENDS "src/gnc/estimation/*.cpp")
 file(GLOB gnc_control CONFIGURE_DEPENDS "src/gnc/control/*.cpp")
+file(GLOB gnc_dynamics CONFIGURE_DEPENDS "src/gnc/dynamics/*.cpp")
 file(GLOB gnc_models CONFIGURE_DEPENDS "src/gnc/models/*.cpp")
+file(GLOB gnc_world CONFIGURE_DEPENDS "src/gnc/world/*.cpp")
 file(GLOB gnc_utils CONFIGURE_DEPENDS "src/gnc/utils/*.cpp")
 
 # Drivers
@@ -67,7 +69,7 @@ file(GLOB states CONFIGURE_DEPENDS "src/states/*.cpp")
 # Tasks
 file(GLOB tasks CONFIGURE_DEPENDS "src/tasks/*.cpp")
 file(GLOB tasks_control CONFIGURE_DEPENDS "src/tasks/control/*.cpp")
-file(GLOB tasks_sensing CONFIGURE_DEPENDS "src/tasks/sensing/*.cpp")
+file(GLOB tasks_sensors CONFIGURE_DEPENDS "src/tasks/sensors/*.cpp")
 file(GLOB tasks_system CONFIGURE_DEPENDS "src/tasks/system/*.cpp")
 
 # Tests
@@ -83,7 +85,9 @@ add_executable(samwise-adcs
     ${gnc}
     ${gnc_estimation}
     ${gnc_control}
+    ${gnc_dynamics}
     ${gnc_models}
+    ${gnc_world}
     ${gnc_utils}
 
     # Drivers
@@ -107,7 +111,7 @@ add_executable(samwise-adcs
     # Tasks
     ${tasks}
     ${tasks_control}
-    ${tasks_sensing}
+    ${tasks_sensors}
     ${tasks_system}
     
     # Tests

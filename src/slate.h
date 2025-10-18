@@ -46,8 +46,8 @@ typedef struct samwise_adcs_slate
     // ========================================================================
 
     // Magnetometer
-    bool magmeter_alive;
-    bool magmeter_data_valid;
+    bool magnetometer_alive;
+    bool magnetometer_data_valid;
     absolute_time_t b_body_read_time;
     float3 b_body_raw; // magnetic field in body frame (values in nT)
     float3 b_body;     // (unit vector)
@@ -80,9 +80,9 @@ typedef struct samwise_adcs_slate
     // IMU
     float imu_alive;
     float imu_data_valid;
-    float3 w_body_raw;      // [rad/s] in body frame
-    float3 w_body_filtered; // [rad/s] in body frame, low-pass filtered
-    float w_mag;            // [rad/s] overall magnitude in body frame
+    float3 w_body_raw; // [rad/s] in body frame, raw reading
+    float3 w_body;     // [rad/s] in body frame, low-pass filtered
+    float w_mag;       // [rad/s] overall magnitude in body frame
 
     // Power monitor
     float adcs_power;         // [W] ADCS board power consumption
@@ -141,9 +141,7 @@ typedef struct samwise_adcs_slate
         q_eci_to_body; // scalar-last x,y,z,w in body frame. no inertia tensor
     float3 p_eci_to_body; // modified Rodrigues parameter from ECI to body frame
     float3 b_gyro_drift;  // gyro drift
-
-    float3 w_body;   // [rad s^-1] in body frame
-    float3 tau_body; // [Nm] total torque in body frame
+    float3 tau_body;      // [Nm] total torque in body frame
 
     // Attitude control
     float3 tau_control_principal; // [Nm] total torque in principal axes frame

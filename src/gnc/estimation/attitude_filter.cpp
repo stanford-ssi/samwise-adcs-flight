@@ -399,6 +399,13 @@ void attitude_filter_propagate(slate_t *slate)
     }
     // Update log frobenius norm of attitude covariance matrix
     slate->P_log_frobenius = mat_log_frobenius(slate->P, 6);
+
+    LOG_DEBUG("[ekf] q_eci_to_body = [%.6f, %.6f, %.6f, %.6f]",
+              slate->q_eci_to_body[0], slate->q_eci_to_body[1],
+              slate->q_eci_to_body[2], slate->q_eci_to_body[3]);
+    LOG_DEBUG("[ekf] b_gyro_drift = [%.6f, %.6f, %.6f]", slate->b_gyro_drift[0],
+              slate->b_gyro_drift[1], slate->b_gyro_drift[2]);
+    LOG_DEBUG("[ekf] P_log_frobenius = %.6f", slate->P_log_frobenius);
 }
 
 /**
@@ -499,6 +506,13 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
 
     // Update log frobenius norm
     slate->P_log_frobenius = mat_log_frobenius(slate->P, 6);
+
+    LOG_DEBUG("[ekf] q_eci_to_body = [%.6f, %.6f, %.6f, %.6f]",
+              slate->q_eci_to_body[0], slate->q_eci_to_body[1],
+              slate->q_eci_to_body[2], slate->q_eci_to_body[3]);
+    LOG_DEBUG("[ekf] b_gyro_drift = [%.6f, %.6f, %.6f]", slate->b_gyro_drift[0],
+              slate->b_gyro_drift[1], slate->b_gyro_drift[2]);
+    LOG_DEBUG("[ekf] P_log_frobenius = %.6f", slate->P_log_frobenius);
 }
 
 #ifdef TEST

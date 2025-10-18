@@ -39,7 +39,7 @@ void bdot_task_dispatch(slate_t *slate)
     LOG_INFO("[bdot] Bdot task dispatching...");
 
     // If no new data flagged by sensor task, do nothing
-    if (!(slate->bdot_data_has_updated && slate->magmeter_data_valid))
+    if (!(slate->bdot_data_has_updated && slate->magnetometer_data_valid))
     {
         LOG_DEBUG("[bdot] No new data - returning!");
         return;

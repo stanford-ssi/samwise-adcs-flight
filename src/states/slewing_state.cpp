@@ -7,7 +7,11 @@
 
 #include "slewing_state.h"
 
-#include "tasks/sensing/sensors_task.h"
+#include "tasks/sensors/gps_world_task.h"
+#include "tasks/sensors/imu_task.h"
+#include "tasks/sensors/magnetometer_task.h"
+#include "tasks/sensors/power_monitor_task.h"
+#include "tasks/sensors/sun_sensor_task.h"
 #include "tasks/system/telemetry_task.h"
 #include "tasks/system/watchdog_task.h"
 
@@ -29,8 +33,10 @@ sched_state_t *slewing_get_next_state(slate_t *slate)
     return &slewing_state;
 }
 
-sched_state_t slewing_state = {
-    .name = "slewing",
-    .num_tasks = 3,
-    .task_list = {&sensors_task, &telemetry_task, &watchdog_task},
-    .get_next_state = &slewing_get_next_state};
+sched_state_t slewing_state = {.name = "slewing",
+                               .num_tasks = 7,
+                               .task_list = {&imu_task, &magnetometer_task,
+                                             &sun_sensor_task, &gps_world_task,
+                                             &power_monitor_task,
+                                             &telemetry_task, &watchdog_task},
+                               .get_next_state = &slewing_get_next_state};
