@@ -10,4 +10,5 @@
 #include "slate.h"
 
 bool watchdog_init(slate_t *slate);
-void watchdog_feed(slate_t *slate);
+
+void watchdog_pet(slate_t *slate);

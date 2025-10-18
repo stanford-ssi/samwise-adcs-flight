@@ -1,8 +1,15 @@
 #!/bin/bash
 
-# Get the list of files that were staged in the original commit
-staged_files=$(git diff --cached --name-only)
-./format_all.sh
+# Get the list of C/C++ files that were staged
+staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(cpp|c|h)$')
 
-# Re-add only the files that were originally staged AND still exist
-echo "$staged_files" | xargs -I {} sh -c 'test -f "{}" && git add "{}"'
+if [ -n "$staged_files" ]; then
+    echo "Formatting staged files..."
+    echo "$staged_files" | xargs clang-format -i
+    echo "Done!"
+
+    # Re-add the formatted files
+    echo "$staged_files" | xargs git add
+fi
+
+exit 0

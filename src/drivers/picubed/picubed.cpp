@@ -104,7 +104,7 @@ static bool handle_command_byte(slate_t *slate, char command)
     {
         case ADCS_SEND_TELEM:
             // Send telemetry
-            send_packet(&slate->telem);
+            send_packet(&slate->telemetry);
             return true;
         case ADCS_HEALTH_CHECK:
             // Send a sentinel byte to report as healthy

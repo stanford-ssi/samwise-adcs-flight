@@ -13,6 +13,12 @@
 #include "drivers/magnetorquers/magnetorquers.h"
 #include "pico/time.h"
 
+/**
+ * @brief Initialize actuators task. Initializes magnetorquer PWM and sets
+ * reaction wheel states to safe defaults.
+ *
+ * @param slate Pointer to the current satellite slate
+ */
 void actuators_task_init(slate_t *slate)
 {
     LOG_INFO("[actuators] Initializing actuators...");
@@ -25,20 +31,26 @@ void actuators_task_init(slate_t *slate)
     LOG_INFO("[actuators] Reaction wheel control ready");
 
     // Initialize actuator request values to safe defaults
-    slate->magdrv_requested = float3(0.0f, 0.0f, 0.0f);
+    slate->magnetorquer_moment = float3(0.0f, 0.0f, 0.0f);
 
     for (int i = 0; i < NUM_REACTION_WHEELS; i++)
     {
-        slate->reaction_wheels_w_requested[i] = 0.0f;
+        slate->w_reaction_wheels_requested[i] = 0.0f;
     }
 
     LOG_INFO("[actuators] Actuator initialization complete!");
 }
 
+/**
+ * @brief Dispatch actuators task. Drives magnetorquers and reaction wheels
+ * based on requests in the slate.
+ *
+ * @param slate Pointer to the current satellite slate
+ */
 void actuators_task_dispatch(slate_t *slate)
 {
     // Drive magnetorquers based on slate requests
-    bool mag_result = do_magnetorquer_pwm(slate->magdrv_requested);
+    bool mag_result = do_magnetorquer_pwm(slate->magnetorquer_moment);
     slate->magnetorquers_running = mag_result;
 
     if (!mag_result)
@@ -60,15 +72,16 @@ void actuators_task_dispatch(slate_t *slate)
 
     for (int i = 0; i < NUM_REACTION_WHEELS; i++)
     {
-        slate->reaction_wheel_speeds[i] = slate->reaction_wheels_w_requested[i];
+        slate->w_reaction_wheels_requested[i] =
+            slate->w_reaction_wheels_requested[i];
     }
 }
 
-sched_task_t actuators_task = {
-    .name = "actuators",
-    .dispatch_period_ms = 50, // Run at 20 Hz for responsive actuator control
-    .task_init = &actuators_task_init,
-    .task_dispatch = &actuators_task_dispatch,
+sched_task_t actuators_task = {.name = "actuators",
+                               .dispatch_period_ms =
+                                   50, // TODO: determine appropriate rate
+                               .task_init = &actuators_task_init,
+                               .task_dispatch = &actuators_task_dispatch,
 
-    /* Set to an actual value on init */
-    .next_dispatch = 0};
+                               /* Set to an actual value on init */
+                               .next_dispatch = 0};

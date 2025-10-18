@@ -63,6 +63,9 @@
 #define SAMWISE_ADCS_WATCHDOG_FEED (38)
 #define SAMWISE_ADCS_EN_PD (39)
 
+// TODO: these will be updated in version 1.8 of the board
+// these can just be renamed or something similar because the
+// drivers work agnostic of which photodiode is used
 #define SAMWISE_ADCS_PD_YP1 (40)
 #define SAMWISE_ADCS_PD_YP2 (41)
 #define SAMWISE_ADCS_PD_ZP1 (42)

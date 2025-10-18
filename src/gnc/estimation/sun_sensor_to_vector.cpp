@@ -1,5 +1,5 @@
 /**
- * @author Lundeen Cahilly, Chen Li, and Tactical Cinderblock
+ * @author Lundeen Cahilly, Chen Li, Tactical Cinderblock
  * @date 2025-09-14
  *
  * Convert sun sensor readings to sun vector :3
@@ -11,183 +11,16 @@
 #include "macros.h"
 #include "pico/stdlib.h"
 
-// Global storage for computed pseudoinverse (3xNUM_SUN_SENSORS)
-static float sensor_pseudoinverse[3][NUM_SUN_SENSORS];
-static bool pseudoinverse_computed = false;
-
-// Shadow detection parameters
+// Shadow detection parameters (TODO: store somewhere else?)
 const float SHADOW_THRESHOLD =
     0.05f; // relative intensity threshold for shadow detection
 const float MIN_WEIGHT = 0.01f; // minimum weight for any sensor
-const uint16_t ACTIVE_THRESHOLD = 50;
+const uint16_t ACTIVE_THRESHOLD =
+    50; // TODO: determine what makes sense for our system in LEO
 
-bool solve_sun_vector_ransac(float normals[][3], float signals[], int n_sensors,
-                             float3 &best_sun_vector, int &best_inlier_count);
+bool ransac_sun_vector(float normals[][3], float signals[], int n_sensors,
+                       float3 &best_sun_vector, int &best_inlier_count);
 bool compute_sun_vector_ransac(slate_t *slate);
-bool compute_sun_vector_pseudoinverse(slate_t *slate);
-
-/**
- * Main function to convert sun sensor readings to sun vector.
- * Allows us to determine which algorithm to use in testing.
- * TODO: remove this overhead
- *
- * @param slate Pointer to the slate structure containing sun sensor data.
- */
-void sun_sensors_to_vector(slate_t *slate)
-{
-    compute_sun_vector_ransac(slate);
-    // compute_sun_vector_pseudoinverse(slate);
-}
-
-/**
- * Compute the sun vector using the pseudoinverse method, where
- * sun_vector = N_pinv * I
- *
- * @param slate Pointer to the slate structure containing sun sensor data.
- * @return true if the sun vector is successfully computed and valid, false
- * otherwise.
- */
-bool compute_sun_vector_pseudoinverse(slate_t *slate)
-{
-    // Use all sensor readings
-    float sensor_readings[NUM_SUN_SENSORS];
-    for (int i = 0; i < NUM_SUN_SENSORS; i++)
-    {
-        sensor_readings[i] =
-            static_cast<float>(slate->sun_sensors_intensities[i]);
-    }
-
-    // Find max intensity for threshold checks
-    float I_max = sensor_readings[0];
-    for (int i = 1; i < NUM_SUN_SENSORS; i++)
-    {
-        if (sensor_readings[i] > I_max)
-        {
-            I_max = sensor_readings[i];
-        }
-    }
-
-    // Check for saturation
-    // TODO: figure out what to do in this case
-    if (I_max >= SUN_SENSOR_CLIP_VALUE)
-    {
-        // Saturation detected - set sun vector to zero and flag as invalid
-        slate->sun_vector_body = {0, 0, 0};
-        slate->sun_vector_valid = false;
-        return false;
-    }
-
-    // Define opposite sensor pairs that should never both be active
-    const int opposite_pairs[][2] = {
-        {0, 6},   {1, 5},  {2, 4}, {3, 7}, // pyramid opposites
-        {8, 10},  {9, 11},                 // Y+ vs Y- pairs
-        {12, 14}, {13, 15}                 // Z+ vs Z- pairs
-    };
-    const int num_opposite_pairs = 8;
-
-    // Check if opposites are active at same time (not meant to be possible)
-    bool exclude_sensor[NUM_SUN_SENSORS] = {false};
-    for (int i = 0; i < num_opposite_pairs; i++)
-    {
-        int sensor1 = opposite_pairs[i][0];
-        int sensor2 = opposite_pairs[i][1];
-
-        if (sensor_readings[sensor1] > ACTIVE_THRESHOLD &&
-            sensor_readings[sensor2] > ACTIVE_THRESHOLD)
-        {
-            exclude_sensor[sensor1] = true;
-            exclude_sensor[sensor2] = true;
-        }
-    }
-
-    // Create 6 differential readings by subtracting opposite sensors
-    float sensor_readings_unique[6];
-
-    // First 4 are pyramid differentials (positive - negative)
-    sensor_readings_unique[0] =
-        sensor_readings[0] - sensor_readings[6]; // 0-6 diff
-    sensor_readings_unique[1] =
-        sensor_readings[1] - sensor_readings[5]; // 1-5 diff
-    sensor_readings_unique[2] =
-        sensor_readings[2] - sensor_readings[4]; // 2-4 diff
-    sensor_readings_unique[3] =
-        sensor_readings[3] - sensor_readings[7]; // 3-7 diff
-
-    // Y differential: average(Y+) - average(Y-)
-    sensor_readings_unique[4] = (sensor_readings[8] + sensor_readings[9]) / 2 -
-                                (sensor_readings[10] + sensor_readings[11]) / 2;
-
-    // Z differential: average(Z+) - average(Z-)
-    sensor_readings_unique[5] =
-        (sensor_readings[12] + sensor_readings[13]) / 2 -
-        (sensor_readings[14] + sensor_readings[15]) / 2;
-
-    // Use the positive direction normals for each differential pair
-    int normals_idx[6] = {0, 1, 2, 3, 8, 12};
-
-    // Only consider readings above threshold (differential readings can be
-    // negative)
-    for (int i = 0; i < 6; i++)
-    {
-        if (fabs(sensor_readings_unique[i]) < ACTIVE_THRESHOLD)
-        {
-            sensor_readings_unique[i] = 0.0f;
-        }
-    }
-
-    // create a matrix of normals and signals excluding zero sensors
-    float normals[6][3];
-    float signals[6];
-    int valid_count = 0;
-    for (int i = 0; i < 6; i++)
-    {
-        if (fabs(sensor_readings_unique[i]) > 1e-6f)
-        {
-            for (int j = 0; j < 3; j++)
-            {
-                normals[valid_count][j] = SUN_SENSOR_NORMALS[normals_idx[i]][j];
-            }
-            signals[valid_count] = sensor_readings_unique[i];
-            valid_count++;
-        }
-    }
-
-    // make sure top three are not zero
-    if (valid_count < 3)
-    {
-        // Degenerate case - set to zero and flag as invalid
-        slate->sun_vector_body = {0.0f, 0.0f, 0.0f};
-        slate->sun_vector_valid = false;
-        return false;
-    }
-
-    // compute psuedoinverse of valid sensors
-    float sensor_pseudoinverse[3 * valid_count];
-    mat_pseudoinverse((float *)normals, sensor_pseudoinverse, valid_count, 3);
-
-    // Compute sun vector
-    float sun_vector_3[3] = {0, 0, 0};
-    mat_mul(sensor_pseudoinverse, signals, sun_vector_3, 3, valid_count, 1);
-    float3 sun_vector = {sun_vector_3[0], sun_vector_3[1], sun_vector_3[2]};
-
-    // Normalize to unit vector
-    sun_vector = normalize(sun_vector);
-    float magnitude = length(sun_vector);
-
-    if (magnitude > 1e-6f)
-    {
-        slate->sun_vector_body = sun_vector;
-        slate->sun_vector_valid = true;
-        return true;
-    }
-    else
-    {
-        // Degenerate case - set to zero and flag as invalid
-        slate->sun_vector_body = {0.0f, 0.0f, 0.0f};
-        slate->sun_vector_valid = false;
-        return false;
-    }
-}
 
 /**
  * Compute the sun vector using the RANSAC method.
@@ -196,14 +29,15 @@ bool compute_sun_vector_pseudoinverse(slate_t *slate)
  * @return true if the sun vector is successfully computed and valid, false
  * otherwise.
  */
-bool compute_sun_vector_ransac(slate_t *slate)
+void sun_sensors_to_vector(slate_t *slate)
 {
     // Use all sensor readings
+    // TODO: only consider sensors flagged as valid
     float sensor_readings[NUM_SUN_SENSORS];
     for (int i = 0; i < NUM_SUN_SENSORS; i++)
     {
         sensor_readings[i] =
-            static_cast<float>(slate->sun_sensors_intensities[i]);
+            static_cast<float>(slate->sun_sensor_intensities[i]);
     }
 
     // Find max intensity for threshold checks
@@ -223,7 +57,7 @@ bool compute_sun_vector_ransac(slate_t *slate)
         // Saturation detected - set sun vector to zero and flag as invalid
         slate->sun_vector_body = {0, 0, 0};
         slate->sun_vector_valid = false;
-        return false;
+        return;
     }
 
     // Define opposite sensor pairs that should never both be active
@@ -258,11 +92,13 @@ bool compute_sun_vector_ransac(slate_t *slate)
     }
 
     // Averaging redundant +Y/-Y sensors
-    // TODO: do something smarter here because we're using RANSAC
+    // TODO: do something smarter here because we're using RANSAC (update
+    // 10/15/25: averaging is really dumb!!)
     sensor_readings_unique[8] = (sensor_readings[8] + sensor_readings[9]) / 2;
     sensor_readings_unique[9] = (sensor_readings[10] + sensor_readings[11]) / 2;
 
-    // Including +Z/-Z sensors (and averaging as above)
+    // Including +Z/-Z sensors (and averaging as above) TODO: averaging is
+    // really dumb!!
     sensor_readings_unique[10] =
         (sensor_readings[12] + sensor_readings[13]) / 2;
     sensor_readings_unique[11] =
@@ -302,26 +138,26 @@ bool compute_sun_vector_ransac(slate_t *slate)
         // Degenerate case - set to zero and flag as invalid
         slate->sun_vector_body = {0.0f, 0.0f, 0.0f};
         slate->sun_vector_valid = false;
-        return false;
+        return;
     }
 
     // Use RANSAC for robust sun vector estimation
     float3 sun_vector;
     int inlier_count;
 
-    if (solve_sun_vector_ransac(normals, signals, valid_count, sun_vector,
-                                inlier_count))
+    if (ransac_sun_vector(normals, signals, valid_count, sun_vector,
+                          inlier_count))
     {
         slate->sun_vector_body = sun_vector;
         slate->sun_vector_valid = true;
-        return true;
+        return;
     }
     else
     {
         // RANSAC failed - set to zero and flag as invalid
         slate->sun_vector_body = {0.0f, 0.0f, 0.0f};
         slate->sun_vector_valid = false;
-        return false;
+        return;
     }
 }
 
@@ -335,8 +171,8 @@ bool compute_sun_vector_ransac(slate_t *slate)
  * @param best_inlier_count Output: number of inliers for best solution
  * @return true if successful, false if failed
  */
-bool solve_sun_vector_ransac(float normals[][3], float signals[], int n_sensors,
-                             float3 &best_sun_vector, int &best_inlier_count)
+bool ransac_sun_vector(float normals[][3], float signals[], int n_sensors,
+                       float3 &best_sun_vector, int &best_inlier_count)
 {
     if (n_sensors < 3)
     {
@@ -433,6 +269,372 @@ bool solve_sun_vector_ransac(float normals[][3], float signals[], int n_sensors,
             best_sun_vector = sun_vec;
         }
     }
-
     return best_inlier_count >= 3; // Need at least 3 inliers for valid solution
 }
+
+#ifdef TEST
+// TODO: add saturation test case
+// Gaussian noise standard deviation for sensor readings
+const float SENSOR_NOISE_STDDEV = 10.0f;    // Set to 0.0f for no noise
+const float FLOATING_NOISE_STDDEV = 500.0f; // High noise for floating sensors
+
+// Sensor failure modes
+enum failure_type
+{
+    NONE = 0,    // Normal operation
+    LOW = 1,     // Always reads 0 (dead sensor)
+    FLOATING = 2 // Stuck at ~half clip value with high noise
+};
+
+// Global test cases used by both functions
+struct test_case
+{
+    float3 sun_dir;
+    bool occluded[NUM_SUN_SENSORS];
+    failure_type failures[NUM_SUN_SENSORS];
+    const char *description;
+};
+
+const struct test_case test_cases[] = {
+    // No occlusion cases
+    {{1.0f, 0.0f, 0.0f},
+     {false, false, false, false, false, false, false, false, false, false,
+      false, false, false, false, false, false},
+     {NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+      NONE, NONE, NONE, NONE},
+     "Sun +X, no occlusion"},
+
+    {{0.0f, 1.0f, 0.2f},
+     {false, false, false, false, false, false, false, false, false, false,
+      false, false, false, false, false, false},
+     {NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+      NONE, NONE, NONE, NONE},
+     "Sun +Y and +Z, no occlusion"},
+
+    // No occlusions but underdetermined
+    {{0.0f, 1.0f, 0.0f},
+     {false, false, false, false, false, false, false, false, false, false,
+      false, false, false, false, false, false},
+     {NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+      NONE, NONE, NONE, NONE},
+     "Sun +Y, no occlusion but underdetermined"},
+
+    // Multiple sensor occlusions
+    {{3.15889f, -6.26579f, 3.17831f},
+     {true, false, false, true, true, true, false, false, false, false, false,
+      false, false, false, false, false},
+     {NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+      NONE, NONE, NONE, NONE},
+     "4 occluded case (2 unique active)"},
+
+    // Test cases with sensor failures
+    {{1.0f, 0.0f, 0.0f},
+     {false, false, false, false, false, false, false, false, false, false,
+      false, false, false, false, false, false},
+     {NONE, LOW, FLOATING, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+      NONE, NONE, NONE, NONE},
+     "Sun +X with sensor 1 LOW, sensor 2 FLOATING"},
+
+    {{0.0f, 1.0f, 0.2f},
+     {false, false, false, false, false, false, false, false, false, false,
+      false, false, false, false, false, false},
+     {LOW, NONE, NONE, FLOATING, LOW, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+      NONE, NONE, NONE, NONE},
+     "Sun +Y+Z with sensor 1 LOW, sensor 3 FLOATING, sensor 4 LOW, and three "
+     "sensors nominal"},
+
+    {{1.0f, 0.0f, 0.0f},
+     {false, false, false, false, false, false, false, false, false, false,
+      false, false, false, false, false, false},
+     {NONE, FLOATING, FLOATING, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+      NONE, NONE, NONE, NONE, NONE},
+     "Sun +X with sensor 1 FLOATING, sensor 2 FLOATING, two sensors nominal"},
+
+    {{1.0f, 0.0f, 0.0f},
+     {false, false, false, false, false, false, false, false, false, false,
+      false, false, false, false, false, false},
+     {FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING,
+      FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING,
+      FLOATING, FLOATING},
+     "Sun +X with all sensors FLOATING"},
+
+    {{1.0f, 0.0f, 0.0f},
+     {false, false, false, false, false, false, false, false, false, false,
+      false, false, false, false, false, false},
+     {NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, FLOATING, FLOATING,
+      FLOATING, FLOATING, FLOATING, FLOATING, FLOATING, FLOATING},
+     "Sun +X with YZ sensors FLOATING, sun pyramids nominal"},
+};
+
+const int NUM_TEST_CASES = sizeof(test_cases) / sizeof(test_cases[0]);
+
+// Helper function to generate Gaussian noise
+float generate_gaussian_noise(float stddev);
+
+void test_sun_sensor_cases(slate_t *slate)
+{
+    for (int case_num = 0; case_num < NUM_TEST_CASES; case_num++)
+    {
+        printf("=== Test Case %d: %s ===\n", case_num,
+               test_cases[case_num].description);
+
+        // Calculate theoretical sensor values and apply failures
+        for (int i = 0; i < NUM_SUN_SENSORS; i++)
+        {
+            float final_value = 0.0f;
+
+            // Handle failure modes first
+            if (test_cases[case_num].failures[i] == LOW)
+            {
+                // LOW failure: always reads 0
+                final_value = 0.0f;
+            }
+            else if (test_cases[case_num].failures[i] == FLOATING)
+            {
+                // FLOATING failure: stuck at ~half clip value with high noise
+                final_value = SUN_SENSOR_CLIP_VALUE / 2.0f +
+                              generate_gaussian_noise(FLOATING_NOISE_STDDEV);
+            }
+            else if (!test_cases[case_num].occluded[i])
+            {
+                // Normal operation: calculate theoretical value
+                float dot =
+                    SUN_SENSOR_NORMALS[i][0] * test_cases[case_num].sun_dir.x +
+                    SUN_SENSOR_NORMALS[i][1] * test_cases[case_num].sun_dir.y +
+                    SUN_SENSOR_NORMALS[i][2] * test_cases[case_num].sun_dir.z;
+
+                float theoretical = (dot > 0) ? dot * 1e3 : 0.0f;
+
+                // Add normal noise if enabled
+                if (SENSOR_NOISE_STDDEV > 0.0f)
+                {
+                    theoretical += generate_gaussian_noise(SENSOR_NOISE_STDDEV);
+                }
+
+                final_value = theoretical;
+            }
+            else
+            {
+                // Occluded: reads 0
+                final_value = 0.0f;
+            }
+
+            // Clamp to valid sensor range and convert to uint16_t
+            slate->sun_sensor_intensities[i] = (uint16_t)fmaxf(
+                0.0f, fminf((float)SUN_SENSOR_CLIP_VALUE, final_value));
+        }
+
+        // Run estimation
+        sun_sensors_to_vector(slate);
+
+        // Print sensor values
+        printf("Sun sensor readings:\n");
+        for (int i = 0; i < NUM_SUN_SENSORS; i++)
+        {
+            // Calculate theoretical value (pure projection + clipping to 0)
+            float dot =
+                SUN_SENSOR_NORMALS[i][0] * test_cases[case_num].sun_dir.x +
+                SUN_SENSOR_NORMALS[i][1] * test_cases[case_num].sun_dir.y +
+                SUN_SENSOR_NORMALS[i][2] * test_cases[case_num].sun_dir.z;
+            float theoretical = fmaxf(0.0f, dot * 1e3);
+
+            const char *status = "";
+            if (test_cases[case_num].failures[i] == LOW)
+            {
+                status = " (LOW)";
+            }
+            else if (test_cases[case_num].failures[i] == FLOATING)
+            {
+                status = " (FLOATING)";
+            }
+            else if (test_cases[case_num].occluded[i])
+            {
+                status = " (OCCLUDED)";
+            }
+
+            printf("  Sensor %2d: actual=%4d, theoretical=%7.1f%s\n", i,
+                   slate->sun_sensor_intensities[i], theoretical, status);
+        }
+
+        // Calculate angular error
+        if (slate->sun_vector_valid)
+        {
+            // Normalize expected direction
+            float3 expected_normalized =
+                normalize(test_cases[case_num].sun_dir);
+
+            float dot = slate->sun_vector_body.x * expected_normalized.x +
+                        slate->sun_vector_body.y * expected_normalized.y +
+                        slate->sun_vector_body.z * expected_normalized.z;
+
+            // Clamp dot product to valid range for acos
+            dot = fmaxf(-1.0f, fminf(1.0f, dot));
+            float angle_error = acosf(dot) * RAD_TO_DEG;
+
+            printf("Expected: [%.5f, %.5f, %.5f]\n",
+                   test_cases[case_num].sun_dir.x,
+                   test_cases[case_num].sun_dir.y,
+                   test_cases[case_num].sun_dir.z);
+            printf("Result:   [%.5f, %.5f, %.5f]\n", slate->sun_vector_body.x,
+                   slate->sun_vector_body.y, slate->sun_vector_body.z);
+            printf("Angular error: %.5f degrees\n", angle_error);
+        }
+        else
+        {
+            printf("No sun sensor updated! \n");
+        }
+        printf("\n");
+    }
+}
+
+void test_sun_sensor_monte_carlo(slate_t *slate)
+{
+    const int NUM_MONTE_CARLO_RUNS = 5000;
+
+    // Select which test cases to run Monte Carlo on
+    int selected_cases[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+    int num_cases = sizeof(selected_cases) / sizeof(selected_cases[0]);
+
+    printf("=== Monte Carlo Analysis (%d runs per case) ===\n",
+           NUM_MONTE_CARLO_RUNS);
+
+    for (int case_idx = 0; case_idx < num_cases; case_idx++)
+    {
+        int case_num = selected_cases[case_idx]; // Get actual test case index
+        printf("Case %d: %s\n", case_num, test_cases[case_num].description);
+
+        float total_error = 0.0f;
+        float min_error = INFINITY;
+        float max_error = -INFINITY;
+        int successful_runs = 0;
+        int failed_runs = 0;
+
+        for (int run = 0; run < NUM_MONTE_CARLO_RUNS; run++)
+        {
+            // Apply the same failure mode logic as in test_sun_sensor_cases
+            for (int i = 0; i < NUM_SUN_SENSORS; i++)
+            {
+                float final_value = 0.0f;
+
+                // Handle failure modes first
+                if (test_cases[case_num].failures[i] == LOW)
+                {
+                    // LOW failure: always reads 0
+                    final_value = 0.0f;
+                }
+                else if (test_cases[case_num].failures[i] == FLOATING)
+                {
+                    // FLOATING failure: stuck at ~half clip value with high
+                    // noise
+                    final_value =
+                        SUN_SENSOR_CLIP_VALUE / 2.0f +
+                        generate_gaussian_noise(FLOATING_NOISE_STDDEV);
+                }
+                else if (!test_cases[case_num].occluded[i])
+                {
+                    // Normal operation: calculate theoretical value
+                    float dot = SUN_SENSOR_NORMALS[i][0] *
+                                    test_cases[case_num].sun_dir.x +
+                                SUN_SENSOR_NORMALS[i][1] *
+                                    test_cases[case_num].sun_dir.y +
+                                SUN_SENSOR_NORMALS[i][2] *
+                                    test_cases[case_num].sun_dir.z;
+
+                    float theoretical = (dot > 0) ? dot * 1e3 : 0.0f;
+
+                    // Add normal noise if enabled
+                    if (SENSOR_NOISE_STDDEV > 0.0f)
+                    {
+                        theoretical +=
+                            generate_gaussian_noise(SENSOR_NOISE_STDDEV);
+                    }
+
+                    final_value = theoretical;
+                }
+                else
+                {
+                    // Occluded: reads 0
+                    final_value = 0.0f;
+                }
+
+                // Clamp to valid sensor range and convert to uint16_t
+                slate->sun_sensor_intensities[i] = (uint16_t)fmaxf(
+                    0.0f, fminf((float)SUN_SENSOR_CLIP_VALUE, final_value));
+            }
+
+            // Run estimation
+            sun_sensors_to_vector(slate);
+
+            // Calculate angular error
+            if (slate->sun_vector_valid)
+            {
+                // Normalize expected direction
+                float3 expected_normalized =
+                    normalize(test_cases[case_num].sun_dir);
+
+                float dot = slate->sun_vector_body.x * expected_normalized.x +
+                            slate->sun_vector_body.y * expected_normalized.y +
+                            slate->sun_vector_body.z * expected_normalized.z;
+
+                // Clamp dot product to valid range for acos
+                dot = fmaxf(-1.0f, fminf(1.0f, dot));
+                float angle_error = acosf(dot) * RAD_TO_DEG;
+
+                total_error += angle_error;
+                if (angle_error < min_error)
+                    min_error = angle_error;
+                if (angle_error > max_error)
+                    max_error = angle_error;
+                successful_runs++;
+            }
+            else
+            {
+                failed_runs++;
+            }
+        }
+
+        // Print statistics
+        if (successful_runs > 0)
+        {
+            float avg_error = total_error / successful_runs;
+            float success_rate =
+                (float)successful_runs / NUM_MONTE_CARLO_RUNS * 100.0f;
+            printf("  Success rate: %.1f%% (%d/%d)\n", success_rate,
+                   successful_runs, NUM_MONTE_CARLO_RUNS);
+            printf("  Angular error - Mean: %.6f deg, Min: %.6f deg, Max: %.6f "
+                   "deg\n",
+                   avg_error, min_error, max_error);
+        }
+        else
+        {
+            printf("  No sun vector: 0%% success rate\n");
+        }
+        printf("\n");
+    }
+}
+
+float generate_gaussian_noise(float stddev)
+{
+    static float spare = 0.0f;
+    static bool has_spare = false;
+
+    if (has_spare)
+    {
+        has_spare = false;
+        return spare * stddev;
+    }
+
+    has_spare = true;
+    float u, v, s;
+    do
+    {
+        u = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+        v = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+        s = u * u + v * v;
+    } while (s >= 1.0f || s == 0.0f);
+
+    s = sqrtf(-2.0f * logf(s) / s);
+    spare = v * s;
+    return u * s * stddev;
+}
+#endif

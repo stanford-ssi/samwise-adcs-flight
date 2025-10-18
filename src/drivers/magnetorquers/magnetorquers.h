@@ -8,20 +8,14 @@
 #pragma once
 
 #include "linalg.h"
+
 using namespace linalg::aliases;
 
-// Initialize PWM for magnetorquer control
 void init_magnetorquer_pwm(void);
-
-/**
- * Set PWM duty cycles for magnetorquer control
- *
- * @param float3 magdrv_requested [-1, 1] in principal axes frame
- * @return true if success, false if error
- */
-bool do_magnetorquer_pwm(float3 magdrv_requested);
-
-/**
- * Stop all magnetorquer PWM outputs
- */
+bool do_magnetorquer_pwm(float3 magnetorquer_moment);
 void stop_magnetorquer_pwm(void);
+
+#ifdef TEST
+void magnetorquer_tests_init(void);
+bool magnetorquer_tests_dispatch(void);
+#endif

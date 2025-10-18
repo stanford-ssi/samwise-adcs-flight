@@ -100,6 +100,19 @@ constexpr float3 SATELLITE_INERTIA = {0.01461922201, 0.0412768466,
 // TODO: Add principal axes to body rotation
 
 // ========================================================================
+//          SENSOR NOISE
+// ========================================================================
+// See IMU datasheet:
+// https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmi270-ds000.pdf
+// Choose 0.5 º/s as a rough approximation of large noise sources (bias +
+// temperature)
+constexpr float GYRO_STD_DEV = 0.0087266; // [rad/s]
+
+// TODO: Pick good values
+constexpr float SUN_SENSOR_STD = 0.01;
+constexpr float MAG_SENSOR_STD = 0.01;
+
+// ========================================================================
 //          DESATURATION GAINS
 // ========================================================================
 

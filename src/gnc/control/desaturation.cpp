@@ -11,9 +11,7 @@
 
 #include <cmath>
 
-using namespace linalg::aliases;
-
-// TODO: This file is a rough draft and must be refactored
+// TODO: This file is a very rough draft and must be refactored
 // before other files are connected to it
 
 /**
@@ -140,8 +138,8 @@ calculate_magnetometer_dipole(slate_t *slate,
 
     // Calculate the magnetic dipole moment vector
     float3 magnetic_dipole_moment_vector =
-        cross(slate->b_field_local, desaturation_torque) /
-        (length(slate->b_field_local) * length(slate->b_field_local));
+        cross(slate->b_body, desaturation_torque) /
+        (length(slate->b_body) * length(slate->b_body));
 
     // Return the magnetic dipole moment vector
     return magnetic_dipole_moment_vector;
