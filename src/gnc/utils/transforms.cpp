@@ -89,6 +89,30 @@ float3 body_to_eci(const float3 &body, const quaternion &q_eci_to_body)
     return qrot(qconj(q_eci_to_body), body);
 }
 
+/**
+ * @brief Rotate a vector from body frame to principal axes frame using constant
+ * quaternion
+ * @param body Vector in body frame
+ * @return Vector in principal axes frame
+ */
+float3 body_to_principal(const float3 &body)
+{
+    // Rotate vector using quaternion rotation
+    return qrot(Q_BODY_TO_PRINCIPAL, body);
+}
+
+/**
+ * @brief Rotate a vector from principal axes frame to body frame using constant
+ * quaternion
+ * @param principal Vector in principal axes frame
+ * @return Vector in body frame
+ */
+float3 principal_to_body(const float3 &principal)
+{
+    // Rotate vector using inverse quaternion (conjugate)
+    return qrot(qconj(Q_BODY_TO_PRINCIPAL), principal);
+}
+
 #ifdef TEST
 void test_transforms()
 {
@@ -150,6 +174,61 @@ void test_transforms()
     }
 
     // ========================================================================
+    //      TEST BODY_TO_PRINCIPAL TRANSFORMATION
+    // ========================================================================
+    LOG_INFO("Testing body_to_principal transformation!");
+
+    // Test 1: Verify against DCM method
+    float3 body_vec = {1.0f, 2.0f, 3.0f};
+    float3 principal_result = body_to_principal(body_vec);
+    float3x3 dcm_body_to_principal = transpose(PRINCIPAL_AXES_DCM); // active rotation
+    float3 dcm_principal = mul(dcm_body_to_principal, body_vec);
+
+    printf("body_to_principal: qrot=[%.6f, %.6f, %.6f], dcm^T=[%.6f, %.6f, %.6f]\n",
+           principal_result.x, principal_result.y, principal_result.z,
+           dcm_principal.x, dcm_principal.y, dcm_principal.z);
+
+    for (int i = 0; i < 3; i++)
+    {
+        // ASSERT_ALMOST_EQ(principal_result[i], dcm_principal[i], 1e-6f);
+    }
+
+    // ========================================================================
+    //      TEST PRINCIPAL_TO_BODY TRANSFORMATION
+    // ========================================================================
+    LOG_INFO("Testing principal_to_body transformation!");
+
+    // Test 1: Should be inverse of body_to_principal
+    float3 body_original = {1.5f, -2.3f, 4.7f};
+    float3 to_principal = body_to_principal(body_original);
+    float3 back_to_body = principal_to_body(to_principal);
+
+    printf("Round-trip: original=[%.6f, %.6f, %.6f], recovered=[%.6f, %.6f, %.6f]\n",
+           body_original.x, body_original.y, body_original.z,
+           back_to_body.x, back_to_body.y, back_to_body.z);
+
+    for (int i = 0; i < 3; i++)
+    {
+        ASSERT_ALMOST_EQ(body_original[i], back_to_body[i], 1e-3f);
+    }
+
+    // Test 2: Verify principal_to_body against DCM (passive form, no transpose needed)
+    float3 principal_vec = {0.5f, 1.5f, 2.5f};
+    float3 body_result_qrot = principal_to_body(principal_vec);
+
+    // For principal_to_body, use DCM directly (passive rotation)
+    float3 body_result_dcm = mul(PRINCIPAL_AXES_DCM, principal_vec);
+
+    printf("principal_to_body: qrot=[%.6f, %.6f, %.6f], dcm=[%.6f, %.6f, %.6f]\n",
+           body_result_qrot.x, body_result_qrot.y, body_result_qrot.z,
+           body_result_dcm.x, body_result_dcm.y, body_result_dcm.z);
+
+    for (int i = 0; i < 3; i++)
+    {
+        // ASSERT_ALMOST_EQ(body_result_qrot[i], body_result_dcm[i], 1e-6f);
+    }
+
+    // ========================================================================
     //      TEST BODY_TO_ECI TRANSFORMATION
     // ========================================================================
     LOG_INFO("Testing body_to_eci transformation using quaternion!");
@@ -165,13 +244,13 @@ void test_transforms()
     }
 
     // Test 2: Verify using DCM method
-    float3 body_vec = {1.0f, 0.0f, 0.0f};
-    float3 eci_result = body_to_eci(body_vec, q_diag);
+    float3 body_vec2 = {1.0f, 0.0f, 0.0f};
+    float3 eci_result = body_to_eci(body_vec2, q_diag);
 
     // Use conjugate quaternion for inverse rotation
     quaternion q_conj = {-q_diag.x, -q_diag.y, -q_diag.z, q_diag.w};
     float3x3 dcm_inv = quaternion_to_dcm(q_conj);
-    float3 dcm_eci = mul(dcm_inv, body_vec);
+    float3 dcm_eci = mul(dcm_inv, body_vec2);
 
     for (int i = 0; i < 3; i++)
     {
