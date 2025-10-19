@@ -68,7 +68,7 @@ void sun_sensor_task_init(slate_t *slate)
  */
 void sun_sensor_task_dispatch(slate_t *slate)
 {
-    // --- Read rp2350b ADC (sensors 0-7) --- //
+    // --- Read rp2350b ADC (sensors 0-7: sun pyramids) --- //
     bool rp2350b_adc_alive = slate->sun_sensor_alive[0];
     if (rp2350b_adc_alive)
     {
@@ -99,7 +99,7 @@ void sun_sensor_task_dispatch(slate_t *slate)
             "[sensor] Skipping rp2350b_adc due to invalid initialization!");
     }
 
-    // --- Read ads7830 ADC (sensors 8-15) --- //
+    // --- Read ads7830 ADC (sensors 8-15: Y/Z photodiodes) --- //
     bool ads7830_alive = slate->sun_sensor_alive[8];
     if (ads7830_alive)
     {

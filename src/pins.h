@@ -63,17 +63,15 @@
 #define SAMWISE_ADCS_WATCHDOG_FEED (38)
 #define SAMWISE_ADCS_EN_PD (39)
 
-// TODO: these will be updated in version 1.8 of the board
-// these can just be renamed or something similar because the
-// drivers work agnostic of which photodiode is used
-#define SAMWISE_ADCS_PD_YP1 (40)
-#define SAMWISE_ADCS_PD_YP2 (41)
-#define SAMWISE_ADCS_PD_ZP1 (42)
-#define SAMWISE_ADCS_PD_ZP2 (43)
-#define SAMWISE_ADCS_PD_YM1 (44)
-#define SAMWISE_ADCS_PD_YM2 (45)
-#define SAMWISE_ADCS_PD_ZM1 (46)
-#define SAMWISE_ADCS_PD_ZM2 (47)
+// Sun pyramid sensors connected to RP2350B ADC (board v1.8)
+#define SAMWISE_ADCS_PYRAMID1_1 (40)
+#define SAMWISE_ADCS_PYRAMID1_2 (41)
+#define SAMWISE_ADCS_PYRAMID1_3 (42)
+#define SAMWISE_ADCS_PYRAMID1_4 (43)
+#define SAMWISE_ADCS_PYRAMID2_1 (44)
+#define SAMWISE_ADCS_PYRAMID2_2 (45)
+#define SAMWISE_ADCS_PYRAMID2_3 (46)
+#define SAMWISE_ADCS_PYRAMID2_4 (47)
 
 // Unconnected GPIO pins
 #define SAMWISE_ADCS_GPIO_17 (17)
