@@ -23,9 +23,6 @@ constexpr uint8_t SAMWISE_ADCS_ADC_CHANNELS[8] = {
     SAMWISE_ADCS_PYRAMID1_4, SAMWISE_ADCS_PYRAMID2_1, SAMWISE_ADCS_PYRAMID2_2,
     SAMWISE_ADCS_PYRAMID2_3, SAMWISE_ADCS_PYRAMID2_4};
 
-constexpr float VREF_PYRAMID =
-    VREF_RP2350B_ADC; // Reference voltage for ADC conversion (3.3V)
-
 /**
  * Initialize the sun pyramid sensors by setting up the ADC hardware
  * @return true if initialization successful, false otherwise
@@ -105,9 +102,9 @@ bool rp2350b_adc_get_voltage(uint8_t channel, float *voltage)
 
     // Convert 12-bit ADC value to voltage
     *voltage = ((float)value / (float)MAX_VALUE_RP2350B_ADC) *
-               VREF_PYRAMID; // Scale to 0-3.3V
+               VREF_RP2350B_ADC; // Scale to 0-3.3V
 
-    if (*voltage < 0.0f || *voltage > VREF_PYRAMID)
+    if (*voltage < 0.0f || *voltage > VREF_RP2350B_ADC)
     {
         LOG_ERROR("[rp2350b_adc] Voltage out of range: %f", *voltage);
         return false;
