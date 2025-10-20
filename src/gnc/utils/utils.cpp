@@ -88,7 +88,8 @@ float3x3 quaternion_to_dcm(quaternion q)
     float qz2 = q.z * q.z;
     float qw2 = q.w * q.w;
 
-    // Match linalg library convention (qxdir, qydir, qzdir) with active rotation
+    // Match linalg library convention (qxdir, qydir, qzdir) with active
+    // rotation
     dcm[0][0] = qw2 + qx2 - qy2 - qz2;
     dcm[0][1] = 2.0f * (q.x * q.y + q.z * q.w);
     dcm[0][2] = 2.0f * (q.z * q.x - q.y * q.w);

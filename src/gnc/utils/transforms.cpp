@@ -139,13 +139,16 @@ void test_transforms()
 
     // Debug print
     printf("q_z: [%.6f, %.6f, %.6f, %.6f]\n", q_z.x, q_z.y, q_z.z, q_z.w);
-    printf("qrot result: [%.6f, %.6f, %.6f]\n", body_result.x, body_result.y, body_result.z);
-    printf("DCM result:  [%.6f, %.6f, %.6f]\n", dcm_result.x, dcm_result.y, dcm_result.z);
+    printf("qrot result: [%.6f, %.6f, %.6f]\n", body_result.x, body_result.y,
+           body_result.z);
+    printf("DCM result:  [%.6f, %.6f, %.6f]\n", dcm_result.x, dcm_result.y,
+           dcm_result.z);
 
     // Also check qmat
     float3x3 qmat_result = qmat(q_z);
     float3 qmat_mul = mul(qmat_result, eci_x);
-    printf("qmat result: [%.6f, %.6f, %.6f]\n", qmat_mul.x, qmat_mul.y, qmat_mul.z);
+    printf("qmat result: [%.6f, %.6f, %.6f]\n", qmat_mul.x, qmat_mul.y,
+           qmat_mul.z);
 
     for (int i = 0; i < 3; i++)
     {
@@ -165,8 +168,8 @@ void test_transforms()
     float3 dcm_test = mul(dcm_diag, eci_test);
 
     printf("Test 2: qrot=[%.6f, %.6f, %.6f], dcm=[%.6f, %.6f, %.6f]\n",
-           body_test.x, body_test.y, body_test.z,
-           dcm_test.x, dcm_test.y, dcm_test.z);
+           body_test.x, body_test.y, body_test.z, dcm_test.x, dcm_test.y,
+           dcm_test.z);
 
     for (int i = 0; i < 3; i++)
     {
@@ -181,10 +184,12 @@ void test_transforms()
     // Test 1: Verify against DCM method
     float3 body_vec = {1.0f, 2.0f, 3.0f};
     float3 principal_result = body_to_principal(body_vec);
-    float3x3 dcm_body_to_principal = transpose(PRINCIPAL_AXES_DCM); // active rotation
+    float3x3 dcm_body_to_principal =
+        transpose(PRINCIPAL_AXES_DCM); // active rotation
     float3 dcm_principal = mul(dcm_body_to_principal, body_vec);
 
-    printf("body_to_principal: qrot=[%.6f, %.6f, %.6f], dcm^T=[%.6f, %.6f, %.6f]\n",
+    printf("body_to_principal: qrot=[%.6f, %.6f, %.6f], dcm^T=[%.6f, %.6f, "
+           "%.6f]\n",
            principal_result.x, principal_result.y, principal_result.z,
            dcm_principal.x, dcm_principal.y, dcm_principal.z);
 
@@ -203,25 +208,28 @@ void test_transforms()
     float3 to_principal = body_to_principal(body_original);
     float3 back_to_body = principal_to_body(to_principal);
 
-    printf("Round-trip: original=[%.6f, %.6f, %.6f], recovered=[%.6f, %.6f, %.6f]\n",
-           body_original.x, body_original.y, body_original.z,
-           back_to_body.x, back_to_body.y, back_to_body.z);
+    printf("Round-trip: original=[%.6f, %.6f, %.6f], recovered=[%.6f, %.6f, "
+           "%.6f]\n",
+           body_original.x, body_original.y, body_original.z, back_to_body.x,
+           back_to_body.y, back_to_body.z);
 
     for (int i = 0; i < 3; i++)
     {
         ASSERT_ALMOST_EQ(body_original[i], back_to_body[i], 1e-3f);
     }
 
-    // Test 2: Verify principal_to_body against DCM (passive form, no transpose needed)
+    // Test 2: Verify principal_to_body against DCM (passive form, no transpose
+    // needed)
     float3 principal_vec = {0.5f, 1.5f, 2.5f};
     float3 body_result_qrot = principal_to_body(principal_vec);
 
     // For principal_to_body, use DCM directly (passive rotation)
     float3 body_result_dcm = mul(PRINCIPAL_AXES_DCM, principal_vec);
 
-    printf("principal_to_body: qrot=[%.6f, %.6f, %.6f], dcm=[%.6f, %.6f, %.6f]\n",
-           body_result_qrot.x, body_result_qrot.y, body_result_qrot.z,
-           body_result_dcm.x, body_result_dcm.y, body_result_dcm.z);
+    printf(
+        "principal_to_body: qrot=[%.6f, %.6f, %.6f], dcm=[%.6f, %.6f, %.6f]\n",
+        body_result_qrot.x, body_result_qrot.y, body_result_qrot.z,
+        body_result_dcm.x, body_result_dcm.y, body_result_dcm.z);
 
     for (int i = 0; i < 3; i++)
     {
@@ -263,28 +271,24 @@ void test_transforms()
     LOG_INFO("Testing round-trip transformation consistency!");
 
     // Test with multiple quaternions and vectors
-    float3 test_vectors[] = {
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        {1.0f, 2.0f, 3.0f},
-        {-1.0f, 2.5f, -3.7f}
-    };
+    float3 test_vectors[] = {{1.0f, 0.0f, 0.0f},
+                             {0.0f, 1.0f, 0.0f},
+                             {0.0f, 0.0f, 1.0f},
+                             {1.0f, 2.0f, 3.0f},
+                             {-1.0f, 2.5f, -3.7f}};
 
-    float3 test_axes[] = {
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        normalize(float3(1.0f, 1.0f, 0.0f)),
-        normalize(float3(1.0f, 1.0f, 1.0f))
-    };
+    float3 test_axes[] = {{1.0f, 0.0f, 0.0f},
+                          {0.0f, 1.0f, 0.0f},
+                          {0.0f, 0.0f, 1.0f},
+                          normalize(float3(1.0f, 1.0f, 0.0f)),
+                          normalize(float3(1.0f, 1.0f, 1.0f))};
 
     float test_angles[] = {30.0f, 90.0f, 120.0f, 180.0f, 270.0f};
 
     for (int i = 0; i < 5; i++)
     {
-        quaternion q_test = quaternion_by_axis_angle(test_axes[i],
-                                                      test_angles[i] * DEG_TO_RAD);
+        quaternion q_test =
+            quaternion_by_axis_angle(test_axes[i], test_angles[i] * DEG_TO_RAD);
         for (int j = 0; j < 5; j++)
         {
             float3 original = test_vectors[j];
