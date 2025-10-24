@@ -13,4 +13,10 @@
 
 using namespace linalg::aliases;
 
+void pid_init(slate_t *slate); // call to reset PID controller state
+
 void compute_control_torque_pid(slate_t *slate);
+
+#ifdef TEST
+// put tests here
+#endif
