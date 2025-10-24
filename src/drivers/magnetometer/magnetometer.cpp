@@ -219,8 +219,10 @@ rm3100_error_t rm3100_init(void)
  * It checks if new data is available, converts raw readings to
  * engineering units (microTesla), and applies calibration corrections.
  *
- * @param mag_field Pointer to float3 vector to store calibrated magnetic field
- * in microTesla
+ * @param mag_field_body Pointer to float3 vector to store calibrated,
+ * body-aligned magnetic field in microTesla
+ * @param mag_field_raw Pointer to float3 vector to store uncalibrated,
+ * body-aligned magnetic field LSB (least significant bits)
  * @return rm3100_error_t Error code (RM3100_OK on success)
  */
 rm3100_error_t rm3100_get_reading(float3 *mag_field_body, float3 *mag_field_raw)
@@ -255,34 +257,33 @@ rm3100_error_t rm3100_get_reading(float3 *mag_field_body, float3 *mag_field_raw)
     }
 
     // Convert 24-bit signed values to 32-bit signed integers
-    int32_t raw_x = ((int32_t)raw_data[0] << 16) | ((int32_t)raw_data[1] << 8) |
-                    raw_data[2];
-    int32_t raw_y = ((int32_t)raw_data[3] << 16) | ((int32_t)raw_data[4] << 8) |
-                    raw_data[5];
-    int32_t raw_z = ((int32_t)raw_data[6] << 16) | ((int32_t)raw_data[7] << 8) |
-                    raw_data[8];
+    int32_t raw_x_lsb = ((int32_t)raw_data[0] << 16) |
+                        ((int32_t)raw_data[1] << 8) | raw_data[2];
+    int32_t raw_y_lsb = ((int32_t)raw_data[3] << 16) |
+                        ((int32_t)raw_data[4] << 8) | raw_data[5];
+    int32_t raw_z_lsb = ((int32_t)raw_data[6] << 16) |
+                        ((int32_t)raw_data[7] << 8) | raw_data[8];
 
     // Sign extend from 24-bit to 32-bit
-    if (raw_x & 0x800000)
-        raw_x |= 0xFF000000;
-    if (raw_y & 0x800000)
-        raw_y |= 0xFF000000;
-    if (raw_z & 0x800000)
-        raw_z |= 0xFF000000;
+    if (raw_x_lsb & 0x800000)
+        raw_x_lsb |= 0xFF000000;
+    if (raw_y_lsb & 0x800000)
+        raw_y_lsb |= 0xFF000000;
+    if (raw_z_lsb & 0x800000)
+        raw_z_lsb |= 0xFF000000;
 
-    // Convert to microTesla using scale factor
-    const float scale = 1.0f / RM3100_LSB_PER_UT;
+    // Convert from LSB to microTesla using scale factor
+    const float lsb_to_uT = 1.0f / RM3100_LSB_PER_UT;
 
-    // Adjust for satellite body frame convention: magnetometer reads (+x, -y,
-    // -z) but body frame expects (+x, +y, +z)
-    *mag_field_raw = {raw_x * scale, -raw_y * scale, -raw_z * scale};
+    // 1. Scale
+    // 2. Adjust for satellite body frame convention: magnetometer reads (+x,
+    // -y, -z)
+    //    but body frame expects (+x, +y, +z)
+    *mag_field_raw = {raw_x_lsb * lsb_to_uT, -raw_y_lsb * lsb_to_uT,
+                      -raw_z_lsb * lsb_to_uT};
 
     // Apply calibration to get final corrected reading
     rm3100_apply_calibration(*mag_field_raw, mag_field_body);
-
-    // Normalize the reading to unit vector
-    // Comment out during calibration to keep raw values
-    *mag_field_body = normalize(*mag_field_body);
 
     return RM3100_OK;
 }

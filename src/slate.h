@@ -47,11 +47,10 @@ typedef struct samwise_adcs_slate
 
     // Magnetometer
     bool magnetometer_alive;
-    bool magnetometer_data_valid;
-    absolute_time_t b_body_read_time;
-    float3 b_body;     // magnetic field in body frame (values in nT)
-    float3 b_body_raw; // magnetic field in body frame (values in lsb)
-    float3 b_body_eci; // magnetic field in ECI frame (values in nT)
+    bool magnetometer_data_valid;     // Flag for magnetometer data validity
+    absolute_time_t b_body_read_time; // Time of read [millisecond]
+    float3 b_body;     // magnetic field in body frame [nanotesla]
+    float3 b_body_raw; // uncalibrated magnetic field in body frame [LSB]
 
     // GPS
     bool gps_alive;
