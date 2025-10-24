@@ -15,6 +15,7 @@
 #include "drivers/magnetometer/magnetometer.h"
 #include "drivers/magnetorquers/magnetorquers.h"
 #include "gnc/estimation/attitude_filter.h"
+#include "gnc/utils/transforms.h"
 #include "pico/time.h"
 
 /**
@@ -136,6 +137,9 @@ void magnetometer_task_dispatch(slate_t *slate)
             slate->magnetometer_data_valid = (result == RM3100_OK);
             slate->b_body_read_time = get_absolute_time();
             slate->bdot_data_has_updated = true;
+
+            // TODO: Do I need to normalize?
+            slate->b_body_eci = body_to_eci(slate->b_body, qconj(slate->q_eci_to_body));
 
             LOG_DEBUG("[sensor] b_body = [%.3f, %.3f, %.3f]", slate->b_body.x,
                       slate->b_body.y, slate->b_body.z);
