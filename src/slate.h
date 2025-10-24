@@ -75,7 +75,6 @@ typedef struct samwise_adcs_slate
     // Sun vector
     bool sun_vector_valid;       // true if sun vector is valid
     float3 sun_vector_body;      // (unit vector) in body frame
-    float3 sun_vector_principal; // (unit vector) in principal axes frame
 
     // IMU
     float imu_alive;
@@ -134,7 +133,6 @@ typedef struct samwise_adcs_slate
     int af_init_count; // number of times attitude filter has been initialized
     absolute_time_t af_last_propagate_time; // time of last propagate call
     float P[6 * 6];                         // attitude covariance matrix (6x6)
-                    // used in attitude filter, so no need for principal axes
     float P_log_frobenius; // log frobenius norm of attitude
                            // covariance
     quaternion
@@ -143,15 +141,16 @@ typedef struct samwise_adcs_slate
     float3 b_gyro_drift;  // gyro drift
     float3 tau_body;      // [Nm] total torque in body frame
 
-    // Guidance 
-    quaternion q_desired; // desired attitude quaternion in eci to principal axes frame
-    float3 w_desired;     // [rad/s] desired angular velocity in principal axes frame
-    
+    // Guidance
+    quaternion
+        q_desired;    // desired attitude quaternion in eci to body axes frame
+    float3 w_desired; // [rad/s] desired angular velocity in body axes frame
+
     // Attitude control
-    float3 tau_control_principal; // [Nm] total torque in principal axes frame
-    float3 tau_rw_principal; // [Nm] torque from reaction wheels in principal
-                             // axes frame
-    float3 tau_mt_principal; // [Nm] torque from magnetorquers in principal
+    float3 tau_control_body; // [Nm] total torque in body frame
+    float3 tau_rw_body;      // [Nm] torque from reaction wheels in bodyframe
+    float3 tau_mt_body;      // [Nm] torque from magnetorquers in body frame
+    float3 error_i;          // accumulated integral error for PID controller
 
     // Position
     float3 r_ecef;
