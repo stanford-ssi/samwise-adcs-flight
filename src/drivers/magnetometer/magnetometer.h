@@ -37,7 +37,8 @@ rm3100_error_t rm3100_init(void);
  * Get magnetometer reading
  *
  * This function reads the latest magnetometer data from the RM3100.
- * It checks if new data is available and returns raw (LSB) and converted (microTesla) readings.
+ * It checks if new data is available and returns raw (LSB) and converted
+ * (microTesla) readings.
  *
  * @param mag_field_body Pointer to float3 vector to store magnetic field in
  * microTesla
@@ -45,4 +46,5 @@ rm3100_error_t rm3100_init(void);
  * LSB
  * @return rm3100_error_t Error code (RM3100_OK on success)
  */
-rm3100_error_t rm3100_get_reading(float3 *mag_field_body, float3 *mag_field_raw);
+rm3100_error_t rm3100_get_reading(float3 *mag_field_body,
+                                  float3 *mag_field_raw);
