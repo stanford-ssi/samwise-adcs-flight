@@ -143,6 +143,10 @@ typedef struct samwise_adcs_slate
     float3 b_gyro_drift;  // gyro drift
     float3 tau_body;      // [Nm] total torque in body frame
 
+    // Guidance 
+    quaternion q_desired; // desired attitude quaternion in eci to principal axes frame
+    float3 w_desired;     // [rad/s] desired angular velocity in principal axes frame
+    
     // Attitude control
     float3 tau_control_principal; // [Nm] total torque in principal axes frame
     float3 tau_rw_principal; // [Nm] torque from reaction wheels in principal
