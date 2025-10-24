@@ -29,7 +29,7 @@ constexpr float3 MAX_TORQUE = {0.0f, 0.0f,
 /**
  * Reset PID controller state (clears integral term)
  * Call this when starting a new maneuver or switching control modes
- * 
+ *
  * @param slate Pointer to the slate structure
  */
 void pid_init(slate_t *slate)
