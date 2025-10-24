@@ -61,6 +61,8 @@ void gps_world_task_dispatch(slate_t *slate)
     bool result =
         gps_get_data(&gps_data); // Only returns true if valid data AND fix
 
+    // Change result to false if the timestamp is expired
+
     if (result)
     {
         slate->gps_lat = gps_data.latitude;
