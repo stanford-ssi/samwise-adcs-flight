@@ -15,6 +15,7 @@
 #include "gnc/utils/transforms.h"
 #include "gnc/world/b_field.h"
 #include "gnc/world/sun_vector.h"
+#include "pico/time.h"
 
 /**
  * @brief Initialize GPS and world model task.
@@ -58,13 +59,13 @@ void gps_world_task_dispatch(slate_t *slate)
     }
 
     gps_data_t gps_data;
-    bool result =
+    bool data_received =
         gps_get_data(&gps_data); // Only returns true if valid data AND fix
 
-    // Change result to false if the timestamp is expired
-
-    if (result)
+    if (data_received)
     {
+        slate->gps_read_time = get_absolute_time();
+
         slate->gps_lat = gps_data.latitude;
         slate->gps_lon = gps_data.longitude;
         slate->gps_alt = gps_data.altitude / 1000.0f; // Convert m to km
@@ -101,9 +102,18 @@ void gps_world_task_dispatch(slate_t *slate)
                   slate->sun_vector_eci.z);
         LOG_DEBUG("[sensor] b_eci = [%.3f, %.3f, %.3f]", slate->b_eci.x,
                   slate->b_eci.y, slate->b_eci.z);
+
+        slate->gps_data_valid = true;
     }
 
-    slate->gps_data_valid = result;
+    // GPS data stays valid within a time frame, but becomes "stale" outside of
+    // it
+    else if (slate->gps_data_valid &&
+             (get_absolute_time() - slate->gps_read_time >
+              GPS_DATA_EXPIRATION_MS * 1000))
+    {
+        slate->gps_data_valid = false;
+    }
 }
 
 sched_task_t gps_world_task = {.name = "gps_world",

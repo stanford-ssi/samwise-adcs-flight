@@ -55,7 +55,7 @@ typedef struct samwise_adcs_slate
     // GPS
     bool gps_alive;
     bool gps_data_valid;
-    absolute_time_t gps_read_time; // time of last GPS read
+    absolute_time_t gps_read_time; // time of last valid/non-stale GPS read
     float gps_lat;                 // º (N+ S-)
     float gps_lon;                 // º (E+ W-)
     float gps_alt;                 // km

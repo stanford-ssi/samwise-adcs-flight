@@ -417,8 +417,6 @@ bool gps_get_data(gps_data_t *data)
     // Copy current data
     *data = current_gps_data;
     return current_gps_data.valid;
-
-    
 }
 
 /**
