@@ -73,8 +73,8 @@ typedef struct samwise_adcs_slate
                                                  // sensors
 
     // Sun vector
-    bool sun_vector_valid;       // true if sun vector is valid
-    float3 sun_vector_body;      // (unit vector) in body frame
+    bool sun_vector_valid;  // true if sun vector is valid
+    float3 sun_vector_body; // (unit vector) in body frame
 
     // IMU
     float imu_alive;
@@ -133,8 +133,8 @@ typedef struct samwise_adcs_slate
     int af_init_count; // number of times attitude filter has been initialized
     absolute_time_t af_last_propagate_time; // time of last propagate call
     float P[6 * 6];                         // attitude covariance matrix (6x6)
-    float P_log_frobenius; // log frobenius norm of attitude
-                           // covariance
+    float P_log_frobenius;                  // log frobenius norm of attitude
+                                            // covariance
     quaternion
         q_eci_to_body; // scalar-last x,y,z,w in body frame. no inertia tensor
     float3 p_eci_to_body; // modified Rodrigues parameter from ECI to body frame

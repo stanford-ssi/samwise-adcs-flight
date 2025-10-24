@@ -3,7 +3,8 @@
  * @date 2025-10-24
  *
  * This file contains the PID control law for attitude control using quaternions
- * See page 10 of this paper https://s3vi.ndc.nasa.gov/ssri-kb/static/resources/Attitude%20Determination%20&%20Control%20System%20Design%20and%20Implementation.pdf
+ * See page 10 of this paper
+ * https://s3vi.ndc.nasa.gov/ssri-kb/static/resources/Attitude%20Determination%20&%20Control%20System%20Design%20and%20Implementation.pdf
  */
 
 #include "pid.h"
@@ -19,8 +20,10 @@ constexpr float Ki = 0.01f; // Integral gain
 constexpr float Kd = 0.05f; // Derivative gain
 
 constexpr float MAX_INTEGRAL_ERROR = 10.0f; // [rad] - prevents integral windup
-constexpr float INTEGRAL_ERROR_THRESHOLD = 30.0f * DEG_TO_RAD; // [rad] - don't integrate when error is large
-constexpr float3 MAX_TORQUE = {0.0f, 0.0f, 0.0f}; // TODO: @nablaxcroissant what is this lol
+constexpr float INTEGRAL_ERROR_THRESHOLD =
+    30.0f * DEG_TO_RAD; // [rad] - don't integrate when error is large
+constexpr float3 MAX_TORQUE = {0.0f, 0.0f,
+                               0.0f}; // TODO: @nablaxcroissant what is this lol
 
 /**
  * Compute the control torque using a PID controller based on quaternion error.
@@ -30,7 +33,8 @@ constexpr float3 MAX_TORQUE = {0.0f, 0.0f, 0.0f}; // TODO: @nablaxcroissant what
  */
 void compute_control_torque_pid(slate_t *slate)
 {
-    // q_err represents the rotation from current to desired, expressed in body frame (active)
+    // q_err represents the rotation from current to desired, expressed in body
+    // frame (active)
     quaternion q_err = qmul(qconj(slate->q_eci_to_body), slate->q_desired);
 
     // Ensure shortest path
@@ -46,7 +50,8 @@ void compute_control_torque_pid(slate_t *slate)
     float3 error_p = angle * axis;
 
     // Compute derivative error
-    float3 error_d = slate->w_desired - slate->w_body; // desired will almost always be zero
+    float3 error_d =
+        slate->w_desired - slate->w_body; // desired will almost always be zero
 
     // Compute integral error with anti-windup
     // Only integrate when error is small enough (conditional integration)
@@ -59,7 +64,8 @@ void compute_control_torque_pid(slate_t *slate)
         float integral_magnitude = length(slate->error_i);
         if (integral_magnitude > MAX_INTEGRAL_ERROR)
         {
-            slate->error_i = slate->error_i * (MAX_INTEGRAL_ERROR / integral_magnitude);
+            slate->error_i =
+                slate->error_i * (MAX_INTEGRAL_ERROR / integral_magnitude);
         }
     }
 
