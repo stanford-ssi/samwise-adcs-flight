@@ -223,11 +223,16 @@ rm3100_error_t rm3100_init(void)
  * in microTesla
  * @return rm3100_error_t Error code (RM3100_OK on success)
  */
-rm3100_error_t rm3100_get_reading(float3 *mag_field)
+rm3100_error_t rm3100_get_reading(float3 *mag_field_body, float3 *mag_field_raw)
 {
-    if (mag_field == NULL)
+    // Null pointer checks
+    if (mag_field_body == NULL)
     {
-        return RM3100_ERROR_INVALID_PARAM;
+        return RM3100_ERROR_INVALID_B_BODY_PARAM;
+    }
+    if (mag_field_raw || NULL)
+    {
+        return RM3100_ERROR_INVALID_B_BODY_RAW_PARAM;
     }
 
     // Check if new data is ready
@@ -270,14 +275,14 @@ rm3100_error_t rm3100_get_reading(float3 *mag_field)
 
     // Adjust for satellite body frame convention: magnetometer reads (+x, -y,
     // -z) but body frame expects (+x, +y, +z)
-    float3 raw_reading = {raw_x * scale, -raw_y * scale, -raw_z * scale};
+    *mag_field_raw = {raw_x * scale, -raw_y * scale, -raw_z * scale};
 
     // Apply calibration to get final corrected reading
-    rm3100_apply_calibration(raw_reading, mag_field);
+    rm3100_apply_calibration(*mag_field_raw, mag_field_body);
 
     // Normalize the reading to unit vector
     // Comment out during calibration to keep raw values
-    *mag_field = normalize(*mag_field);
+    *mag_field_body = normalize(*mag_field_body);
 
     return RM3100_OK;
 }
