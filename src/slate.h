@@ -50,7 +50,8 @@ typedef struct samwise_adcs_slate
     bool magnetometer_data_valid;     // Flag for magnetometer data validity
     absolute_time_t b_body_read_time; // Time of read [millisecond]
     float3 b_body;     // magnetic field in body frame [nanotesla]
-    float3 b_body_raw; // uncalibrated magnetic field in body frame [LSB]
+    float3 b_body_raw; // uncalibrated magnetic field in body frame [LSB / least
+                       // significant bits]
 
     // GPS
     bool gps_alive;
