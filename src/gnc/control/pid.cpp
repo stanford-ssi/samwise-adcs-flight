@@ -19,9 +19,10 @@ constexpr float Kp = 0.1f;  // Proportional gain
 constexpr float Ki = 0.01f; // Integral gain
 constexpr float Kd = 0.05f; // Derivative gain
 
-constexpr float MAX_INTEGRAL_ERROR = 10.0f; // [rad] - prevents integral windup
 constexpr float INTEGRAL_ERROR_THRESHOLD =
     30.0f * DEG_TO_RAD; // [rad] - don't integrate when error is large
+constexpr float INTEGRAL_ERROR_DECAY_RATE =
+    0.95f; // fraction of integral error to decay per second (TODO: tune)
 constexpr float3 MAX_TORQUE = {0.0f, 0.0f,
                                0.0f}; // TODO: @nablaxcroissant what is this lol
 
@@ -69,15 +70,8 @@ void compute_control_torque_pid(slate_t *slate)
     float error_magnitude = length(error_p);
     if (error_magnitude < INTEGRAL_ERROR_THRESHOLD)
     {
-        slate->error_i += error_p;
-
-        // Clamp integral to prevent windup
-        float integral_magnitude = length(slate->error_i);
-        if (integral_magnitude > MAX_INTEGRAL_ERROR)
-        {
-            slate->error_i =
-                slate->error_i * (MAX_INTEGRAL_ERROR / integral_magnitude);
-        }
+        // Slide window integral error forward in time via decay
+        slate->error_i = error_p + slate->error_i * INTEGRAL_ERROR_DECAY_RATE;
     }
 
     slate->tau_control_body = Kp * error_p + Ki * slate->error_i - Kd * error_d;
