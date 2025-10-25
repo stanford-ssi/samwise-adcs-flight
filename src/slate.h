@@ -99,8 +99,8 @@ typedef struct samwise_adcs_slate
     float3 magnetorquer_moment; // magnetic moment [-1.0 to 1.0] in body frame
 
     // Reaction wheels
-    bool
-        reaction_wheels_running; // true if reaction wheels are currently active
+    bool reaction_wheels_enabled; // true if reaction wheels are enabled
+    bool reaction_wheels_running; // true if reaction wheels are currently active
     float w_reaction_wheels_requested[NUM_REACTION_WHEELS]; // [rad/s] in body
                                                             // frame
     float w_reaction_wheels[NUM_REACTION_WHEELS]; // [rad/s] in body frame, read
