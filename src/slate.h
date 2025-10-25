@@ -11,7 +11,7 @@
 
 #pragma once
 
-#include "adcs_packet.h"
+#include "packets.h"
 #include "constants.h"
 #include "linalg.h"
 #include "macros.h"
@@ -34,6 +34,8 @@ typedef struct samwise_adcs_slate
 
     // Telemetry
     adcs_packet_t telemetry;
+    motor_packet_tx_t motor_telemetry_tx;
+    motor_packet_rx_t motor_telemetry_rx;
 
     // Watchdog
     bool watchdog_alive;
@@ -99,8 +101,8 @@ typedef struct samwise_adcs_slate
     float3 magnetorquer_moment; // magnetic moment [-1.0 to 1.0] in body frame
 
     // Reaction wheels
-    bool reaction_wheels_enabled; // true if reaction wheels are enabled
-    bool reaction_wheels_running; // true if reaction wheels are currently active
+    bool reaction_wheels_enabled[NUM_REACTION_WHEELS]; // true if reaction wheels are enabled
+    bool reaction_wheels_running[NUM_REACTION_WHEELS]; // true if reaction wheels are currently active
     float w_reaction_wheels_requested[NUM_REACTION_WHEELS]; // [rad/s] in body
                                                             // frame
     float w_reaction_wheels[NUM_REACTION_WHEELS]; // [rad/s] in body frame, read
