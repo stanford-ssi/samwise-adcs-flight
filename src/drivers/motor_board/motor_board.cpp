@@ -87,9 +87,9 @@ void motor_board_uart_init()
     gpio_set_function(SAMWISE_ADCS_TX_TO_MOTOR, GPIO_FUNC_UART);
     gpio_set_function(SAMWISE_ADCS_RX_FROM_MOTOR, GPIO_FUNC_UART);
 
-    LOG_DEBUG("[motor-uart] UART initialized: baud=%d, TX=GPIO%d, RX=GPIO%d",
-              MOTOR_BOARD_UART_BAUD, SAMWISE_ADCS_TX_TO_MOTOR,
-              SAMWISE_ADCS_RX_FROM_MOTOR);
+    LOG_INFO("[motor-uart] UART initialized: baud=%d, TX=GPIO%d, RX=GPIO%d",
+             MOTOR_BOARD_UART_BAUD, SAMWISE_ADCS_TX_TO_MOTOR,
+             SAMWISE_ADCS_RX_FROM_MOTOR);
 }
 
 /**
@@ -118,7 +118,7 @@ bool motor_board_uart_receive(slate_t *slate)
     if (bytes_read != sizeof(motor_packet_rx_t))
     {
         LOG_DEBUG("[motor-uart] Incomplete packet received: %u/%u bytes",
-                 bytes_read, sizeof(motor_packet_rx_t));
+                  bytes_read, sizeof(motor_packet_rx_t));
         return false;
     }
 
@@ -147,12 +147,10 @@ bool motor_board_uart_transmit(slate_t *slate)
 {
     const uint8_t *tx_data = (const uint8_t *)&slate->motor_telemetry_tx;
 
-    LOG_DEBUG("[motor-uart] Transmitting packet: size=%u bytes, checksum=0x%08x",
-              sizeof(motor_packet_tx_t), slate->motor_telemetry_tx.checksum);
-
     // Send bytes one by one
     for (uint32_t i = 0; i < sizeof(motor_packet_tx_t); i++)
     {
+        LOG_DEBUG("[motor-uart]  Sending byte %02u: 0x%02x", i, tx_data[i]);
         uart_putc_raw(SAMWISE_ADCS_MOTOR_UART, tx_data[i]);
     }
 

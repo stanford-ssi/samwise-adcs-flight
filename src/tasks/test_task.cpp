@@ -29,6 +29,35 @@ void test_task_init(slate_t *slate)
 void test_task_dispatch(slate_t *slate)
 {
     LOG_INFO("[test] TEST TASK IS DISPATCHING");
+
+    // Populate with dummy data
+    slate->reaction_wheels_enabled[0] = true;
+    slate->reaction_wheels_enabled[1] = true;
+    slate->reaction_wheels_enabled[2] = true;
+    slate->reaction_wheels_enabled[3] = true;
+    slate->w_reaction_wheels_requested[0] = 1000.0f;
+    slate->w_reaction_wheels_requested[1] = 3500.0f;
+    slate->w_reaction_wheels_requested[2] = 1000.0f;
+    slate->w_reaction_wheels_requested[3] = 1000.0f;
+
+    // log telemetry packet
+    LOG_INFO("[test] Reaction Wheel Telemetry:");
+    LOG_INFO("  Checksum: %u", slate->motor_telemetry_tx.checksum);
+    LOG_INFO("  RW0 Enabled: %d, Requested Speed: %.2f rad/s",
+             slate->motor_telemetry_tx.reaction_wheels_enabled[0],
+             slate->motor_telemetry_tx.w_reaction_wheels_requested[0]);
+
+    LOG_INFO("  RW1 Enabled: %d, Requested Speed: %.2f rad/s",
+             slate->motor_telemetry_tx.reaction_wheels_enabled[1],
+             slate->motor_telemetry_tx.w_reaction_wheels_requested[1]);
+
+    LOG_INFO("  RW2 Enabled: %d, Requested Speed: %.2f rad/s",
+             slate->motor_telemetry_tx.reaction_wheels_enabled[2],
+             slate->motor_telemetry_tx.w_reaction_wheels_requested[2]);
+
+    LOG_INFO("  RW3 Enabled: %d, Requested Speed: %.2f rad/s",
+             slate->motor_telemetry_tx.reaction_wheels_enabled[3],
+             slate->motor_telemetry_tx.w_reaction_wheels_requested[3]);
 }
 
 sched_task_t test_task = {.name = "test",

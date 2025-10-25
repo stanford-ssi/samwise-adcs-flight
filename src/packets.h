@@ -1,11 +1,11 @@
 /**
- * @author Niklas Vainio
+ * @author Niklas Vainio, Lundeen Cahilly
  * @date 2025-05-27
  *
- * This file defines the ADCS telemetry struct.
- * IMPORTANT: KEEP UP TO DATE WITH THE PICUBED
+ * This file defines the ADCS telemetry structs.
+ * IMPORTANT: KEEP UP TO DATE WITH THE PICUBED AND MOTOR BOARD
  *
- * Last updated: 05/27/2025
+ * Last updated: 10/25/2025
  *
  * (this must live in a separate file for C include reasons)
  */
@@ -34,7 +34,7 @@ typedef struct __attribute__((packed))
 /*
  * Packet sent to motor board
  */
-typedef struct 
+typedef struct
 {
     bool reaction_wheels_enabled[4];
     float w_reaction_wheels_requested[4];

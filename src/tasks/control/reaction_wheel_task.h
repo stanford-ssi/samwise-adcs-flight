@@ -2,7 +2,7 @@
  * @author Lundeen Cahilly
  * @date 2025-10-24
  *
- * This task is responsible for sending telemetry to the motor board to run 
+ * This task is responsible for sending telemetry to the motor board to run
  * the reaction wheels
  */
 #pragma once
