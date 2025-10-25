@@ -40,10 +40,10 @@ rm3100_error_t rm3100_init(void);
  * It checks if new data is available, converts raw readings to
  * engineering units (microTesla), and applies calibration corrections.
  *
- * @param mag_field_body Pointer to float3 vector to store calibrated,
- * body-aligned magnetic field in microTesla
- * @param mag_field_raw Pointer to float3 vector to store uncalibrated,
- * body-aligned magnetic field LSB (least significant bits)
+ * @param mag_field_body Pointer to float3 vector to store body-aligned magnetic
+ * field unit vector
+ * @param mag_field_raw Pointer to float3 vector to store calibrated,
+ * body-aligned magnetic field in nanoteslas
  * @return rm3100_error_t Error code (RM3100_OK on success)
  */
 rm3100_error_t rm3100_get_reading(float3 *mag_field_body,

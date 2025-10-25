@@ -139,8 +139,8 @@ void magnetometer_task_dispatch(slate_t *slate)
             slate->b_body_read_time = get_absolute_time();
             slate->bdot_data_has_updated = true;
 
-            LOG_DEBUG("[sensor] b_body [nT] = [%.3f, %.3f, %.3f]",
-                      slate->b_body.x, slate->b_body.y, slate->b_body.z);
+            LOG_DEBUG("[sensor] b_body = [%.3f, %.3f, %.3f]", slate->b_body.x,
+                      slate->b_body.y, slate->b_body.z);
 
             // Update attitude filter with magnetometer measurement
             if (result == RM3100_OK && slate->af_is_initialized)
