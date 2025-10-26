@@ -14,7 +14,7 @@
 ## Functions
 ```cpp
 rm3100_error_t rm3100_init(void);                        // Initialize magnetometer
-rm3100_error_t rm3100_get_reading(float3 *mag_field);    // Read 3-axis field in µT
+rm3100_error_t rm3100_get_reading(float3 *mag_field_body, float3 *mag_field_raw);    // Read 3-axis field in µT
 ```
 
 ## Implementation
