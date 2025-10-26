@@ -1,7 +1,6 @@
 /**
  * @author Lundeen Cahilly, Chen Li, Tactical Cinderblock
  * @date 2025-09-14
- *
  * Convert sun sensor readings to sun vector :3
  */
 
@@ -14,134 +13,55 @@
 // Shadow detection parameters (TODO: store somewhere else?)
 const float SHADOW_THRESHOLD =
     0.05f; // relative intensity threshold for shadow detection
-const float MIN_WEIGHT = 0.01f; // minimum weight for any sensor
-const uint16_t ACTIVE_THRESHOLD =
-    50; // TODO: determine what makes sense for our system in LEO
+const float MIN_WEIGHT = 0.01f; // minimum weight for any sensor 
+const uint16_t ACTIVE_THRESHOLD = 50; // TODO: determine what makes sense for our system in LEO
 
+// forward declares
+float* get_unique_sensor_readings();
 bool ransac_sun_vector(float normals[][3], float signals[], int n_sensors,
                        float3 &best_sun_vector, int &best_inlier_count);
 bool compute_sun_vector_ransac(slate_t *slate);
 
-/**
- * Compute the sun vector using the RANSAC method.
- *
- * @param slate Pointer to the slate structure containing sun sensor data.
- * @return true if the sun vector is successfully computed and valid, false
- * otherwise.
- */
-void sun_sensors_to_vector(slate_t *slate)
-{
-    // Use all sensor readings
-    // TODO: only consider sensors flagged as valid
-    float sensor_readings[NUM_SUN_SENSORS];
-    for (int i = 0; i < NUM_SUN_SENSORS; i++)
-    {
-        sensor_readings[i] =
-            static_cast<float>(slate->sun_sensor_intensities[i]);
-    }
+void sun_sensors_to_vector(slate_t *slate){
+    /* Create matrix of normals weighted by intensity, and run these through RANSAC (Random Sample Consensus) 
+     * Sets sun vector to valid in SLATE if RANSAC successful, else sets invalid 
+    */
+    const int unique_sensor_count = 12;
+    const epsilon = 1e-6f;
 
-    // Find max intensity for threshold checks
-    float I_max = sensor_readings[0];
-    for (int i = 1; i < NUM_SUN_SENSORS; i++)
-    {
-        if (sensor_readings[i] > I_max)
-        {
-            I_max = sensor_readings[i];
-        }
-    }
+    // get 12 unique sensor readings | invalid sensors set to 0.0f
+    float* sensor_readings = get_unique_sensor_readings();
 
-    // Check for saturation
-    // TODO: figure out what to do in this case
-    if (I_max >= SUN_SENSOR_CLIP_VALUE)
-    {
-        // Saturation detected - set sun vector to zero and flag as invalid
-        slate->sun_vector_body = {0, 0, 0};
-        slate->sun_vector_valid = false;
-        return;
-    }
-
-    // Define opposite sensor pairs that should never both be active
-    const int opposite_pairs[][2] = {
-        {0, 6},   {1, 5},  {2, 4}, {3, 7}, // pyramid opposites
-        {8, 10},  {9, 11},                 // Y+ vs Y- pairs
-        {12, 14}, {13, 15}                 // Z+ vs Z- pairs
-    };
-    const int num_opposite_pairs = 8;
-
-    // Mark sensors with impossible readings for exclusion
-    bool exclude_sensor[NUM_SUN_SENSORS] = {false};
-    for (int i = 0; i < num_opposite_pairs; i++)
-    {
-        int sensor1 = opposite_pairs[i][0];
-        int sensor2 = opposite_pairs[i][1];
-        if (sensor_readings[sensor1] > ACTIVE_THRESHOLD &&
-            sensor_readings[sensor2] > ACTIVE_THRESHOLD)
-        {
-            exclude_sensor[sensor1] = true;
-            exclude_sensor[sensor2] = true;
-        }
-    }
-
-    // Define sensor readings in unique directions (excluding problematic
-    // sensors)
-    float sensor_readings_unique[12];
-    for (int i = 0; i < 8; i++)
-    {
-        sensor_readings_unique[i] =
-            exclude_sensor[i] ? 0.0f : sensor_readings[i];
-    }
-
-    // Averaging redundant +Y/-Y sensors
-    // TODO: do something smarter here because we're using RANSAC (update
-    // 10/15/25: averaging is really dumb!!)
-    sensor_readings_unique[8] = (sensor_readings[8] + sensor_readings[9]) / 2;
-    sensor_readings_unique[9] = (sensor_readings[10] + sensor_readings[11]) / 2;
-
-    // Including +Z/-Z sensors (and averaging as above) TODO: averaging is
-    // really dumb!!
-    sensor_readings_unique[10] =
-        (sensor_readings[12] + sensor_readings[13]) / 2;
-    sensor_readings_unique[11] =
-        (sensor_readings[14] + sensor_readings[15]) / 2;
-
-    int normals_idx[12] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14};
-
-    // Only consider readings above threshold
-    for (int i = 0; i < 12; i++)
-    {
-        if (sensor_readings_unique[i] < ACTIVE_THRESHOLD)
-        {
-            sensor_readings_unique[i] = 0.0f;
-        }
-    }
-
-    // create a matrix of normals and signals excluding zero sensors
-    float normals[12][3];
-    float signals[12];
+    // create normals matrix for RANSAC 
+    float normals[unique_sensor_count][3];
+    float signals[unique_sensor_count];
     int valid_count = 0;
-    for (int i = 0; i < 12; i++)
+
+    for (int i = 0; i < unique_sensor_count; i++)
     {
-        if (sensor_readings_unique[i] > 1e-6f)
+        float intensity = sensor_readings[i];
+        if (intensity > epsilon)
         {
-            for (int j = 0; j < 3; j++)
-            {
-                normals[valid_count][j] = SUN_SENSOR_NORMALS[normals_idx[i]][j];
-            }
-            signals[valid_count] = sensor_readings_unique[i];
+            // For first 8 sensors (pyramid sensors), use direct mapping
+            // For last 4 sensors (unique Y+/Y-/Z+/Z-), map to first of each pair
+            int normal_index = (i < 8) ? i : (i * 2);
+            
+            normals[valid_count][0] = SUN_SENSOR_NORMALS[normal_index][0];
+            normals[valid_count][1] = SUN_SENSOR_NORMALS[normal_index][1];
+            normals[valid_count][2] = SUN_SENSOR_NORMALS[normal_index][2];
+            signals[valid_count] = intensity;
             valid_count++;
         }
     }
-
-    // make sure top three are not zero
-    if (valid_count < 3)
-    {
-        // Degenerate case - set to zero and flag as invalid
+    
+    // Degenerate case - set to zero and flag as invalid
+    if (valid_count < 3) {
         slate->sun_vector_body = {0.0f, 0.0f, 0.0f};
         slate->sun_vector_valid = false;
         return;
     }
 
-    // Use RANSAC for robust sun vector estimation
+    // Use RANSAC sun vector estimation
     float3 sun_vector;
     int inlier_count;
 
@@ -152,6 +72,7 @@ void sun_sensors_to_vector(slate_t *slate)
         slate->sun_vector_valid = true;
         return;
     }
+
     else
     {
         // RANSAC failed - set to zero and flag as invalid
@@ -159,6 +80,76 @@ void sun_sensors_to_vector(slate_t *slate)
         slate->sun_vector_valid = false;
         return;
     }
+}
+
+float* get_unique_sensor_readings() {
+    /* Function to take intensity readings from Slate (converted to bits), filter invalid sensors, and return unique readings */
+
+    // read sun_sensor intensities (sensor outputs voltage -> converted to bits on (2.5/3.3)4095 = 3102 bit scale)
+    float sensor_readings[NUM_SUN_SENSORS];
+    for (int i = 0; i < NUM_SUN_SENSORS; i++)
+    {
+        float intensity = static_cast<float>(slate->sun_sensor_intensities[i])
+        // if intensity above max val (3102 bits) invalidate reading 
+        if (intensity > SUN_SENSOR_CLIP_VALUE){
+            slate->sun_vector_body = {0, 0, 0}; 
+            slate->sun_vector_valid = false;
+            return;
+        }
+        else{
+            sensor_readings[i] = intensity;
+        }
+    }
+
+    // Define opposite sensor pairs that should never both be active
+    const int num_opposite_pairs = 8;
+    const int opposite_pairs[][2] = {
+        {0, 6},   {1, 5},  {2, 4}, {3, 7}, // pyramid opposites
+        {8, 10},  {9, 11},                 // Y+ vs Y- pairs
+        {12, 14}, {13, 15}                 // Z+ vs Z- pairs
+    };
+    
+    // exclude sensor pairs which are both active (above threshold), or sensors individually below active threshold 
+    for (const auto &pair : opposite_pairs) {
+        int s1 = pair[0];
+        int s2 = pair[1];
+        
+        if (sensor_readings[s1] > ACTIVE_THRESHOLD &&
+            sensor_readings[s2] > ACTIVE_THRESHOLD)
+        {
+            sensor_readings[s1] = 0.0f;
+            sensor_readings[s2] = 0.0f;
+        }
+        else {
+            if (sensor_readings[s1] < ACTIVE_THRESHOLD) {
+                sensor_readings[s1] = 0.0f;
+            }
+            if (sensor_readings[s2] < ACTIVE_THRESHOLD) {
+                sensor_readings[s2] = 0.0f;
+            }
+        }
+    }
+
+    // Array to store unique sensor readings
+    float unique_sensor_readings[12];
+
+    // Process pairs of redundant sensors (Y+, Y-, Z+, Z-) and store max values
+    const int redundant_pairs[][3] = {
+        {8, 9, 8},     // Y+
+        {10, 11, 9},   // Y-
+        {12, 13, 10},  // Z+
+        {14, 15, 11}   // Z-
+    };
+
+    for (const auto &pair : redundant_pairs) {
+        sensor_readings[pair[2]] = fmaxf(sensor_readings[pair[0]], sensor_readings[pair[1]]);
+    }
+
+    // Copy pyramid sensors (0-7) and processed axis sensors (8-11) to unique readings
+    for (int i = 0; i < 12; i++) {
+        unique_sensor_readings[i] = sensor_readings[i];
+    }
+    return unique_sensor_readings;
 }
 
 /**
