@@ -12,7 +12,6 @@ using namespace linalg::aliases;
 
 #define GPS_BUFFER_SIZE 256
 #define GPS_MAX_SENTENCE_LENGTH 82 // NMEA standard max length
-#define GPS_DATA_EXPIRATION_MS 1   // At 7.6 km/s, gives
 
 typedef struct
 {
