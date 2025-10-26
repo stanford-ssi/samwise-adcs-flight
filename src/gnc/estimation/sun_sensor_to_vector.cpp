@@ -17,7 +17,7 @@ const float MIN_WEIGHT = 0.01f; // minimum weight for any sensor
 const uint16_t ACTIVE_THRESHOLD = 50; // TODO: determine what makes sense for our system in LEO
 
 // forward declares
-float* get_unique_sensor_readings();
+void get_unique_sensor_readings(float* sensor_readings, slate_t *slate);
 bool ransac_sun_vector(float normals[][3], float signals[], int n_sensors,
                        float3 &best_sun_vector, int &best_inlier_count);
 bool compute_sun_vector_ransac(slate_t *slate);
@@ -27,10 +27,11 @@ void sun_sensors_to_vector(slate_t *slate){
      * Sets sun vector to valid in SLATE if RANSAC successful, else sets invalid 
     */
     const int unique_sensor_count = 12;
-    const epsilon = 1e-6f;
+    const float epsilon = 1e-6f;
 
     // get 12 unique sensor readings | invalid sensors set to 0.0f
-    float* sensor_readings = get_unique_sensor_readings();
+    float unique_sensor_readings[unique_sensor_count];
+    get_unique_sensor_readings(unique_sensor_readings, slate);
 
     // create normals matrix for RANSAC 
     float normals[unique_sensor_count][3];
@@ -39,7 +40,7 @@ void sun_sensors_to_vector(slate_t *slate){
 
     for (int i = 0; i < unique_sensor_count; i++)
     {
-        float intensity = sensor_readings[i];
+        float intensity = unique_sensor_readings[i];
         if (intensity > epsilon)
         {
             // For first 8 sensors (pyramid sensors), use direct mapping
@@ -82,14 +83,14 @@ void sun_sensors_to_vector(slate_t *slate){
     }
 }
 
-float* get_unique_sensor_readings() {
+void get_unique_sensor_readings(float* unique_sensor_readings, slate_t *slate) {
     /* Function to take intensity readings from Slate (converted to bits), filter invalid sensors, and return unique readings */
 
     // read sun_sensor intensities (sensor outputs voltage -> converted to bits on (2.5/3.3)4095 = 3102 bit scale)
     float sensor_readings[NUM_SUN_SENSORS];
     for (int i = 0; i < NUM_SUN_SENSORS; i++)
     {
-        float intensity = static_cast<float>(slate->sun_sensor_intensities[i])
+        float intensity = static_cast<float>(slate->sun_sensor_intensities[i]);
         // if intensity above max val (3102 bits) invalidate reading 
         if (intensity > SUN_SENSOR_CLIP_VALUE){
             slate->sun_vector_body = {0, 0, 0}; 
@@ -130,9 +131,6 @@ float* get_unique_sensor_readings() {
         }
     }
 
-    // Array to store unique sensor readings
-    float unique_sensor_readings[12];
-
     // Process pairs of redundant sensors (Y+, Y-, Z+, Z-) and store max values
     const int redundant_pairs[][3] = {
         {8, 9, 8},     // Y+
@@ -149,7 +147,6 @@ float* get_unique_sensor_readings() {
     for (int i = 0; i < 12; i++) {
         unique_sensor_readings[i] = sensor_readings[i];
     }
-    return unique_sensor_readings;
 }
 
 /**
