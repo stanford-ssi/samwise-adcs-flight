@@ -117,7 +117,7 @@ void gps_world_task_dispatch(slate_t *slate)
 }
 
 sched_task_t gps_world_task = {.name = "gps_world",
-                               .dispatch_period_ms = 100, // 100 Hz
+                               .dispatch_period_ms = 200, // 5 Hz
                                .task_init = &gps_world_task_init,
                                .task_dispatch = &gps_world_task_dispatch,
                                .next_dispatch = 0};
