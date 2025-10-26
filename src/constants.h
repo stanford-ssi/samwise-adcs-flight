@@ -20,6 +20,12 @@ constexpr uint32_t NUM_REACTION_WHEELS = 4;
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 
 // ========================================================================
+//          GPS SPECIFICATIONS
+// ========================================================================
+constexpr uint32_t GPS_DATA_EXPIRATION_MS = 15000;   // At 7.6 km/s, gives us 114 km max error
+
+
+// ========================================================================
 //          MAGNETOMETER CALIBRATION
 // ========================================================================
 
