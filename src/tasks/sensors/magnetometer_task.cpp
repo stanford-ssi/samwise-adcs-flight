@@ -99,7 +99,8 @@ void magnetometer_task_dispatch(slate_t *slate)
                 else
                 {
                     // Magnetorquers already off, read directly
-                    rm3100_error_t result = rm3100_get_reading(&slate->b_body);
+                    rm3100_error_t result =
+                        rm3100_get_reading(&slate->b_body, &slate->b_body_raw);
                     slate->magnetometer_data_valid = (result == RM3100_OK);
                     slate->b_body_read_time = get_absolute_time();
                     slate->bdot_data_has_updated = true;
@@ -132,7 +133,8 @@ void magnetometer_task_dispatch(slate_t *slate)
         case MAG_READING:
         {
             // Read magnetometer
-            rm3100_error_t result = rm3100_get_reading(&slate->b_body);
+            rm3100_error_t result =
+                rm3100_get_reading(&slate->b_body, &slate->b_body_raw);
             slate->magnetometer_data_valid = (result == RM3100_OK);
             slate->b_body_read_time = get_absolute_time();
             slate->bdot_data_has_updated = true;

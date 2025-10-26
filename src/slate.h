@@ -47,15 +47,16 @@ typedef struct samwise_adcs_slate
 
     // Magnetometer
     bool magnetometer_alive;
-    bool magnetometer_data_valid;
-    absolute_time_t b_body_read_time;
-    float3 b_body_raw; // magnetic field in body frame (values in nT)
-    float3 b_body;     // (unit vector)
+    bool magnetometer_data_valid;     // Flag for magnetometer data validity
+    absolute_time_t b_body_read_time; // Time of read [millisecond]
+    float3 b_body;     // calibrated magnetic field unit vector in body frame
+                       // [unitless]
+    float3 b_body_raw; // uncalibrated magnetic field in body frame [microtesla]
 
     // GPS
     bool gps_alive;
     bool gps_data_valid;
-    absolute_time_t gps_read_time; // time of last GPS read
+    absolute_time_t gps_read_time; // time of last valid/non-stale GPS read
     float gps_lat;                 // º (N+ S-)
     float gps_lon;                 // º (E+ W-)
     float gps_alt;                 // km
@@ -118,9 +119,9 @@ typedef struct samwise_adcs_slate
     float3 sun_vector_eci; // (unit vector)
 
     // Magnetic field reference
-    float3 b_eci_raw; // Magnetic field in ECI frame (values in nT)
-    float3 b_ecef;    // Magnetic field in ECEF frame (unit vector)
-    float3 b_eci;     // Magnetic field in ECI frame (unit vector)
+    float3 b_eci_raw; // Magnetic field reference in ECI frame (values in nT)
+    float3 b_ecef;    // Magnetic field reference in ECEF frame (unit vector)
+    float3 b_eci;     // Magnetic field reference in ECI frame (unit vector)
 
     // Bdot
     float3 b_body_prev; // (unit vector)

@@ -20,6 +20,12 @@ constexpr uint32_t NUM_REACTION_WHEELS = 4;
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 
 // ========================================================================
+//          GPS SPECIFICATIONS
+// ========================================================================
+constexpr uint32_t GPS_DATA_EXPIRATION_MS =
+    15000; // At 7.6 km/s, gives us 114 km max error
+
+// ========================================================================
 //          MAGNETOMETER CALIBRATION
 // ========================================================================
 
@@ -88,16 +94,25 @@ constexpr float REACTION_WHEEL_SATURATION_LOWER_LIMIT = 0.1;
 //          SATELLITE INERTIA
 // ========================================================================
 
-// !!!!!!!!!!!!!!!! TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// These are calculated from a really hacky estimate
-// made back in fall quarter. We should replace these with
-// something much more accurate, ideally measured with the actual
-// flight model before launch
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-constexpr float3 SATELLITE_INERTIA = {0.01461922201, 0.0412768466,
-                                      0.03235309961}; // Principle axes [kg m^2]
+constexpr float3 I_PRINCIPAL = {
+    0.0237644, 0.0155789,
+    0.0131767}; // Satellite inertia tensor in principal axes [kg m^2]
 
-// TODO: Add principal axes to body rotation
+constexpr float3x3 PRINCIPAL_AXES_DCM = {
+    {-0.716356336507477, 0.004404837035993194, -0.6977207152982292},
+    {-0.6975131547302291, -0.029713909797595195, 0.7159556428598237},
+    {-0.017578342466487904, 0.999548738669219,
+     0.02435817934296709}}; // DCM from body to principal axes
+
+constexpr quaternion Q_BODY_TO_PRINCIPAL = {
+    0.268793, -0.644648, -0.665287,
+    0.263765}; // Quaternion from body to principal axes (scalar-last)
+
+constexpr float3x3 I_BODY = {
+    {0.01861, 0.00529, 0.0001439},
+    {0.00529, 0.01833, 0.0000584709},
+    {0.0001439, 0.0000584709,
+     0.01558}}; // Satellite inertia tensor in body frame [kg m^2]
 
 // ========================================================================
 //          SENSOR NOISE
