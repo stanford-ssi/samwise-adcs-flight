@@ -15,6 +15,9 @@ Plus colorized terminal log output.
 import serial
 import re
 import numpy as np
+
+# Don't force a specific backend - let matplotlib choose the best available one
+# The performance gains from quiver reuse are much more important than backend choice
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d import Axes3D
@@ -25,9 +28,15 @@ from rich.console import Console
 from rich.text import Text
 import argparse
 
+# Performance optimizations
+plt.rcParams['path.simplify'] = True
+plt.rcParams['path.simplify_threshold'] = 1.0
+plt.rcParams['agg.path.chunksize'] = 10000
+
 # Configuration
-UPDATE_FREQUENCY_HZ = 10  # Configurable update frequency
+UPDATE_FREQUENCY_HZ = 120  # Configurable update frequency
 HISTORY_LENGTH = 100  # Number of points to keep for time series
+ENABLE_TERMINAL_LOGS = False  # Disabled by default for maximum plotting performance
 
 # Initialize rich console for colored output
 console = Console()
@@ -85,6 +94,11 @@ class SatelliteState:
         self.att_x_quiver = None
         self.att_y_quiver = None
         self.att_z_quiver = None
+
+        # Track if we need to update legends (only once)
+        self.body_legend_set = False
+        self.eci_legend_set = False
+        self.att_legend_set = False
 
 
 class LogParser:
@@ -232,18 +246,33 @@ class SatellitePlotter:
 
     def setup_plots(self):
         """Initialize all subplot axes."""
-        # 1. LLA World Map (top left)
-        self.ax_map = self.fig.add_subplot(2, 3, 1, projection=ccrs.PlateCarree())
-        self.ax_map.set_global()
-        self.ax_map.add_feature(cfeature.LAND, facecolor='lightgray')
-        self.ax_map.add_feature(cfeature.OCEAN, facecolor='lightblue')
-        self.ax_map.add_feature(cfeature.COASTLINE, linewidth=0.5)
-        self.ax_map.gridlines(draw_labels=True, alpha=0.3)
-        self.ax_map.set_title('GPS Position (LLA)')
-        self.map_point, = self.ax_map.plot([], [], 'ro', markersize=8, transform=ccrs.PlateCarree())
-        self.map_text = self.ax_map.text(0.02, 0.98, '', transform=self.ax_map.transAxes,
-                                         verticalalignment='top', fontsize=8,
-                                         bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        # 1. LLA World Map (top left) - simplified for speed
+        try:
+            self.ax_map = self.fig.add_subplot(2, 3, 1, projection=ccrs.PlateCarree())
+            self.ax_map.set_global()
+            # Only add coastline for speed - skip ocean/land fills
+            self.ax_map.add_feature(cfeature.COASTLINE, linewidth=0.5, edgecolor='black')
+            self.ax_map.gridlines(draw_labels=False, alpha=0.3)  # Disable labels for speed
+            self.ax_map.set_title('GPS Position (LLA)')
+            self.map_point, = self.ax_map.plot([], [], 'ro', markersize=8, transform=ccrs.PlateCarree())
+            self.map_text = self.ax_map.text(0.02, 0.98, '', transform=self.ax_map.transAxes,
+                                             verticalalignment='top', fontsize=8,
+                                             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+            self.use_cartopy = True
+        except:
+            # Fallback to simple 2D plot if cartopy fails
+            self.ax_map = self.fig.add_subplot(2, 3, 1)
+            self.ax_map.set_xlim(-180, 180)
+            self.ax_map.set_ylim(-90, 90)
+            self.ax_map.set_xlabel('Longitude')
+            self.ax_map.set_ylabel('Latitude')
+            self.ax_map.set_title('GPS Position (LLA)')
+            self.ax_map.grid(True, alpha=0.3)
+            self.map_point, = self.ax_map.plot([], [], 'ro', markersize=8)
+            self.map_text = self.ax_map.text(0.02, 0.98, '', transform=self.ax_map.transAxes,
+                                             verticalalignment='top', fontsize=8,
+                                             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+            self.use_cartopy = False
 
         # 2. Body Frame Vectors (top middle)
         self.ax_body = self.fig.add_subplot(2, 3, 2, projection='3d')
@@ -304,52 +333,66 @@ class SatellitePlotter:
             self.map_text.set_text(text)
 
     def update_body_vectors(self):
-        """Update body frame vector plot - only update if data changes."""
-        origin = [0, 0, 0]
+        """Update body frame vector plot - for 3D quivers, update segments directly."""
+        origin = np.array([0, 0, 0])
 
-        # Plot b_body (magnetic field)
+        # Initialize or update b_body quiver
         if self.state.b_body is not None:
-            if self.state.body_b_quiver is not None:
-                self.state.body_b_quiver.remove()
-            self.state.body_b_quiver = self.ax_body.quiver(*origin, *self.state.b_body,
-                               color='purple', arrow_length_ratio=0.15, linewidth=2,
-                               label='b_body')
+            if self.state.body_b_quiver is None:
+                self.state.body_b_quiver = self.ax_body.quiver(*origin, *self.state.b_body,
+                                   color='purple', arrow_length_ratio=0.15, linewidth=2,
+                                   label='b_body')
+            else:
+                # Fast update for 3D quiver: modify segment data directly
+                segments = [[[0, 0, 0], self.state.b_body.tolist()]]
+                self.state.body_b_quiver.set_segments(segments)
 
-        # Plot sun_vector_body
+        # Initialize or update sun_vector_body quiver
         if self.state.sun_vector_body is not None:
-            if self.state.body_sun_quiver is not None:
-                self.state.body_sun_quiver.remove()
-            self.state.body_sun_quiver = self.ax_body.quiver(*origin, *self.state.sun_vector_body,
-                               color='pink', arrow_length_ratio=0.15, linewidth=2,
-                               label='sun_body')
+            if self.state.body_sun_quiver is None:
+                self.state.body_sun_quiver = self.ax_body.quiver(*origin, *self.state.sun_vector_body,
+                                   color='pink', arrow_length_ratio=0.15, linewidth=2,
+                                   label='sun_body')
+            else:
+                # Fast update for 3D quiver: modify segment data directly
+                segments = [[[0, 0, 0], self.state.sun_vector_body.tolist()]]
+                self.state.body_sun_quiver.set_segments(segments)
 
-        # Only update legend if we have vectors
-        if self.state.b_body is not None or self.state.sun_vector_body is not None:
+        # Only set legend once
+        if not self.state.body_legend_set and (self.state.b_body is not None or self.state.sun_vector_body is not None):
             self.ax_body.legend()
+            self.state.body_legend_set = True
 
     def update_eci_vectors(self):
-        """Update ECI frame vector plot - only update if data changes."""
-        origin = [0, 0, 0]
+        """Update ECI frame vector plot - for 3D quivers, update segments directly."""
+        origin = np.array([0, 0, 0])
 
-        # Plot b_eci (magnetic field reference)
+        # Initialize or update b_eci quiver
         if self.state.b_eci is not None:
-            if self.state.eci_b_quiver is not None:
-                self.state.eci_b_quiver.remove()
-            self.state.eci_b_quiver = self.ax_eci.quiver(*origin, *self.state.b_eci,
-                              color='cyan', arrow_length_ratio=0.15, linewidth=2,
-                              label='b_eci')
+            if self.state.eci_b_quiver is None:
+                self.state.eci_b_quiver = self.ax_eci.quiver(*origin, *self.state.b_eci,
+                                  color='cyan', arrow_length_ratio=0.15, linewidth=2,
+                                  label='b_eci')
+            else:
+                # Fast update for 3D quiver: modify segment data directly
+                segments = [[[0, 0, 0], self.state.b_eci.tolist()]]
+                self.state.eci_b_quiver.set_segments(segments)
 
-        # Plot sun_vector_eci
+        # Initialize or update sun_vector_eci quiver
         if self.state.sun_vector_eci is not None:
-            if self.state.eci_sun_quiver is not None:
-                self.state.eci_sun_quiver.remove()
-            self.state.eci_sun_quiver = self.ax_eci.quiver(*origin, *self.state.sun_vector_eci,
-                              color='yellow', arrow_length_ratio=0.15, linewidth=2,
-                              label='sun_eci')
+            if self.state.eci_sun_quiver is None:
+                self.state.eci_sun_quiver = self.ax_eci.quiver(*origin, *self.state.sun_vector_eci,
+                                  color='yellow', arrow_length_ratio=0.15, linewidth=2,
+                                  label='sun_eci')
+            else:
+                # Fast update for 3D quiver: modify segment data directly
+                segments = [[[0, 0, 0], self.state.sun_vector_eci.tolist()]]
+                self.state.eci_sun_quiver.set_segments(segments)
 
-        # Only update legend if we have vectors
-        if self.state.b_eci is not None or self.state.sun_vector_eci is not None:
+        # Only set legend once
+        if not self.state.eci_legend_set and (self.state.b_eci is not None or self.state.sun_vector_eci is not None):
             self.ax_eci.legend()
+            self.state.eci_legend_set = True
 
     def update_angular_velocity(self):
         """Update angular velocity time series."""
@@ -361,13 +404,15 @@ class SatellitePlotter:
             self.line_wy.set_data(x_data, w_array[:, 1])
             self.line_wz.set_data(x_data, w_array[:, 2])
 
-            self.ax_w.set_xlim(0, max(HISTORY_LENGTH, len(w_array)))
-            y_min = np.min(w_array) - 0.1
-            y_max = np.max(w_array) + 0.1
-            self.ax_w.set_ylim(y_min, y_max)
+            # Only update limits if deque is full or data extends beyond current limits
+            if len(w_array) == HISTORY_LENGTH or len(w_array) == 1:
+                self.ax_w.set_xlim(0, max(HISTORY_LENGTH, len(w_array)))
+                y_min = np.min(w_array) - 0.1
+                y_max = np.max(w_array) + 0.1
+                self.ax_w.set_ylim(y_min, y_max)
 
     def update_attitude(self):
-        """Update attitude orientation visualization - only update if data changes."""
+        """Update attitude orientation visualization - for 3D quivers, update segments directly."""
         if self.state.q_eci_to_body is not None:
             # Get rotation matrix from quaternion
             R = quaternion_to_rotation_matrix(self.state.q_eci_to_body)
@@ -384,25 +429,26 @@ class SatellitePlotter:
             eci_y = R @ body_y
             eci_z = R @ body_z
 
-            origin = [0, 0, 0]
+            origin = np.array([0, 0, 0])
 
-            # Remove old quivers and add new ones
-            if self.state.att_x_quiver is not None:
-                self.state.att_x_quiver.remove()
-            if self.state.att_y_quiver is not None:
-                self.state.att_y_quiver.remove()
-            if self.state.att_z_quiver is not None:
-                self.state.att_z_quiver.remove()
+            # Initialize quivers on first run
+            if self.state.att_x_quiver is None:
+                self.state.att_x_quiver = self.ax_att.quiver(*origin, *eci_x, color='red',
+                                  arrow_length_ratio=0.15, linewidth=2.5, label='Body X')
+                self.state.att_y_quiver = self.ax_att.quiver(*origin, *eci_y, color='green',
+                                  arrow_length_ratio=0.15, linewidth=2.5, label='Body Y')
+                self.state.att_z_quiver = self.ax_att.quiver(*origin, *eci_z, color='blue',
+                                  arrow_length_ratio=0.15, linewidth=2.5, label='Body Z')
+            else:
+                # Fast update for 3D quiver: modify segment data directly
+                self.state.att_x_quiver.set_segments([[[0, 0, 0], eci_x.tolist()]])
+                self.state.att_y_quiver.set_segments([[[0, 0, 0], eci_y.tolist()]])
+                self.state.att_z_quiver.set_segments([[[0, 0, 0], eci_z.tolist()]])
 
-            # Plot body axes in ECI frame
-            self.state.att_x_quiver = self.ax_att.quiver(*origin, *eci_x, color='red',
-                              arrow_length_ratio=0.15, linewidth=2.5, label='Body X')
-            self.state.att_y_quiver = self.ax_att.quiver(*origin, *eci_y, color='green',
-                              arrow_length_ratio=0.15, linewidth=2.5, label='Body Y')
-            self.state.att_z_quiver = self.ax_att.quiver(*origin, *eci_z, color='blue',
-                              arrow_length_ratio=0.15, linewidth=2.5, label='Body Z')
-
-            self.ax_att.legend()
+            # Only set legend once
+            if not self.state.att_legend_set:
+                self.ax_att.legend()
+                self.state.att_legend_set = True
 
     def update_covariance(self):
         """Update filter uncertainty plot."""
@@ -412,8 +458,9 @@ class SatellitePlotter:
 
             self.line_cov.set_data(x_data, y_data)
 
-            self.ax_cov.set_xlim(0, max(HISTORY_LENGTH, len(y_data)))
-            if len(y_data) > 0:
+            # Only update limits if deque is full or first data point
+            if len(y_data) == HISTORY_LENGTH or len(y_data) == 1:
+                self.ax_cov.set_xlim(0, max(HISTORY_LENGTH, len(y_data)))
                 y_min = min(y_data) - 0.5
                 y_max = max(y_data) + 0.5
                 self.ax_cov.set_ylim(y_min, y_max)
@@ -422,7 +469,8 @@ class SatellitePlotter:
         """Animation update function."""
         # Read and parse ALL available serial data (to stay current)
         lines_processed = 0
-        max_lines_per_frame = 50  # Process max 50 lines per frame to avoid blocking
+        max_lines_per_frame = 100  # Process max 100 lines per frame (increased from 50)
+        print_lines = []  # Batch print lines for better performance
 
         if self.ser and self.ser.in_waiting > 0:
             try:
@@ -432,16 +480,21 @@ class SatellitePlotter:
                         # Parse the line
                         LogParser.parse_line(line, self.state)
 
-                        # Print colorized log to terminal (only last 10 lines to avoid spam)
-                        if lines_processed < 10:
-                            colored_text = LogParser.colorize_log(line)
-                            console.print(colored_text)
+                        # Collect lines for batch printing (only first 5 to reduce overhead)
+                        if lines_processed < 5:
+                            print_lines.append(line)
 
                         lines_processed += 1
 
+                # Batch print collected lines (more efficient than printing one at a time)
+                if ENABLE_TERMINAL_LOGS and print_lines:
+                    for line in print_lines:
+                        colored_text = LogParser.colorize_log(line)
+                        console.print(colored_text, end='')
+
                 # If we skipped printing some lines, indicate that
-                if lines_processed >= 10:
-                    console.print(f"[dim]... ({lines_processed - 10} more lines processed)[/dim]")
+                if ENABLE_TERMINAL_LOGS and lines_processed > 5:
+                    console.print(f"[dim]... ({lines_processed - 5} more lines processed)[/dim]")
 
             except Exception as e:
                 console.print(f"[red]Error reading serial: {e}[/red]")
@@ -488,8 +541,14 @@ def main():
                        help='Baud rate (default: 115200)')
     parser.add_argument('--freq', type=int, default=10,
                        help=f'Update frequency in Hz (default: 10)')
+    parser.add_argument('--logs', action='store_true',
+                       help='Enable terminal log output (disabled by default for performance)')
 
     args = parser.parse_args()
+
+    # Update global config based on args
+    global ENABLE_TERMINAL_LOGS
+    ENABLE_TERMINAL_LOGS = args.logs
 
     # Create and run plotter
     plotter = SatellitePlotter(args.port, args.baud, args.freq)
