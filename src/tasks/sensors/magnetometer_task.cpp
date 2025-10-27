@@ -114,8 +114,8 @@ void magnetometer_task_dispatch(slate_t *slate)
                     if (result == RM3100_OK && slate->af_is_initialized)
                     {
                         LOG_DEBUG("[sensor] b_body = [%.3f, %.3f, %.3f]",
-                                slate->b_body.x, slate->b_body.y,
-                                slate->b_body.z);
+                                  slate->b_body.x, slate->b_body.y,
+                                  slate->b_body.z);
                         attitude_filter_update(slate, 'M');
                     }
                     // Stay in IDLE

@@ -53,8 +53,9 @@ float Q[6 * 6] = {
 constexpr float SUN_VECTOR_VARIANCE =
     (1.0f * DEG_TO_RAD) * (1.0f * DEG_TO_RAD); // Sun sensor noise ~+-2 degrees
 constexpr float MAGNETOMETER_VARIANCE =
-    (5.0f * DEG_TO_RAD) *
-    (5.0f * DEG_TO_RAD); // Magnetometer noise ~ 5 degrees (TODO: update for flight model)
+    (1.0f * DEG_TO_RAD) *
+    (1.0f * DEG_TO_RAD); // Magnetometer noise ~ 5 degrees (TODO: update for
+                         // flight model)
 float R_sun[3 * 3] = {SUN_VECTOR_VARIANCE, 0.0f, 0.0f, 0.0f,
                       SUN_VECTOR_VARIANCE, 0.0f, 0.0f, 0.0f,
                       SUN_VECTOR_VARIANCE};
@@ -406,6 +407,9 @@ void attitude_filter_propagate(slate_t *slate)
     LOG_DEBUG("[ekf] b_gyro_drift = [%.6f, %.6f, %.6f]", slate->b_gyro_drift[0],
               slate->b_gyro_drift[1], slate->b_gyro_drift[2]);
     LOG_DEBUG("[ekf] P_log_frobenius = %.6f", slate->P_log_frobenius);
+    LOG_DEBUG("[ekf] Attitude uncertainty = [%.6f, %.6f, %.6f]",
+              sqrtf(slate->P[0]) * RAD_TO_DEG, sqrtf(slate->P[7]) * RAD_TO_DEG,
+              sqrtf(slate->P[14]) * RAD_TO_DEG);
 }
 
 /**
@@ -534,6 +538,9 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
     LOG_DEBUG("[ekf] b_gyro_drift = [%.6f, %.6f, %.6f]", slate->b_gyro_drift[0],
               slate->b_gyro_drift[1], slate->b_gyro_drift[2]);
     LOG_DEBUG("[ekf] P_log_frobenius = %.6f", slate->P_log_frobenius);
+    LOG_DEBUG("[ekf] Attitude uncertainty: [%.6f, y=%.6f, z=%.6f]",
+              sqrtf(slate->P[0]) * RAD_TO_DEG, sqrtf(slate->P[7]) * RAD_TO_DEG,
+              sqrtf(slate->P[14]) * RAD_TO_DEG);
 }
 
 #ifdef TEST
