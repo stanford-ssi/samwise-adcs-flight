@@ -401,6 +401,19 @@ void attitude_filter_propagate(slate_t *slate)
     // Update log frobenius norm of attitude covariance matrix
     slate->P_log_frobenius = mat_log_frobenius(slate->P, 6);
 
+    // Check for NaN in state or covariance and reinitialize if detected
+    if (std::isnan(slate->p_eci_to_body[0]) || std::isnan(slate->p_eci_to_body[1]) ||
+        std::isnan(slate->p_eci_to_body[2]) || std::isnan(slate->q_eci_to_body[0]) ||
+        std::isnan(slate->q_eci_to_body[1]) || std::isnan(slate->q_eci_to_body[2]) ||
+        std::isnan(slate->q_eci_to_body[3]) || std::isnan(slate->b_gyro_drift[0]) ||
+        std::isnan(slate->b_gyro_drift[1]) || std::isnan(slate->b_gyro_drift[2]) ||
+        std::isnan(slate->P_log_frobenius))
+    {
+        LOG_ERROR("[ekf] NaN detected in propagate! Reinitializing filter...");
+        attitude_filter_init(slate);
+        return;
+    }
+
     LOG_DEBUG("[ekf] q_eci_to_body = [%.6f, %.6f, %.6f, %.6f]",
               slate->q_eci_to_body[0], slate->q_eci_to_body[1],
               slate->q_eci_to_body[2], slate->q_eci_to_body[3]);
@@ -531,6 +544,19 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
 
     // Update log frobenius norm
     slate->P_log_frobenius = mat_log_frobenius(slate->P, 6);
+
+    // Check for NaN in state or covariance and reinitialize if detected
+    if (std::isnan(slate->p_eci_to_body[0]) || std::isnan(slate->p_eci_to_body[1]) ||
+        std::isnan(slate->p_eci_to_body[2]) || std::isnan(slate->q_eci_to_body[0]) ||
+        std::isnan(slate->q_eci_to_body[1]) || std::isnan(slate->q_eci_to_body[2]) ||
+        std::isnan(slate->q_eci_to_body[3]) || std::isnan(slate->b_gyro_drift[0]) ||
+        std::isnan(slate->b_gyro_drift[1]) || std::isnan(slate->b_gyro_drift[2]) ||
+        std::isnan(slate->P_log_frobenius))
+    {
+        LOG_ERROR("[ekf] NaN detected in update (sensor '%c')! Reinitializing filter...", sensor_type);
+        attitude_filter_init(slate);
+        return;
+    }
 
     LOG_DEBUG("[ekf] q_eci_to_body = [%.6f, %.6f, %.6f, %.6f]",
               slate->q_eci_to_body[0], slate->q_eci_to_body[1],
