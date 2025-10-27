@@ -13,19 +13,22 @@
 // Shadow detection parameters (TODO: store somewhere else?)
 const float SHADOW_THRESHOLD =
     0.05f; // relative intensity threshold for shadow detection
-const float MIN_WEIGHT = 0.01f; // minimum weight for any sensor 
-const uint16_t ACTIVE_THRESHOLD = 50; // TODO: determine what makes sense for our system in LEO
+const float MIN_WEIGHT = 0.01f; // minimum weight for any sensor
+const uint16_t ACTIVE_THRESHOLD =
+    50; // TODO: determine what makes sense for our system in LEO
 
 // forward declares
-void get_unique_sensor_readings(float* sensor_readings, slate_t *slate);
+void get_unique_sensor_readings(float *sensor_readings, slate_t *slate);
 bool ransac_sun_vector(float normals[][3], float signals[], int n_sensors,
                        float3 &best_sun_vector, int &best_inlier_count);
 bool compute_sun_vector_ransac(slate_t *slate);
 
-void sun_sensors_to_vector(slate_t *slate){
-    /* Create matrix of normals weighted by intensity, and run these through RANSAC (Random Sample Consensus) 
-     * Sets sun vector to valid in SLATE if RANSAC successful, else sets invalid 
-    */
+void sun_sensors_to_vector(slate_t *slate)
+{
+    /* Create matrix of normals weighted by intensity, and run these through
+     * RANSAC (Random Sample Consensus) Sets sun vector to valid in SLATE if
+     * RANSAC successful, else sets invalid
+     */
     const int unique_sensor_count = 12;
     const float epsilon = 1e-6f;
 
@@ -33,7 +36,7 @@ void sun_sensors_to_vector(slate_t *slate){
     float unique_sensor_readings[unique_sensor_count];
     get_unique_sensor_readings(unique_sensor_readings, slate);
 
-    // create normals matrix for RANSAC 
+    // create normals matrix for RANSAC
     float normals[unique_sensor_count][3];
     float signals[unique_sensor_count];
     int valid_count = 0;
@@ -44,9 +47,10 @@ void sun_sensors_to_vector(slate_t *slate){
         if (intensity > epsilon)
         {
             // For first 8 sensors (pyramid sensors), use direct mapping
-            // For last 4 sensors (unique Y+/Y-/Z+/Z-), map to first of each pair
+            // For last 4 sensors (unique Y+/Y-/Z+/Z-), map to first of each
+            // pair
             int normal_index = (i < 8) ? i : (i * 2);
-            
+
             normals[valid_count][0] = SUN_SENSOR_NORMALS[normal_index][0];
             normals[valid_count][1] = SUN_SENSOR_NORMALS[normal_index][1];
             normals[valid_count][2] = SUN_SENSOR_NORMALS[normal_index][2];
@@ -54,9 +58,10 @@ void sun_sensors_to_vector(slate_t *slate){
             valid_count++;
         }
     }
-    
+
     // Degenerate case - set to zero and flag as invalid
-    if (valid_count < 3) {
+    if (valid_count < 3)
+    {
         slate->sun_vector_body = {0.0f, 0.0f, 0.0f};
         slate->sun_vector_valid = false;
         return;
@@ -83,21 +88,26 @@ void sun_sensors_to_vector(slate_t *slate){
     }
 }
 
-void get_unique_sensor_readings(float* unique_sensor_readings, slate_t *slate) {
-    /* Function to take intensity readings from Slate (converted to bits), filter invalid sensors, and return unique readings */
+void get_unique_sensor_readings(float *unique_sensor_readings, slate_t *slate)
+{
+    /* Function to take intensity readings from Slate (converted to bits),
+     * filter invalid sensors, and return unique readings */
 
-    // read sun_sensor intensities (sensor outputs voltage -> converted to bits on (2.5/3.3)4095 = 3102 bit scale)
+    // read sun_sensor intensities (sensor outputs voltage -> converted to bits
+    // on (2.5/3.3)4095 = 3102 bit scale)
     float sensor_readings[NUM_SUN_SENSORS];
     for (int i = 0; i < NUM_SUN_SENSORS; i++)
     {
         float intensity = static_cast<float>(slate->sun_sensor_intensities[i]);
-        // if intensity above max val (3102 bits) invalidate reading 
-        if (intensity > SUN_SENSOR_CLIP_VALUE){
-            slate->sun_vector_body = {0, 0, 0}; 
+        // if intensity above max val (3102 bits) invalidate reading
+        if (intensity > SUN_SENSOR_CLIP_VALUE)
+        {
+            slate->sun_vector_body = {0, 0, 0};
             slate->sun_vector_valid = false;
             return;
         }
-        else{
+        else
+        {
             sensor_readings[i] = intensity;
         }
     }
@@ -109,23 +119,28 @@ void get_unique_sensor_readings(float* unique_sensor_readings, slate_t *slate) {
         {8, 10},  {9, 11},                 // Y+ vs Y- pairs
         {12, 14}, {13, 15}                 // Z+ vs Z- pairs
     };
-    
-    // exclude sensor pairs which are both active (above threshold), or sensors individually below active threshold 
-    for (const auto &pair : opposite_pairs) {
+
+    // exclude sensor pairs which are both active (above threshold), or sensors
+    // individually below active threshold
+    for (const auto &pair : opposite_pairs)
+    {
         int s1 = pair[0];
         int s2 = pair[1];
-        
+
         if (sensor_readings[s1] > ACTIVE_THRESHOLD &&
             sensor_readings[s2] > ACTIVE_THRESHOLD)
         {
             sensor_readings[s1] = 0.0f;
             sensor_readings[s2] = 0.0f;
         }
-        else {
-            if (sensor_readings[s1] < ACTIVE_THRESHOLD) {
+        else
+        {
+            if (sensor_readings[s1] < ACTIVE_THRESHOLD)
+            {
                 sensor_readings[s1] = 0.0f;
             }
-            if (sensor_readings[s2] < ACTIVE_THRESHOLD) {
+            if (sensor_readings[s2] < ACTIVE_THRESHOLD)
+            {
                 sensor_readings[s2] = 0.0f;
             }
         }
@@ -133,18 +148,22 @@ void get_unique_sensor_readings(float* unique_sensor_readings, slate_t *slate) {
 
     // Process pairs of redundant sensors (Y+, Y-, Z+, Z-) and store max values
     const int redundant_pairs[][3] = {
-        {8, 9, 8},     // Y+
-        {10, 11, 9},   // Y-
-        {12, 13, 10},  // Z+
-        {14, 15, 11}   // Z-
+        {8, 9, 8},    // Y+
+        {10, 11, 9},  // Y-
+        {12, 13, 10}, // Z+
+        {14, 15, 11}  // Z-
     };
 
-    for (const auto &pair : redundant_pairs) {
-        sensor_readings[pair[2]] = fmaxf(sensor_readings[pair[0]], sensor_readings[pair[1]]);
+    for (const auto &pair : redundant_pairs)
+    {
+        sensor_readings[pair[2]] =
+            fmaxf(sensor_readings[pair[0]], sensor_readings[pair[1]]);
     }
 
-    // Copy pyramid sensors (0-7) and processed axis sensors (8-11) to unique readings
-    for (int i = 0; i < 12; i++) {
+    // Copy pyramid sensors (0-7) and processed axis sensors (8-11) to unique
+    // readings
+    for (int i = 0; i < 12; i++)
+    {
         unique_sensor_readings[i] = sensor_readings[i];
     }
 }
