@@ -53,8 +53,8 @@ float Q[6 * 6] = {
 constexpr float SUN_VECTOR_VARIANCE =
     (1.0f * DEG_TO_RAD) * (1.0f * DEG_TO_RAD); // Sun sensor noise ~+-2 degrees
 constexpr float MAGNETOMETER_VARIANCE =
-    (0.02f * DEG_TO_RAD) *
-    (0.02f * DEG_TO_RAD); // Magnetometer noise ~ 2 degrees
+    (5.0f * DEG_TO_RAD) *
+    (5.0f * DEG_TO_RAD); // Magnetometer noise ~ 5 degrees (TODO: update for flight model)
 float R_sun[3 * 3] = {SUN_VECTOR_VARIANCE, 0.0f, 0.0f, 0.0f,
                       SUN_VECTOR_VARIANCE, 0.0f, 0.0f, 0.0f,
                       SUN_VECTOR_VARIANCE};
@@ -490,13 +490,34 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
     slate->q_eci_to_body = mrp_to_quat(slate->p_eci_to_body);
     slate->b_gyro_drift = float3(x_new[3], x_new[4], x_new[5]);
 
-    // Update covariance (40d)
+    // Update covariance using Joseph form (more numerically stable)
+    // P = (I - K*H)*P*(I - K*H)' + K*R*K'
     float P_new[6 * 6];
     float KH[6 * 6];
     float I_minus_KH[6 * 6];
+    float I_minus_KH_T[6 * 6];
+    float I_minus_KH_P[6 * 6];
+    float I_minus_KH_P_I_minus_KH_T[6 * 6];
+    float K_T[3 * 6];
+    float KR[6 * 3];
+    float KRK_T[6 * 6];
+
+    // Compute (I - K*H)
     mat_mul(K, H, KH, 6, 3, 6);
     mat_sub(identity6x6, KH, I_minus_KH, 6, 6);
-    mat_mul(I_minus_KH, slate->P, P_new, 6, 6, 6);
+
+    // Compute (I - K*H)*P*(I - K*H)'
+    mat_transpose(I_minus_KH, I_minus_KH_T, 6, 6);
+    mat_mul(I_minus_KH, slate->P, I_minus_KH_P, 6, 6, 6);
+    mat_mul(I_minus_KH_P, I_minus_KH_T, I_minus_KH_P_I_minus_KH_T, 6, 6, 6);
+
+    // Compute K*R*K'
+    mat_transpose(K, K_T, 6, 3);
+    mat_mul(K, R, KR, 6, 3, 3);
+    mat_mul(KR, K_T, KRK_T, 6, 3, 6);
+
+    // P_new = (I - K*H)*P*(I - K*H)' + K*R*K'
+    mat_add(I_minus_KH_P_I_minus_KH_T, KRK_T, P_new, 6, 6);
 
     // Write updated covariance back to slate
     for (int i = 0; i < 36; i++)
