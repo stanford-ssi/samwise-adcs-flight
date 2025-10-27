@@ -1,5 +1,5 @@
 /**
- * @author Lundeen Cahilly, Chen Li, Tactical Cinderblock
+ * @author Lundeen Cahilly, Matthew Musson, Chen Li, TacCin
  * @date 2025-09-14
  * Convert sun sensor readings to sun vector :3
  */
@@ -10,18 +10,41 @@
 #include "macros.h"
 #include "pico/stdlib.h"
 
-// Shadow detection parameters (TODO: store somewhere else?)
-const float SHADOW_THRESHOLD =
-    0.05f; // relative intensity threshold for shadow detection
-const float MIN_WEIGHT = 0.01f; // minimum weight for any sensor
-const uint16_t ACTIVE_THRESHOLD =
-    50; // TODO: determine what makes sense for our system in LEO
+// ========================================================================
+//      CONSTANTS AND PARAMETERS
+// ========================================================================
 
-// forward declares
-void get_unique_sensor_readings(float *sensor_readings, slate_t *slate);
-bool ransac_sun_vector(float normals[][3], float signals[], int n_sensors,
+static constexpr uint16_t ACTIVE_THRESHOLD =
+    500; // TODO: determine what makes sense for our system in LEO (0.5 * max i
+         // think?) given the Earth's reflected light. this will limit our
+         // effective FOV for each sensor
+
+static constexpr uint16_t SATURATION_VALUE =
+    3102; // max clipped value for sun sensors due to differing ref voltages
+
+static constexpr int NUM_OPPOSITE_PAIRS = 8;
+
+static constexpr int OPPOSITE_PAIRS[NUM_OPPOSITE_PAIRS][2] = {
+    {0, 6},   {1, 5},  {2, 4}, {3, 7}, // pyramid opposites
+    {8, 10},  {9, 11},                 // Y+ vs Y- pairs
+    {12, 14}, {13, 15}                 // Z+ vs Z- pairs
+};
+
+static constexpr int MAX_ITERATIONS = 1000;
+static constexpr float INLIER_THRESHOLD =
+    0.1f; // threshold for considering a sensor an inlier TODO: tune this value
+
+// ========================================================================
+//      FORWARD DECLARATIONS
+// ========================================================================
+
+int valid_sensors(slate_t *slate, bool *exclude_sensors);
+bool ransac_sun_vector(slate_t *slate, bool *exclude_sensors,
                        float3 &best_sun_vector, int &best_inlier_count);
-bool compute_sun_vector_ransac(slate_t *slate);
+
+// ========================================================================
+//      SUN VECTOR ESTIMATION (main)
+// ========================================================================
 
 void sun_sensors_to_vector(slate_t *slate)
 {
@@ -29,37 +52,15 @@ void sun_sensors_to_vector(slate_t *slate)
      * RANSAC (Random Sample Consensus) Sets sun vector to valid in SLATE if
      * RANSAC successful, else sets invalid
      */
-    const int unique_sensor_count = 12;
     const float epsilon = 1e-6f;
+    bool exclude_sensors[NUM_SUN_SENSORS] = {
+        false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false};
 
-    // get 12 unique sensor readings | invalid sensors set to 0.0f
-    float unique_sensor_readings[unique_sensor_count];
-    get_unique_sensor_readings(unique_sensor_readings, slate);
+    // Check if sun sensors are valid or not
+    int valid_count = valid_sensors(slate, exclude_sensors);
 
-    // create normals matrix for RANSAC
-    float normals[unique_sensor_count][3];
-    float signals[unique_sensor_count];
-    int valid_count = 0;
-
-    for (int i = 0; i < unique_sensor_count; i++)
-    {
-        float intensity = unique_sensor_readings[i];
-        if (intensity > epsilon)
-        {
-            // For first 8 sensors (pyramid sensors), use direct mapping
-            // For last 4 sensors (unique Y+/Y-/Z+/Z-), map to first of each
-            // pair
-            int normal_index = (i < 8) ? i : (i * 2);
-
-            normals[valid_count][0] = SUN_SENSOR_NORMALS[normal_index][0];
-            normals[valid_count][1] = SUN_SENSOR_NORMALS[normal_index][1];
-            normals[valid_count][2] = SUN_SENSOR_NORMALS[normal_index][2];
-            signals[valid_count] = intensity;
-            valid_count++;
-        }
-    }
-
-    // Degenerate case - set to zero and flag as invalid
+    // Underdetermined case - set to zero and flag as invalid
     if (valid_count < 3)
     {
         slate->sun_vector_body = {0.0f, 0.0f, 0.0f};
@@ -71,124 +72,117 @@ void sun_sensors_to_vector(slate_t *slate)
     float3 sun_vector;
     int inlier_count;
 
-    if (ransac_sun_vector(normals, signals, valid_count, sun_vector,
-                          inlier_count))
+    if (!ransac_sun_vector(slate, exclude_sensors, sun_vector, inlier_count))
     {
-        slate->sun_vector_body = sun_vector;
-        slate->sun_vector_valid = true;
-        return;
-    }
-
-    else
-    {
-        // RANSAC failed - set to zero and flag as invalid
         slate->sun_vector_body = {0.0f, 0.0f, 0.0f};
         slate->sun_vector_valid = false;
         return;
     }
+    slate->sun_vector_body = sun_vector;
+    slate->sun_vector_valid = true;
+    return;
 }
 
-void get_unique_sensor_readings(float *unique_sensor_readings, slate_t *slate)
-{
-    /* Function to take intensity readings from Slate (converted to bits),
-     * filter invalid sensors, and return unique readings */
+// ========================================================================
+//      SENSOR VALIDATION AND RANSAC
+// ========================================================================
 
-    // read sun_sensor intensities (sensor outputs voltage -> converted to bits
-    // on (2.5/3.3)4095 = 3102 bit scale)
-    float sensor_readings[NUM_SUN_SENSORS];
+/**
+ * @brief Validate sun sensor readings by checking for saturation and
+ * opposite sensor activation
+ *
+ * @param slate Pointer to the ADCS slate structure
+ * @param exclude_sensors output: array indicating which sensors are invalid
+ * @return int Number of valid sensors
+ */
+int valid_sensors(slate_t *slate, bool *exclude_sensors)
+{
+    // Check for saturation
     for (int i = 0; i < NUM_SUN_SENSORS; i++)
     {
-        float intensity = static_cast<float>(slate->sun_sensor_intensities[i]);
-        // if intensity above max val (3102 bits) invalidate reading
-        if (intensity > SUN_SENSOR_CLIP_VALUE)
+        uint16_t intensity = slate->sun_sensor_intensities[i];
+        if (intensity >= SATURATION_VALUE)
         {
-            slate->sun_vector_body = {0, 0, 0};
-            slate->sun_vector_valid = false;
-            return;
-        }
-        else
-        {
-            sensor_readings[i] = intensity;
+            exclude_sensors[i] = true;
         }
     }
 
-    // Define opposite sensor pairs that should never both be active
-    const int num_opposite_pairs = 8;
-    const int opposite_pairs[][2] = {
-        {0, 6},   {1, 5},  {2, 4}, {3, 7}, // pyramid opposites
-        {8, 10},  {9, 11},                 // Y+ vs Y- pairs
-        {12, 14}, {13, 15}                 // Z+ vs Z- pairs
-    };
-
-    // exclude sensor pairs which are both active (above threshold), or sensors
-    // individually below active threshold
-    for (const auto &pair : opposite_pairs)
+    // Exclude if below threshold
+    for (int i = 0; i < NUM_SUN_SENSORS; i++)
     {
-        int s1 = pair[0];
-        int s2 = pair[1];
-
-        if (sensor_readings[s1] > ACTIVE_THRESHOLD &&
-            sensor_readings[s2] > ACTIVE_THRESHOLD)
+        uint16_t intensity = slate->sun_sensor_intensities[i];
+        if (intensity < ACTIVE_THRESHOLD)
         {
-            sensor_readings[s1] = 0.0f;
-            sensor_readings[s2] = 0.0f;
-        }
-        else
-        {
-            if (sensor_readings[s1] < ACTIVE_THRESHOLD)
-            {
-                sensor_readings[s1] = 0.0f;
-            }
-            if (sensor_readings[s2] < ACTIVE_THRESHOLD)
-            {
-                sensor_readings[s2] = 0.0f;
-            }
+            exclude_sensors[i] = true;
         }
     }
 
-    // Process pairs of redundant sensors (Y+, Y-, Z+, Z-) and store max values
-    const int redundant_pairs[][3] = {
-        {8, 9, 8},    // Y+
-        {10, 11, 9},  // Y-
-        {12, 13, 10}, // Z+
-        {14, 15, 11}  // Z-
-    };
-
-    for (const auto &pair : redundant_pairs)
+    // Exclude opposite sensor pairs if both are active
+    // (physically impossible - one must be faulty)
+    for (int i = 0; i < NUM_OPPOSITE_PAIRS; i++)
     {
-        sensor_readings[pair[2]] =
-            fmaxf(sensor_readings[pair[0]], sensor_readings[pair[1]]);
+        int s1 = OPPOSITE_PAIRS[i][0];
+        int s2 = OPPOSITE_PAIRS[i][1];
+
+        // Skip if either sensor already excluded
+        if (exclude_sensors[s1] || exclude_sensors[s2])
+        {
+            continue;
+        }
+
+        uint16_t intensity1 = slate->sun_sensor_intensities[s1];
+        uint16_t intensity2 = slate->sun_sensor_intensities[s2];
+
+        // If both are active, exclude both (we don't know which is faulty)
+        if (intensity1 >= ACTIVE_THRESHOLD && intensity2 >= ACTIVE_THRESHOLD)
+        {
+            exclude_sensors[s1] = true;
+            exclude_sensors[s2] = true;
+        }
     }
 
-    // Copy pyramid sensors (0-7) and processed axis sensors (8-11) to unique
-    // readings
-    for (int i = 0; i < 12; i++)
+    // Count valid sensors
+    int valid_count = 0;
+    for (int i = 0; i < NUM_SUN_SENSORS; i++)
     {
-        unique_sensor_readings[i] = sensor_readings[i];
+        if (!exclude_sensors[i])
+        {
+            valid_count++;
+        }
     }
+
+    return valid_count;
 }
 
 /**
  * @brief RANSAC implementation for robust sun vector estimation
  *
- * @param normals Array of sensor normal vectors [n_sensors][3]
- * @param signals Array of sensor readings [n_sensors]
- * @param n_sensors Number of valid sensors
- * @param best_sun_vector Output: best sun vector found
- * @param best_inlier_count Output: number of inliers for best solution
+ * @param slate Pointer to the ADCS slate structure
+ * @param exclude_sensors array indicating which sensors to exclude
+ * @param best_sun_vector output: estimated sun vector
+ * @param best_inlier_count output: number of inliers for best estimate
+ *
  * @return true if successful, false if failed
  */
-bool ransac_sun_vector(float normals[][3], float signals[], int n_sensors,
+bool ransac_sun_vector(slate_t *slate, bool *exclude_sensors,
                        float3 &best_sun_vector, int &best_inlier_count)
 {
+    // Build list of valid sensor indices
+    int valid_indices[NUM_SUN_SENSORS];
+    int n_sensors = 0;
+    for (int i = 0; i < NUM_SUN_SENSORS; i++)
+    {
+        if (!exclude_sensors[i])
+        {
+            valid_indices[n_sensors] = i;
+            n_sensors++;
+        }
+    }
+
     if (n_sensors < 3)
     {
         return false;
     }
-
-    const int MAX_ITERATIONS = 100;
-    const float INLIER_THRESHOLD =
-        0.2f; // threshold for considering a sensor an inlier
 
     best_inlier_count = 0;
     best_sun_vector = {0, 0, 0};
@@ -199,18 +193,20 @@ bool ransac_sun_vector(float normals[][3], float signals[], int n_sensors,
          iter < (n_sensors * (n_sensors - 1) * (n_sensors - 2) / 6);
          iter++)
     {
-        // Sample 3 unique sensors
-        int indices[3];
-        indices[0] = iter % n_sensors;
-        indices[1] = (iter + 1) % n_sensors;
-        indices[2] = (iter + 2) % n_sensors;
+        // Sample 3 unique sensors from valid set
+        int idx0 = iter % n_sensors;
+        int idx1 = (iter + 1) % n_sensors;
+        int idx2 = (iter + 2) % n_sensors;
 
         // Make sure indices are unique
-        if (indices[0] == indices[1] || indices[1] == indices[2] ||
-            indices[0] == indices[2])
+        if (idx0 == idx1 || idx1 == idx2 || idx0 == idx2)
         {
             continue;
         }
+
+        // Get actual sensor indices
+        int sensor_indices[3] = {valid_indices[idx0], valid_indices[idx1],
+                                 valid_indices[idx2]};
 
         // Build 3x3 system: A * sun_vector = b
         float N[9]; // 3x3 matrix
@@ -218,11 +214,12 @@ bool ransac_sun_vector(float normals[][3], float signals[], int n_sensors,
 
         for (int i = 0; i < 3; i++)
         {
-            int sensor_idx = indices[i];
-            N[i * 3 + 0] = normals[sensor_idx][0];
-            N[i * 3 + 1] = normals[sensor_idx][1];
-            N[i * 3 + 2] = normals[sensor_idx][2];
-            b[i] = signals[sensor_idx];
+            int sensor_idx = sensor_indices[i];
+            N[i * 3 + 0] = SUN_SENSOR_NORMALS[sensor_idx][0];
+            N[i * 3 + 1] = SUN_SENSOR_NORMALS[sensor_idx][1];
+            N[i * 3 + 2] = SUN_SENSOR_NORMALS[sensor_idx][2];
+            b[i] =
+                static_cast<float>(slate->sun_sensor_intensities[sensor_idx]);
         }
 
         // Check for singularity by computing determinant
@@ -253,16 +250,20 @@ bool ransac_sun_vector(float normals[][3], float signals[], int n_sensors,
         }
         sun_vec = sun_vec / magnitude;
 
-        // Count inliers
+        // Count inliers across all valid sensors
         int inlier_count = 0;
         for (int i = 0; i < n_sensors; i++)
         {
-            float3 normal = {normals[i][0], normals[i][1], normals[i][2]};
-            float expected_signal = fmax(0.0f, dot(sun_vec, normal));
-            float normalized_actual =
-                signals[i] / magnitude; // Normalize actual signal
+            int sensor_idx = valid_indices[i];
+            float3 normal = {SUN_SENSOR_NORMALS[sensor_idx][0],
+                             SUN_SENSOR_NORMALS[sensor_idx][1],
+                             SUN_SENSOR_NORMALS[sensor_idx][2]};
+            float expected = fmax(0.0f, dot(sun_vec, normal));
+            float actual =
+                static_cast<float>(slate->sun_sensor_intensities[sensor_idx]) /
+                magnitude;
 
-            float error = fabs(expected_signal - normalized_actual);
+            float error = fabs(expected - actual);
             if (error < INLIER_THRESHOLD)
             {
                 inlier_count++;
@@ -276,7 +277,8 @@ bool ransac_sun_vector(float normals[][3], float signals[], int n_sensors,
             best_sun_vector = sun_vec;
         }
     }
-    return best_inlier_count >= 3; // Need at least 3 inliers for valid solution
+    return best_inlier_count >
+           3; // Need greater than 3 inliers for valid solution
 }
 
 #ifdef TEST
@@ -311,7 +313,7 @@ const struct test_case test_cases[] = {
       NONE, NONE, NONE, NONE},
      "Sun +X, no occlusion"},
 
-    {{0.0f, 1.0f, 0.2f},
+    {{0.0f, 1.0f, 1.0f},
      {false, false, false, false, false, false, false, false, false, false,
       false, false, false, false, false, false},
      {NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
