@@ -32,7 +32,7 @@ constexpr uint32_t GPS_DATA_EXPIRATION_MS =
 // TODO: Update with FLIGHT model (see scripts/calibrations/magnetometer)
 
 // Hard iron offset correction (sensor units)
-constexpr float3 MAG_HARD_IRON_OFFSET = float3{-0.647650, 1.238939, -0.935132};
+constexpr float3 MAG_HARD_IRON_OFFSET = float3{-1.381762, -17.984284, -28.749484};
 
 // Soft iron matrix correction (in sensor units)
 constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.000000f, 0.000000f, 0.000000f},
@@ -147,15 +147,6 @@ constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 // Define all sun sensor normal vectors (NUM_SUN_SENSORS x 3 matrix)
 const float SUN_SENSOR_NORMALS[NUM_SUN_SENSORS][3] = {
     // Pyramid group 1 on +X face (0-3)
-    {SQRT_2_INV, 0, SQRT_2_INV},  // sun_pyramid_1_1
-    {SQRT_2_INV, SQRT_2_INV, 0},  // sun_pyramid_1_2
-    {SQRT_2_INV, 0, -SQRT_2_INV}, // sun_pyramid_1_3
-    {SQRT_2_INV, -SQRT_2_INV, 0}, // sun_pyramid_1_4
-    // Pyramid group 2 on -X face (4-7)
-    {-SQRT_2_INV, 0, SQRT_2_INV},  // sun_pyramid_2_1
-    {-SQRT_2_INV, -SQRT_2_INV, 0}, // sun_pyramid_2_2
-    {-SQRT_2_INV, 0, -SQRT_2_INV}, // sun_pyramid_2_3
-    {-SQRT_2_INV, SQRT_2_INV, 0},  // sun_pyramid_2_4
     // Y+ sensors (8-9)
     {0, -1, 0}, // y+ sensor 1
     {0, -1, 0}, // y+ sensor 2
@@ -168,6 +159,16 @@ const float SUN_SENSOR_NORMALS[NUM_SUN_SENSORS][3] = {
     // Z- face sensors (14-15)
     {0, 0, -1}, // z- sensor 1
     {0, 0, -1}, // z- sensor 2
+    // TODO: switch back after test
+    {0, SQRT_2_INV, SQRT_2_INV},  // sun_pyramid_1_1
+    {-SQRT_2_INV, SQRT_2_INV, 0}, // sun_pyramid_1_2
+    {0, SQRT_2_INV, -SQRT_2_INV}, // sun_pyramid_1_3
+    {SQRT_2_INV, SQRT_2_INV, 0},  // sun_pyramid_1_4
+    // Pyramid group 2 on -X face (4-7)
+    {0, -SQRT_2_INV, SQRT_2_INV},  // sun_pyramid_2_1
+    {SQRT_2_INV, -SQRT_2_INV, 0},  // sun_pyramid_2_2
+    {0, -SQRT_2_INV, -SQRT_2_INV}, // sun_pyramid_2_3
+    {-SQRT_2_INV, -SQRT_2_INV, 0}, // sun_pyramid_2_4
 };
 
 // ========================================================================

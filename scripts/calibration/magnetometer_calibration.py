@@ -103,7 +103,7 @@ class MagnetometerCalibrator:
         sample_count = 0
         reconnect_delay = 3 # seconds
         ser = None
-        pattern = r'Magnetometer reading: \[([-\d.]+), ([-\d.]+), ([-\d.]+)\]'
+        pattern = r'b_body_raw = \[([-\d.]+), ([-\d.]+), ([-\d.]+)\]'
         
         while sample_count < min_samples:
             try:
@@ -394,7 +394,7 @@ if __name__ == "__main__":
     cal = MagnetometerCalibrator(port='/dev/tty.usbmodem101')  # Adjust port as needed
     
     # Collect new data and save it
-    if cal.collect_data(min_samples=10000):
+    if cal.collect_data(min_samples=500):
         json_filename = cal.save_data_to_file()
         # Load the data we just saved (demonstrates the load functionality)
         cal.load_data_from_file(json_filename)
