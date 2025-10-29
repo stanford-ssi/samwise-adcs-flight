@@ -8,6 +8,7 @@ Reads serial debug output and plots:
 4. Angular velocity over time
 5. Attitude orientation (3 body axes relative to ECI)
 6. Filter uncertainty (P_log_frobenius)
+7. Gyro drift (b_gyro_drift)
 
 Plus colorized terminal log output.
 """
@@ -82,7 +83,8 @@ class SatelliteState:
         # Attitude
         self.q_eci_to_body = None  # Quaternion [x, y, z, w]
         self.p_eci_to_body = None
-        self.b_gyro_drift = None
+        self.b_gyro_drift = deque(maxlen=HISTORY_LENGTH)
+        self.b_gyro_drift_current = None
         self.P_log_frobenius = deque(maxlen=HISTORY_LENGTH)
         self.P_log_frobenius_current = None
 
@@ -174,9 +176,10 @@ class LogParser:
         # Gyro drift
         match = LogParser.PATTERNS['b_gyro_drift'].search(line)
         if match:
-            state.b_gyro_drift = np.array([float(match.group(1)),
-                                           float(match.group(2)),
-                                           float(match.group(3))])
+            state.b_gyro_drift_current = np.array([float(match.group(1)),
+                                                   float(match.group(2)),
+                                                   float(match.group(3))])
+            state.b_gyro_drift.append(state.b_gyro_drift_current)
 
         # Covariance
         match = LogParser.PATTERNS['P_log_frobenius'].search(line)
@@ -241,14 +244,14 @@ class SatellitePlotter:
         self.ser = None
 
         # Setup figure and subplots
-        self.fig = plt.figure(figsize=(16, 10))
+        self.fig = plt.figure(figsize=(18, 12))
         self.setup_plots()
 
     def setup_plots(self):
         """Initialize all subplot axes."""
         # 1. LLA World Map (top left) - simplified for speed
         try:
-            self.ax_map = self.fig.add_subplot(2, 3, 1, projection=ccrs.PlateCarree())
+            self.ax_map = self.fig.add_subplot(3, 3, 1, projection=ccrs.PlateCarree())
             self.ax_map.set_global()
             # Only add coastline for speed - skip ocean/land fills
             self.ax_map.add_feature(cfeature.COASTLINE, linewidth=0.5, edgecolor='black')
@@ -261,7 +264,7 @@ class SatellitePlotter:
             self.use_cartopy = True
         except:
             # Fallback to simple 2D plot if cartopy fails
-            self.ax_map = self.fig.add_subplot(2, 3, 1)
+            self.ax_map = self.fig.add_subplot(3, 3, 1)
             self.ax_map.set_xlim(-180, 180)
             self.ax_map.set_ylim(-90, 90)
             self.ax_map.set_xlabel('Longitude')
@@ -275,7 +278,7 @@ class SatellitePlotter:
             self.use_cartopy = False
 
         # 2. Body Frame Vectors (top middle)
-        self.ax_body = self.fig.add_subplot(2, 3, 2, projection='3d')
+        self.ax_body = self.fig.add_subplot(3, 3, 2, projection='3d')
         self.ax_body.set_title('Body Frame Vectors')
         self.ax_body.set_xlabel('X')
         self.ax_body.set_ylabel('Y')
@@ -285,7 +288,7 @@ class SatellitePlotter:
         self.ax_body.set_zlim([-1, 1])
 
         # 3. ECI Frame Vectors (top right)
-        self.ax_eci = self.fig.add_subplot(2, 3, 3, projection='3d')
+        self.ax_eci = self.fig.add_subplot(3, 3, 3, projection='3d')
         self.ax_eci.set_title('ECI Frame Vectors')
         self.ax_eci.set_xlabel('X')
         self.ax_eci.set_ylabel('Y')
@@ -294,8 +297,8 @@ class SatellitePlotter:
         self.ax_eci.set_ylim([-1, 1])
         self.ax_eci.set_zlim([-1, 1])
 
-        # 4. Angular Velocity (bottom left)
-        self.ax_w = self.fig.add_subplot(2, 3, 4)
+        # 4. Angular Velocity (middle left)
+        self.ax_w = self.fig.add_subplot(3, 3, 4)
         self.ax_w.set_title('Angular Velocity (Body Frame)')
         self.ax_w.set_xlabel('Sample')
         self.ax_w.set_ylabel('ω (rad/s)')
@@ -305,8 +308,8 @@ class SatellitePlotter:
         self.line_wz, = self.ax_w.plot([], [], 'b-', label='ωz', linewidth=1.5)
         self.ax_w.legend()
 
-        # 5. Attitude Orientation (bottom middle)
-        self.ax_att = self.fig.add_subplot(2, 3, 5, projection='3d')
+        # 5. Attitude Orientation (middle middle)
+        self.ax_att = self.fig.add_subplot(3, 3, 5, projection='3d')
         self.ax_att.set_title('Attitude (Body Frame in ECI)')
         self.ax_att.set_xlabel('ECI X')
         self.ax_att.set_ylabel('ECI Y')
@@ -315,13 +318,24 @@ class SatellitePlotter:
         self.ax_att.set_ylim([-1, 1])
         self.ax_att.set_zlim([-1, 1])
 
-        # 6. Filter Uncertainty (bottom right)
-        self.ax_cov = self.fig.add_subplot(2, 3, 6)
+        # 6. Filter Uncertainty (middle right)
+        self.ax_cov = self.fig.add_subplot(3, 3, 6)
         self.ax_cov.set_title('Filter Uncertainty (Log Frobenius Norm)')
         self.ax_cov.set_xlabel('Sample')
         self.ax_cov.set_ylabel('log(||P||_F)')
         self.ax_cov.grid(True, alpha=0.3)
         self.line_cov, = self.ax_cov.plot([], [], 'purple', linewidth=2)
+
+        # 7. Gyro Drift (bottom left, spanning 3 columns)
+        self.ax_drift = self.fig.add_subplot(3, 3, (7, 9))
+        self.ax_drift.set_title('Gyro Drift (Body Frame)')
+        self.ax_drift.set_xlabel('Sample')
+        self.ax_drift.set_ylabel('b_gyro (rad/s)')
+        self.ax_drift.grid(True, alpha=0.3)
+        self.line_drift_x, = self.ax_drift.plot([], [], 'r-', label='drift_x', linewidth=1.5)
+        self.line_drift_y, = self.ax_drift.plot([], [], 'g-', label='drift_y', linewidth=1.5)
+        self.line_drift_z, = self.ax_drift.plot([], [], 'b-', label='drift_z', linewidth=1.5)
+        self.ax_drift.legend()
 
         plt.tight_layout()
 
@@ -465,6 +479,23 @@ class SatellitePlotter:
                 y_max = max(y_data) + 0.5
                 self.ax_cov.set_ylim(y_min, y_max)
 
+    def update_gyro_drift(self):
+        """Update gyro drift time series."""
+        if len(self.state.b_gyro_drift) > 0:
+            drift_array = np.array(self.state.b_gyro_drift)
+            x_data = np.arange(len(drift_array))
+
+            self.line_drift_x.set_data(x_data, drift_array[:, 0])
+            self.line_drift_y.set_data(x_data, drift_array[:, 1])
+            self.line_drift_z.set_data(x_data, drift_array[:, 2])
+
+            # Only update limits if deque is full or data extends beyond current limits
+            if len(drift_array) == HISTORY_LENGTH or len(drift_array) == 1:
+                self.ax_drift.set_xlim(0, max(HISTORY_LENGTH, len(drift_array)))
+                y_min = np.min(drift_array) - 0.001
+                y_max = np.max(drift_array) + 0.001
+                self.ax_drift.set_ylim(y_min, y_max)
+
     def animate(self, frame):
         """Animation update function."""
         # Read and parse ALL available serial data (to stay current)
@@ -506,6 +537,7 @@ class SatellitePlotter:
         self.update_angular_velocity()
         self.update_attitude()
         self.update_covariance()
+        self.update_gyro_drift()
 
         return []
 
