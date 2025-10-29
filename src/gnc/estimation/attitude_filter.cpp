@@ -347,16 +347,44 @@ void attitude_filter_propagate(slate_t *slate)
         slate->b_gyro_drift[1],  slate->b_gyro_drift[2],
     };
 
-    // Propagate state from equation (40a)
+    // Propagate state from equation (40a) using RK4 integration
     // x_dot = f(x,t)
-    // x_new = x + x_dot * dt
-    float x_dot[6];
-    float3 w = slate->w_body; // TODO: make sure this fills from sensor data
-    compute_x_dot(x_dot, x, w);
+    // x_new = x + (k1 + 2*k2 + 2*k3 + k4) / 6
+    float3 w = slate->w_body; 
+
+    // RK4 integration
+    float k1[6], k2[6], k3[6], k4[6];
+    float x_temp[6];
+
+    // k1 = f(x, t)
+    compute_x_dot(k1, x, w);
+
+    // k2 = f(x + dt/2 * k1, t + dt/2)
+    for (int i = 0; i < 6; i++)
+    {
+        x_temp[i] = x[i] + 0.5f * dt * k1[i];
+    }
+    compute_x_dot(k2, x_temp, w);
+
+    // k3 = f(x + dt/2 * k2, t + dt/2)
+    for (int i = 0; i < 6; i++)
+    {
+        x_temp[i] = x[i] + 0.5f * dt * k2[i];
+    }
+    compute_x_dot(k3, x_temp, w);
+
+    // k4 = f(x + dt * k3, t + dt)
+    for (int i = 0; i < 6; i++)
+    {
+        x_temp[i] = x[i] + dt * k3[i];
+    }
+    compute_x_dot(k4, x_temp, w);
+
+    // x_new = x + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
     float x_new[6];
     for (int i = 0; i < 6; i++)
     {
-        x_new[i] = x[i] + dt * x_dot[i];
+        x_new[i] = x[i] + (dt / 6.0f) * (k1[i] + 2.0f * k2[i] + 2.0f * k3[i] + k4[i]);
     }
     // Write propagated state back to slate
     float3 p_eci_to_body = float3(x_new[0], x_new[1], x_new[2]);
