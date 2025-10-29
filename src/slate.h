@@ -31,6 +31,7 @@ typedef struct samwise_adcs_slate
     sched_state_t *current_state;
     absolute_time_t entered_current_state_time;
     uint32_t time_in_current_state_ms;
+    uint8_t boot_count; 
 
     // Telemetry
     adcs_packet_t telemetry;
@@ -49,7 +50,7 @@ typedef struct samwise_adcs_slate
     bool magnetometer_alive;
     bool magnetometer_data_valid;
     absolute_time_t b_body_read_time;
-    float3 b_body_raw; // magnetic field in body frame (values in nT)
+    float3 b_body_raw; // magnetic field in body frame (values in nT) TODO: assign in magnetometer driver
     float3 b_body;     // (unit vector)
 
     // GPS
@@ -78,17 +79,17 @@ typedef struct samwise_adcs_slate
     float3 sun_vector_principal; // (unit vector) in principal axes frame
 
     // IMU
-    float imu_alive;
-    float imu_data_valid;
+    bool imu_alive;
+    bool imu_data_valid;
     float3 w_body_raw; // [rad/s] in body frame, raw reading
     float3 w_body;     // [rad/s] in body frame, low-pass filtered
     float w_mag;       // [rad/s] overall magnitude in body frame
 
     // Power monitor
+    bool power_monitor_alive; // true if ADM1176 power monitor is initialized
     float adcs_power;         // [W] ADCS board power consumption
     float adcs_voltage;       // [V] ADCS board voltage
     float adcs_current;       // [A] ADCS board current
-    bool power_monitor_alive; // true if ADM1176 power monitor is initialized
 
     // ========================================================================
     //          ACTUATOR REQUESTS
@@ -144,7 +145,6 @@ typedef struct samwise_adcs_slate
     float3 tau_body;      // [Nm] total torque in body frame
 
     // Attitude control
-    float3 tau_control_principal; // [Nm] total torque in principal axes frame
     float3 tau_rw_principal; // [Nm] torque from reaction wheels in principal
                              // axes frame
     float3 tau_mt_principal; // [Nm] torque from magnetorquers in principal
