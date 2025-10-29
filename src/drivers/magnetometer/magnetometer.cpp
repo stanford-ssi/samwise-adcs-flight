@@ -278,10 +278,10 @@ rm3100_error_t rm3100_get_reading(float3 *mag_field_body, float3 *mag_field_raw)
 
     // 1. Scale
     // Axis conversion: [x,y,z] magmeter -> [x, -y, -z]
-    // TODO: verify for flight
+    // TODO: verify for flight. the current value is for ruby chan board (green w/ face)
     // The sensor needs to be negated on X and Y axes to match body frame
-    *mag_field_raw = {raw_x_lsb * lsb_to_uT, raw_y_lsb * lsb_to_uT,
-                      raw_z_lsb * lsb_to_uT};
+    *mag_field_raw = {raw_x_lsb * lsb_to_uT, -raw_y_lsb * lsb_to_uT,
+                      -raw_z_lsb * lsb_to_uT};
 
     // mag_field_raw should contain the uncalibrated raw reading
     // (already set above, no calibration needed)
