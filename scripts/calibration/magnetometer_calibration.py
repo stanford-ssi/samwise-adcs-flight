@@ -400,7 +400,8 @@ if __name__ == "__main__":
         cal.load_data_from_file(json_filename)
     
     # Perform calibration (choose method)
-    cal.calibrate(method='sphere') 
+    # cal.calibrate(method='sphere') 
+    cal.calibrate(method='ellipsoid')
     
     # Generate comprehensive report
     cal.save_calibration()

@@ -36,8 +36,7 @@ constexpr float GYRO_VARIANCE =
     1.52309e-6f; // rad^2/s^2 For BMI270 at 50hz - TODO: change the update rate,
                  // we are not doing 50hz
 constexpr float DRIFT_VARIANCE =
-    1.52309e-8f; // rad^2/s^4 (~100x smaller than gyro variance) - TODO: measure
-                 // this!
+    1.52309e-8f; // rad^2/s^4, assuming very small drift variance
 float Q[6 * 6] = {
     GYRO_VARIANCE,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
     GYRO_VARIANCE,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -84,7 +83,7 @@ void compute_x_dot(float *x_dot, const float *x, const float3 w)
 
     // Reconstruct MRP kinematics equation 20(a)
     // f(p) = 0.5 * [0.5 * (1 - p^T p) * I + cross_matrix(p) + outerprod(p, p)]
-    // * w
+    // * (w - b)
     float p_dot_p = dot(p, p);
     float scalar_coeff = 0.5f * (1.0f - p_dot_p);
 
@@ -206,35 +205,35 @@ void compute_G(float *G, const float *x)
     G[13] = G11[2][1];
     G[14] = G11[2][2];
     // Top-right block: 0_3x3
-    G[3] = 0;
-    G[4] = 0;
-    G[5] = 0;
-    G[9] = 0;
-    G[10] = 0;
-    G[11] = 0;
-    G[15] = 0;
-    G[16] = 0;
-    G[17] = 0;
+    G[3] = 0.0f;
+    G[4] = 0.0f;
+    G[5] = 0.0f;
+    G[9] = 0.0f;
+    G[10] = 0.0f;
+    G[11] = 0.0f;
+    G[15] = 0.0f;
+    G[16] = 0.0f;
+    G[17] = 0.0f;
     // Bottom-left block: 0_3x3
-    G[18] = 0;
-    G[19] = 0;
-    G[20] = 0;
-    G[24] = 0;
-    G[25] = 0;
-    G[26] = 0;
-    G[30] = 0;
-    G[31] = 0;
-    G[32] = 0;
+    G[18] = 0.0f;
+    G[19] = 0.0f;
+    G[20] = 0.0f;
+    G[24] = 0.0f;
+    G[25] = 0.0f;
+    G[26] = 0.0f;
+    G[30] = 0.0f;
+    G[31] = 0.0f;
+    G[32] = 0.0f;
     // Bottom-right block: identity
-    G[21] = 1;
-    G[22] = 0;
-    G[23] = 0;
-    G[27] = 0;
-    G[28] = 1;
-    G[29] = 0;
-    G[33] = 0;
-    G[34] = 0;
-    G[35] = 1;
+    G[21] = 1.0f;
+    G[22] = 0.0f;
+    G[23] = 0.0f;
+    G[27] = 0.0f;
+    G[28] = 1.0f;
+    G[29] = 0.0f;
+    G[33] = 0.0f;
+    G[34] = 0.0f;
+    G[35] = 1.0f;
 }
 
 void compute_H(float *H, const float *x, const float3 B_I)
@@ -250,34 +249,34 @@ void compute_H(float *H, const float *x, const float3 B_I)
     float3x3 p_cross = cross_matrix(p);
     float3x3 bracket =
         (1.0f - p_dot_p) * identity3x3 - 2.0f * p_cross + 2.0f * outer_p_p;
-    float scalar = (4.0f / (1 + p_dot_p) * (1 + p_dot_p));
-
+    float scalar = 4.0f / ((1 + p_dot_p) * (1 + p_dot_p));
+    float3x3 inverse_bracket;
+    mat_inverse(&bracket.x.x, &inverse_bracket.x.x, 3);
     float3x3 L;
-    mat_mul_square(&A_B_I_cross.x.x, &bracket.x.x, &L.x.x, 3);
-    L = scalar * L;
+    mat_mul_square(&A_B_I_cross.x.x, &inverse_bracket.x.x, &L.x.x, 3);
 
     // Reconstruct eqn (30)
     // H = [L  0_3x3]
     // Left 3x3 block: L
-    H[0] = L[0][0];
-    H[1] = L[0][1];
-    H[2] = L[0][2];
-    H[6] = L[1][0];
-    H[7] = L[1][1];
-    H[8] = L[1][2];
-    H[12] = L[2][0];
-    H[13] = L[2][1];
-    H[14] = L[2][2];
+    H[0] = L[0][0] * scalar;
+    H[1] = L[0][1] * scalar;
+    H[2] = L[0][2] * scalar;
+    H[6] = L[1][0] * scalar;
+    H[7] = L[1][1] * scalar;
+    H[8] = L[1][2] * scalar;
+    H[12] = L[2][0] * scalar;
+    H[13] = L[2][1] * scalar;
+    H[14] = L[2][2] * scalar;
     // Right 3x3 block: 0
-    H[3] = 0;
-    H[4] = 0;
-    H[5] = 0;
-    H[9] = 0;
-    H[10] = 0;
-    H[11] = 0;
-    H[15] = 0;
-    H[16] = 0;
-    H[17] = 0;
+    H[3] = 0.0f;
+    H[4] = 0.0f;
+    H[5] = 0.0f;
+    H[9] = 0.0f;
+    H[10] = 0.0f;
+    H[11] = 0.0f;
+    H[15] = 0.0f;
+    H[16] = 0.0f;
+    H[17] = 0.0f;
 }
 
 // ========================================================================
@@ -293,7 +292,7 @@ void attitude_filter_init(slate_t *slate)
 {
     // Set MRP to identity
     slate->p_eci_to_body = float3(0.0f, 0.0f, 0.0f);
-    slate->q_eci_to_body = quaternion(1.0f, 0.0f, 0.0f, 0.0f);
+    slate->q_eci_to_body = quaternion(0.0f, 0.0f, 0.0f, 1.0f);
     slate->b_gyro_drift = float3(0.0f, 0.0f, 0.0f);
     // Fill attitude covariance matrix P
     for (int i = 0; i < 6 * 6; i++)
@@ -350,7 +349,7 @@ void attitude_filter_propagate(slate_t *slate)
     // Propagate state from equation (40a) using RK4 integration
     // x_dot = f(x,t)
     // x_new = x + (k1 + 2*k2 + 2*k3 + k4) / 6
-    float3 w = slate->w_body; 
+    float3 w = slate->w_body;
 
     // RK4 integration
     float k1[6], k2[6], k3[6], k4[6];
@@ -384,7 +383,8 @@ void attitude_filter_propagate(slate_t *slate)
     float x_new[6];
     for (int i = 0; i < 6; i++)
     {
-        x_new[i] = x[i] + (dt / 6.0f) * (k1[i] + 2.0f * k2[i] + 2.0f * k3[i] + k4[i]);
+        x_new[i] =
+            x[i] + (dt / 6.0f) * (k1[i] + 2.0f * k2[i] + 2.0f * k3[i] + k4[i]);
     }
     // Write propagated state back to slate
     float3 p_eci_to_body = float3(x_new[0], x_new[1], x_new[2]);
@@ -430,11 +430,16 @@ void attitude_filter_propagate(slate_t *slate)
     slate->P_log_frobenius = mat_log_frobenius(slate->P, 6);
 
     // Check for NaN in state or covariance and reinitialize if detected
-    if (std::isnan(slate->p_eci_to_body[0]) || std::isnan(slate->p_eci_to_body[1]) ||
-        std::isnan(slate->p_eci_to_body[2]) || std::isnan(slate->q_eci_to_body[0]) ||
-        std::isnan(slate->q_eci_to_body[1]) || std::isnan(slate->q_eci_to_body[2]) ||
-        std::isnan(slate->q_eci_to_body[3]) || std::isnan(slate->b_gyro_drift[0]) ||
-        std::isnan(slate->b_gyro_drift[1]) || std::isnan(slate->b_gyro_drift[2]) ||
+    if (std::isnan(slate->p_eci_to_body[0]) ||
+        std::isnan(slate->p_eci_to_body[1]) ||
+        std::isnan(slate->p_eci_to_body[2]) ||
+        std::isnan(slate->q_eci_to_body[0]) ||
+        std::isnan(slate->q_eci_to_body[1]) ||
+        std::isnan(slate->q_eci_to_body[2]) ||
+        std::isnan(slate->q_eci_to_body[3]) ||
+        std::isnan(slate->b_gyro_drift[0]) ||
+        std::isnan(slate->b_gyro_drift[1]) ||
+        std::isnan(slate->b_gyro_drift[2]) ||
         std::isnan(slate->P_log_frobenius))
     {
         LOG_ERROR("[ekf] NaN detected in propagate! Reinitializing filter...");
@@ -475,15 +480,14 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
         LOG_ERROR("Attitude filter update called with invalid sensor type!");
         return;
     }
-    float3 B_I;     // measured vector in body frame
-    float3 B_B;     // reference vector in inertial frame
+    float3 B_B;     // measured vector in body frame
+    float3 B_I;     // reference vector in inertial frame
     float R[3 * 3]; // measurement noise covariance
     // Sun sensor update
     if (sensor_type == 'S')
     {
         B_B = slate->sun_vector_body;
-        B_I = slate->sun_vector_eci; // TODO: make sure the sun vector model is
-                                     // called
+        B_I = slate->sun_vector_eci;
         for (int i = 0; i < 3 * 3; i++)
         {
             R[i] = R_sun[i];
@@ -493,7 +497,7 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
     else if (sensor_type == 'M')
     {
         B_B = slate->b_body;
-        B_I = slate->b_eci; // TODO: make sure the B field model is called
+        B_I = slate->b_eci;
         for (int i = 0; i < 3 * 3; i++)
         {
             R[i] = R_mag[i];
@@ -574,18 +578,27 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
     slate->P_log_frobenius = mat_log_frobenius(slate->P, 6);
 
     // Check for NaN in state or covariance and reinitialize if detected
-    if (std::isnan(slate->p_eci_to_body[0]) || std::isnan(slate->p_eci_to_body[1]) ||
-        std::isnan(slate->p_eci_to_body[2]) || std::isnan(slate->q_eci_to_body[0]) ||
-        std::isnan(slate->q_eci_to_body[1]) || std::isnan(slate->q_eci_to_body[2]) ||
-        std::isnan(slate->q_eci_to_body[3]) || std::isnan(slate->b_gyro_drift[0]) ||
-        std::isnan(slate->b_gyro_drift[1]) || std::isnan(slate->b_gyro_drift[2]) ||
+    if (std::isnan(slate->p_eci_to_body[0]) ||
+        std::isnan(slate->p_eci_to_body[1]) ||
+        std::isnan(slate->p_eci_to_body[2]) ||
+        std::isnan(slate->q_eci_to_body[0]) ||
+        std::isnan(slate->q_eci_to_body[1]) ||
+        std::isnan(slate->q_eci_to_body[2]) ||
+        std::isnan(slate->q_eci_to_body[3]) ||
+        std::isnan(slate->b_gyro_drift[0]) ||
+        std::isnan(slate->b_gyro_drift[1]) ||
+        std::isnan(slate->b_gyro_drift[2]) ||
         std::isnan(slate->P_log_frobenius))
     {
-        LOG_ERROR("[ekf] NaN detected in update (sensor '%c')! Reinitializing filter...", sensor_type);
+        LOG_ERROR("[ekf] NaN detected in update (sensor '%c')! Reinitializing "
+                  "filter...",
+                  sensor_type);
         attitude_filter_init(slate);
         return;
     }
 
+    LOG_DEBUG("[ekf] innovation = [%.6f, %.6f, %.6f]", innovation[0],
+              innovation[1], innovation[2]);
     LOG_DEBUG("[ekf] q_eci_to_body = [%.6f, %.6f, %.6f, %.6f]",
               slate->q_eci_to_body[0], slate->q_eci_to_body[1],
               slate->q_eci_to_body[2], slate->q_eci_to_body[3]);
@@ -862,6 +875,280 @@ void ekf_convergence_logging_test(slate_t *slate)
     LOG_INFO("MRP error: %.6f", length(slate->p_eci_to_body - p_expected));
     LOG_INFO("Quaternion error: %.6f",
              length(slate->q_eci_to_body - q_expected));
+    printf("><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=\n\n");
+}
+
+void ekf_stationary_bias_test(slate_t *slate)
+{
+    printf("\n><=><=><=> Testing EKF Stationary with Bias! ><=><=><=><=\n");
+    printf(
+        "This test checks if the filter can estimate bias when NOT rotating\n");
+
+    // Known true values
+    float3 true_bias = {0.01f, -0.02f, 0.015f}; // rad/s - realistic gyro bias
+    float3 true_angular_velocity = {0.0f, 0.0f,
+                                    0.0f}; // NO rotation - stationary
+
+    printf("True bias [x,y,z]: %.6f, %.6f, %.6f rad/s\n", true_bias.x,
+           true_bias.y, true_bias.z);
+    printf("True angular velocity: ZERO (stationary test)\n");
+
+    attitude_filter_init(slate);
+
+    // Test parameters
+    int steps = 10000;
+    float dt = 0.01f;
+    int sun_measurement_hz = 20;
+    int b_measurement_hz = 10;
+    int sun_measurement_interval =
+        static_cast<int>(1.0f / (sun_measurement_hz * dt));
+    int b_measurement_interval =
+        static_cast<int>(1.0f / (b_measurement_hz * dt));
+
+    // True attitude stays at identity since no rotation
+    quaternion q_true = {0.0f, 0.0f, 0.0f,
+                         1.0f}; // Identity: (x,y,z,w)=(0,0,0,1)
+
+    bool passed = true;
+
+    for (int i = 0; i < steps; i++)
+    {
+        // Simulate gyro measurement: measured = true_velocity + bias = 0 + bias
+        // = bias
+        slate->w_body = true_angular_velocity + true_bias;
+
+        // Propagate the filter
+        slate->af_last_propagate_time =
+            get_absolute_time() - static_cast<uint64_t>(dt * 1e6);
+        attitude_filter_propagate(slate);
+
+        // Generate synthetic measurements (identity rotation)
+        float3 sun_eci = {1.0f, 0.0f, 0.0f};
+        float3 mag_eci = {0.0f, 1.0f, 0.0f};
+
+        // Body frame = inertial frame (no rotation)
+        slate->sun_vector_body = sun_eci;
+        slate->b_body = mag_eci;
+        slate->sun_vector_eci = sun_eci;
+        slate->b_eci = mag_eci;
+
+        // Update measurements
+        if (i % sun_measurement_interval == 0)
+        {
+            attitude_filter_update(slate, 'S');
+        }
+        if (i % b_measurement_interval == 0)
+        {
+            attitude_filter_update(slate, 'M');
+        }
+
+        // Check for instability
+        if (std::isnan(slate->p_eci_to_body[0]) ||
+            length(slate->p_eci_to_body) > 1.0f)
+        {
+            LOG_ERROR("Filter became unstable at step %d!", i);
+            passed = false;
+            break;
+        }
+
+        // Log progress
+        if (i % 1000 == 0)
+        {
+            float bias_error = length(slate->b_gyro_drift - true_bias);
+            float quat_error = length(slate->q_eci_to_body - q_true);
+            float mrp_norm = length(slate->p_eci_to_body);
+            // Check attitude-bias coupling in covariance (P[3] = cov(p_x, b_x),
+            // P[9] = cov(p_y, b_x), etc.)
+            float max_coupling =
+                fmaxf(fmaxf(fabsf(slate->P[3]), fabsf(slate->P[9])),
+                      fabsf(slate->P[15]));
+            printf("Step %d: bias_error=%.6f, quat_error=%.6f, mrp_norm=%.6f, "
+                   "P_diag=[%.2e,%.2e,%.2e,%.2e,%.2e,%.2e], coupling=%.2e\n",
+                   i, bias_error, quat_error, mrp_norm, slate->P[0],
+                   slate->P[7], slate->P[14], slate->P[21], slate->P[28],
+                   slate->P[35], max_coupling);
+        }
+    }
+
+    printf("\n=== Final Results ===\n");
+    float3 bias_error = slate->b_gyro_drift - true_bias;
+    float bias_error_mag = length(bias_error);
+    float quat_error_mag = length(slate->q_eci_to_body - q_true);
+
+    printf("\nTrue bias:      [%.6f, %.6f, %.6f] rad/s\n", true_bias.x,
+           true_bias.y, true_bias.z);
+    printf("Estimated bias: [%.6f, %.6f, %.6f] rad/s\n", slate->b_gyro_drift.x,
+           slate->b_gyro_drift.y, slate->b_gyro_drift.z);
+    printf("Bias error magnitude: %.6f rad/s (%.3f deg/s)\n", bias_error_mag,
+           bias_error_mag * RAD_TO_DEG);
+    printf("Quaternion error magnitude: %.6f\n", quat_error_mag);
+
+    float bias_tolerance = 0.005f;
+    float quat_tolerance = 0.01f;
+
+    if (bias_error_mag > bias_tolerance)
+    {
+        LOG_ERROR("Bias error too large! %.6f > %.6f rad/s", bias_error_mag,
+                  bias_tolerance);
+        passed = false;
+    }
+
+    if (quat_error_mag > quat_tolerance)
+    {
+        LOG_ERROR("Quaternion error too large! %.6f > %.6f", quat_error_mag,
+                  quat_tolerance);
+        passed = false;
+    }
+
+    printf("\n");
+    LOG_INFO("Test %s", passed ? "PASSED" : "FAILED");
+    printf("><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=\n\n");
+}
+
+void ekf_rotation_with_bias_test(slate_t *slate)
+{
+    printf("\n><=><=><=> Testing EKF Rotation with Known Bias! ><=><=><=><=\n");
+
+    // Known true values
+    float3 true_bias = {0.01f, -0.02f, 0.015f}; // rad/s - realistic gyro bias
+    float3 true_angular_velocity = {0.5f, 0.3f,
+                                    -0.4f}; // rad/s - moderate rotation rate
+
+    printf("True bias [x,y,z]: %.6f, %.6f, %.6f rad/s\n", true_bias.x,
+           true_bias.y, true_bias.z);
+    printf("True angular velocity [x,y,z]: %.6f, %.6f, %.6f rad/s\n",
+           true_angular_velocity.x, true_angular_velocity.y,
+           true_angular_velocity.z);
+
+    attitude_filter_init(slate);
+
+    // Test parameters
+    int steps = 10000;
+    float dt = 0.01f;            // 10ms timestep, 100Hz propagation
+    int sun_measurement_hz = 20; // 20 Hz sun sensor
+    int b_measurement_hz = 10;   // 10 Hz magnetometer
+    int sun_measurement_interval =
+        static_cast<int>(1.0f / (sun_measurement_hz * dt));
+    int b_measurement_interval =
+        static_cast<int>(1.0f / (b_measurement_hz * dt));
+
+    // Track expected attitude by integrating true angular velocity
+    quaternion q_true = {0.0f, 0.0f, 0.0f,
+                         1.0f}; // Identity: (x,y,z,w)=(0,0,0,1)
+
+    bool passed = true;
+
+    for (int i = 0; i < steps; i++)
+    {
+        // Simulate gyro measurement: measured = true_velocity + bias
+        slate->w_body = true_angular_velocity + true_bias;
+
+        // Propagate the filter
+        slate->af_last_propagate_time =
+            get_absolute_time() - static_cast<uint64_t>(dt * 1e6);
+        attitude_filter_propagate(slate);
+
+        // Integrate true attitude (ground truth) using the TRUE angular
+        // velocity q_dot = 0.5 * q * [0, w_true]
+        quaternion w_quat = {0.0f, true_angular_velocity.x,
+                             true_angular_velocity.y, true_angular_velocity.z};
+        quaternion q_dot = 0.5f * qmul(q_true, w_quat);
+        q_true = q_true + dt * q_dot;
+        q_true = normalize(q_true);
+
+        // Generate synthetic measurements in body frame
+        // For simplicity, use fixed inertial vectors
+        float3 sun_eci = {1.0f, 0.0f, 0.0f};
+        float3 mag_eci = {0.0f, 1.0f, 0.0f};
+
+        // Rotate to body frame using TRUE attitude
+        float3x3 dcm_true = quaternion_to_dcm(q_true);
+        slate->sun_vector_body = mul(dcm_true, sun_eci);
+        slate->b_body = mul(dcm_true, mag_eci);
+
+        // Inertial frame vectors (what the filter expects)
+        slate->sun_vector_eci = sun_eci;
+        slate->b_eci = mag_eci;
+
+        // Update measurements at their respective rates
+        if (i % sun_measurement_interval == 0)
+        {
+            attitude_filter_update(slate, 'S');
+        }
+        if (i % b_measurement_interval == 0)
+        {
+            attitude_filter_update(slate, 'M');
+        }
+
+        // Check for instability
+        if (std::isnan(slate->p_eci_to_body[0]) ||
+            length(slate->p_eci_to_body) > 1.0f)
+        {
+            LOG_ERROR("Filter became unstable at step %d!", i);
+            passed = false;
+            break;
+        }
+
+        // Log progress periodically
+        if (i % 1000 == 0)
+        {
+            float bias_error = length(slate->b_gyro_drift - true_bias);
+            float quat_error = length(slate->q_eci_to_body - q_true);
+            printf("Step %d: bias_error=%.6f rad/s, quat_error=%.6f\n", i,
+                   bias_error, quat_error);
+        }
+    }
+
+    // Final analysis
+    printf("\n=== Final Results ===\n");
+
+    float3 bias_error = slate->b_gyro_drift - true_bias;
+    float bias_error_mag = length(bias_error);
+    float quat_error_mag = length(slate->q_eci_to_body - q_true);
+
+    printf("\nTrue bias:      [%.6f, %.6f, %.6f] rad/s\n", true_bias.x,
+           true_bias.y, true_bias.z);
+    printf("Estimated bias: [%.6f, %.6f, %.6f] rad/s\n", slate->b_gyro_drift.x,
+           slate->b_gyro_drift.y, slate->b_gyro_drift.z);
+    printf("Bias error:     [%.6f, %.6f, %.6f] rad/s\n", bias_error.x,
+           bias_error.y, bias_error.z);
+    printf("Bias error magnitude: %.6f rad/s (%.3f deg/s)\n", bias_error_mag,
+           bias_error_mag * RAD_TO_DEG);
+
+    printf("\nTrue quaternion:      [%.6f, %.6f, %.6f, %.6f]\n", q_true.w,
+           q_true.x, q_true.y, q_true.z);
+    printf("Estimated quaternion: [%.6f, %.6f, %.6f, %.6f]\n",
+           slate->q_eci_to_body.w, slate->q_eci_to_body.x,
+           slate->q_eci_to_body.y, slate->q_eci_to_body.z);
+    printf("Quaternion error magnitude: %.6f\n", quat_error_mag);
+
+    printf("\nEstimated MRP: [%.6f, %.6f, %.6f]\n", slate->p_eci_to_body.x,
+           slate->p_eci_to_body.y, slate->p_eci_to_body.z);
+    printf("P log frobenius: %.6f\n", slate->P_log_frobenius);
+    printf("Attitude uncertainty (1-sigma): [%.3f, %.3f, %.3f] deg\n",
+           sqrtf(slate->P[0]) * RAD_TO_DEG, sqrtf(slate->P[7]) * RAD_TO_DEG,
+           sqrtf(slate->P[14]) * RAD_TO_DEG);
+
+    // Pass/fail criteria
+    float bias_tolerance = 0.005f; // 0.005 rad/s = 0.286 deg/s
+    float quat_tolerance = 0.05f;  // Quaternion distance
+
+    if (bias_error_mag > bias_tolerance)
+    {
+        LOG_ERROR("Bias error too large! %.6f > %.6f rad/s", bias_error_mag,
+                  bias_tolerance);
+        passed = false;
+    }
+
+    if (quat_error_mag > quat_tolerance)
+    {
+        LOG_ERROR("Quaternion error too large! %.6f > %.6f", quat_error_mag,
+                  quat_tolerance);
+        passed = false;
+    }
+
+    printf("\n");
+    LOG_INFO("Test %s", passed ? "PASSED" : "FAILED");
     printf("><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=\n\n");
 }
 #endif
