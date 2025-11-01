@@ -29,4 +29,6 @@ void ekf_convergence_test(slate_t *slate);
 void ekf_mrp_wrapping_test(slate_t *slate);
 void ekf_high_rate_tumble_test(slate_t *slate);
 void ekf_convergence_logging_test(slate_t *slate);
+void ekf_stationary_bias_test(slate_t *slate);
+void ekf_rotation_with_bias_test(slate_t *slate);
 #endif

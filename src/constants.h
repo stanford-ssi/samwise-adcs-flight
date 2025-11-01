@@ -32,12 +32,13 @@ constexpr uint32_t GPS_DATA_EXPIRATION_MS =
 // TODO: Update with FLIGHT model (see scripts/calibrations/magnetometer)
 
 // Hard iron offset correction (sensor units)
-constexpr float3 MAG_HARD_IRON_OFFSET = float3{-0.647650, 1.238939, -0.935132};
+constexpr float3 MAG_HARD_IRON_OFFSET =
+    float3{-2.540693, 16.138800, -24.242187};
 
 // Soft iron matrix correction (in sensor units)
-constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.000000f, 0.000000f, 0.000000f},
-                                           {0.000000f, 1.000000f, 0.000000f},
-                                           {0.000000f, 0.000000f, 1.000000f}};
+constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{0.026047f, 0.000375f, -0.001275f},
+                                           {0.000375f, 0.027098f, -0.000445f},
+                                           {-0.001275f, -0.000445f, 0.026726f}};
 
 // ========================================================================
 //          MAGNETOMETER SAMPLING
@@ -145,6 +146,7 @@ constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 // ========================================================================
 
 // Define all sun sensor normal vectors (NUM_SUN_SENSORS x 3 matrix)
+// TODO: swap for new adcs board
 const float SUN_SENSOR_NORMALS[NUM_SUN_SENSORS][3] = {
     // Pyramid group 1 on +X face (0-3)
     {SQRT_2_INV, 0, SQRT_2_INV},  // sun_pyramid_1_1
