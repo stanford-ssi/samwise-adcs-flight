@@ -50,7 +50,7 @@ typedef struct samwise_adcs_slate
     bool magnetometer_alive;
     bool magnetometer_data_valid;
     absolute_time_t b_body_read_time;
-    float3 b_body_raw; // magnetic field in body frame (values in nT) TODO: assign in magnetometer driver
+    float3 b_body_raw; // magnetic field in body frame (values in nT)
     float3 b_body;     // (unit vector)
 
     // GPS
