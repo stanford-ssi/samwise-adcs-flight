@@ -1,11 +1,11 @@
 /**
- * @author Niklas Vainio
+ * @author Niklas Vainio, Sid Manne, Lundeen Cahilly
  * @date 2025-05-27
  *
  * This file defines the ADCS telemetry struct.
  * IMPORTANT: KEEP UP TO DATE WITH THE PICUBED
  *
- * Last updated: 2025-10-18 (real sensor data now populated)
+ * Last updated: 2025-10-18 (additional sensor data now populated)
  *
  * (this must live in a separate file for C include reasons)
  */
@@ -23,10 +23,11 @@ typedef struct __attribute__((packed))
     // Boot count
     uint8_t boot_count;
 
-    // Quaternion (ECI to body, only x,y,z components)
+    // Quaternion (ECI to body, x,y,z,w order)
     float q_eci_to_body_x;
     float q_eci_to_body_y;
     float q_eci_to_body_z;
+    float q_eci_to_body_w;
 
     // Angular velocity (body frame)
     float w_body_x;
@@ -76,5 +77,4 @@ typedef struct __attribute__((packed))
 
     // Time
     float mjd;
-
 } adcs_packet_t;

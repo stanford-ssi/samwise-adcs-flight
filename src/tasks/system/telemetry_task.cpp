@@ -18,16 +18,14 @@
    * @return Character representing the current state
    */
 static char get_state_char(slate_t *slate) {
-    // TODO: UPDATE when we update slate
-      const char *name = slate->current_state->name;
-      switch (name[0]) {  // Use first character for speed
-          case 'i': return 'I';  // init
-          case 'd': return 'D';  // detumble
-          case 's': return 'S';  // slewing
-          case 'c': return 'C';  // cool_down
-          case 't': return 'T';  // test
-          default:  return '?';
-      }
+        const char *name = slate->current_state->name;
+        // do same as below but with names use map if necessary
+        if (strcmp(name, "init") == 0) return 'I';
+        if (strcmp(name, "detumble") == 0) return 'D';
+        if (strcmp(name, "slewing") == 0) return 'S';
+        if (strcmp(name, "cool_down") == 0) return 'C';
+        if (strcmp(name, "test") == 0) return 'T';
+        else return '?';
 }
 
 /**
@@ -46,6 +44,7 @@ static void populate_telemetry(slate_t *slate)
         .q_eci_to_body_x = slate->q_eci_to_body.x,
         .q_eci_to_body_y = slate->q_eci_to_body.y,
         .q_eci_to_body_z = slate->q_eci_to_body.z,
+        .q_eci_to_body_w = slate->q_eci_to_body.w,
 
         // Angular velocity
         .w_body_x = slate->w_body.x,
@@ -95,7 +94,7 @@ static void populate_telemetry(slate_t *slate)
     };
 
     // Copy sun sensor data validity array (16 bools)
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < NUM_SUN_SENSORS; i++) {
         slate->telemetry.sun_sensor_data_valid[i] = slate->sun_sensor_data_valid[i];
     }
 }
@@ -113,7 +112,6 @@ void telemetry_task_init(slate_t *slate)
 
     LOG_INFO("[telem] Picubed UART successfully initialized!");
 }
-
 
 /**
  * @brief Dispatch telemetry task. Populates telemetry data and handles
