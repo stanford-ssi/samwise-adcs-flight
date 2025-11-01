@@ -12,14 +12,14 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef struct __attribute__((packed))
 {
     // State
     char state;
-    
+
     // Boot count
     uint8_t boot_count;
 

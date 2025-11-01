@@ -31,7 +31,7 @@ typedef struct samwise_adcs_slate
     sched_state_t *current_state;
     absolute_time_t entered_current_state_time;
     uint32_t time_in_current_state_ms;
-    uint8_t boot_count; 
+    uint8_t boot_count;
 
     // Telemetry
     adcs_packet_t telemetry;

@@ -10,22 +10,28 @@
 #include "drivers/picubed/picubed.h"
 #include "macros.h"
 
-
- /**
-   * @brief Get current state as a single character
-   *
-   * @param slate Pointer to the current satellite slate
-   * @return Character representing the current state
-   */
-static char get_state_char(slate_t *slate) {
-        const char *name = slate->current_state->name;
-        // do same as below but with names use map if necessary
-        if (strcmp(name, "init") == 0) return 'I';
-        if (strcmp(name, "detumble") == 0) return 'D';
-        if (strcmp(name, "slewing") == 0) return 'S';
-        if (strcmp(name, "cool_down") == 0) return 'C';
-        if (strcmp(name, "test") == 0) return 'T';
-        else return '?';
+/**
+ * @brief Get current state as a single character
+ *
+ * @param slate Pointer to the current satellite slate
+ * @return Character representing the current state
+ */
+static char get_state_char(slate_t *slate)
+{
+    const char *name = slate->current_state->name;
+    // do same as below but with names use map if necessary
+    if (strcmp(name, "init") == 0)
+        return 'I';
+    if (strcmp(name, "detumble") == 0)
+        return 'D';
+    if (strcmp(name, "slewing") == 0)
+        return 'S';
+    if (strcmp(name, "cool_down") == 0)
+        return 'C';
+    if (strcmp(name, "test") == 0)
+        return 'T';
+    else
+        return '?';
 }
 
 /**
@@ -90,12 +96,13 @@ static void populate_telemetry(slate_t *slate)
         .alt = slate->gps_alt,
 
         // Time
-        .mjd = slate->MJD
-    };
+        .mjd = slate->MJD};
 
     // Copy sun sensor data validity array (16 bools)
-    for (int i = 0; i < NUM_SUN_SENSORS; i++) {
-        slate->telemetry.sun_sensor_data_valid[i] = slate->sun_sensor_data_valid[i];
+    for (int i = 0; i < NUM_SUN_SENSORS; i++)
+    {
+        slate->telemetry.sun_sensor_data_valid[i] =
+            slate->sun_sensor_data_valid[i];
     }
 }
 
