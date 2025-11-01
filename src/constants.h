@@ -176,15 +176,16 @@ const float SUN_SENSOR_NORMALS[NUM_SUN_SENSORS][3] = {
 //          SUN SENSOR ADC NORMALIZATION
 // ========================================================================
 
-// RP2350B ADC Configuration (TODO: verify for ADCS board v1.8)
+// RP2350B ADC Configuration (ADCS board v1.8)
+// Reads sun pyramid sensors (GPIO 40-47)
 constexpr float VREF_RP2350B_ADC = 3.3f;
 constexpr uint16_t BIT_RESOLUTION_RP2350B_ADC = 12;
 constexpr uint16_t MAX_VALUE_RP2350B_ADC =
     (1 << BIT_RESOLUTION_RP2350B_ADC); // 4095 for 12-bit ADC
 
-// ADS7830 ADC Configuration (TODO: verify for ADCS board v1.8)
-constexpr float VREF_ADS7830 =
-    2.5f; // TODO: check internal (always 2.5v) vs external (we set)
+// ADS7830 ADC Configuration (ADCS board v1.8)
+// Reads Y/Z photodiode sensors via I2C1
+constexpr float VREF_ADS7830 = 2.5f; // Internal reference voltage
 constexpr uint16_t BIT_RESOLUTION_ADS7830 = 8;
 constexpr uint16_t MAX_VALUE_ADS7830 =
     (1 << BIT_RESOLUTION_ADS7830); // 8-bit ADC max value
