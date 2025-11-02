@@ -69,7 +69,8 @@ static void send_packet(const adcs_packet_t *packet)
     const char *data = (const char *)packet;
 
     // Log full telemetry packet as raw bytes
-    printf("[picubed-uart] Telemetry packet (%u bytes): ", sizeof(adcs_packet_t));
+    printf("[picubed-uart] Telemetry packet (%u bytes): ",
+           sizeof(adcs_packet_t));
     for (uint32_t i = 0; i < sizeof(adcs_packet_t); i++)
     {
         printf("%02x ", (unsigned char)data[i]);
