@@ -2,21 +2,12 @@
  * @author Lundeen Cahilly
  * @date 2025-08-20
  *
- * This file reads data from the YZ (+-) photodiodes
+ * This file reads data from the sun pyramid sensors
  * using the ADC pins on a RP2350b chip. These support
  * 12-bit ADC resolution and a reference voltage of 3.3V.
+ *
+ * Board v1.8: Sun pyramids connected to RP2350B ADC (GPIO 40-47)
  */
-
-// ---------------------------------------------------- //
-// TODO: for the v1.8 version of the ADCS board,
-// we need to swap which ADCs read which sun sensors
-// to the following:
-// - Sun Pyramids -> RP2350B ADC
-// - Y/Z Photodiodes -> ADS7830 ADC
-//
-// Also, the reference voltages also may been switched,
-// that's worth checking on the schematic
-// ---------------------------------------------------- //
 
 #include "rp2350b_adc.h"
 
@@ -28,23 +19,20 @@
 #include "pico/stdlib.h"
 
 constexpr uint8_t SAMWISE_ADCS_ADC_CHANNELS[8] = {
-    SAMWISE_ADCS_PD_YP1, SAMWISE_ADCS_PD_YP2, SAMWISE_ADCS_PD_ZP1,
-    SAMWISE_ADCS_PD_ZP2, SAMWISE_ADCS_PD_YM1, SAMWISE_ADCS_PD_YM2,
-    SAMWISE_ADCS_PD_ZM1, SAMWISE_ADCS_PD_ZM2};
-
-constexpr float VREF_YZ =
-    VREF_RP2350B_ADC; // Reference voltage for ADC conversion
+    SAMWISE_ADCS_PYRAMID1_1, SAMWISE_ADCS_PYRAMID1_2, SAMWISE_ADCS_PYRAMID1_3,
+    SAMWISE_ADCS_PYRAMID1_4, SAMWISE_ADCS_PYRAMID2_1, SAMWISE_ADCS_PYRAMID2_2,
+    SAMWISE_ADCS_PYRAMID2_3, SAMWISE_ADCS_PYRAMID2_4};
 
 /**
- * Initialize the YZ sun sensors by setting up the ADC hardware
+ * Initialize the sun pyramid sensors by setting up the ADC hardware
  * @return true if initialization successful, false otherwise
  */
 bool rp2350b_adc_init(void)
 {
-    // Make sure photodiodes are enabled
+    // Make sure sun sensors are enabled
     gpio_init(SAMWISE_ADCS_EN_PD);
     gpio_set_dir(SAMWISE_ADCS_EN_PD, GPIO_OUT);
-    gpio_put(SAMWISE_ADCS_EN_PD, 0); // Pull low to enable photodiode
+    gpio_put(SAMWISE_ADCS_EN_PD, 0); // Pull low to enable sun sensors
 
     // Initialize ADC pins
     adc_init();
@@ -58,8 +46,8 @@ bool rp2350b_adc_init(void)
 }
 
 /**
- * Get a raw ADC reading from a specific sun sensor channel
- * @param channel ADC channel number (0-3 for Y+, Y-, Z+, Z-)
+ * Get a raw ADC reading from a specific sun pyramid sensor channel
+ * @param channel ADC channel number (0-7 for pyramid sensors)
  * @param value Pointer to store the 12-bit ADC value (0-4095)
  * @return true if reading successful, false otherwise
  */
@@ -91,8 +79,8 @@ bool rp2350b_adc_get_reading(uint8_t channel, uint16_t *value)
 }
 
 /**
- * Get a voltage reading from a specific sun sensor channel
- * @param channel ADC channel number (0-3 for Y+, Y-, Z+, Z-)
+ * Get a voltage reading from a specific sun pyramid sensor channel
+ * @param channel ADC channel number (0-7 for pyramid sensors)
  * @param voltage Pointer to store the calculated voltage
  * @return true if reading successful, false otherwise
  */
@@ -114,9 +102,9 @@ bool rp2350b_adc_get_voltage(uint8_t channel, float *voltage)
 
     // Convert 12-bit ADC value to voltage
     *voltage = ((float)value / (float)MAX_VALUE_RP2350B_ADC) *
-               VREF_YZ; // Scale to 0-3.3V
+               VREF_RP2350B_ADC; // Scale to 0-3.3V
 
-    if (*voltage < 0.0f || *voltage > VREF_YZ)
+    if (*voltage < 0.0f || *voltage > VREF_RP2350B_ADC)
     {
         LOG_ERROR("[rp2350b_adc] Voltage out of range: %f", *voltage);
         return false;
@@ -126,8 +114,8 @@ bool rp2350b_adc_get_voltage(uint8_t channel, float *voltage)
 }
 
 /**
- * Read all 8 sun sensor channels and return raw ADC values
- * @param values_out Array to store 8-bit ADC values for all channels
+ * Read all 8 sun pyramid sensor channels and return raw ADC values
+ * @param values_out Array to store 12-bit ADC values for all channels
  * @return true if all readings successful, false otherwise
  */
 bool rp2350b_adc_read_all_channels(uint16_t values_out[8])
@@ -154,7 +142,7 @@ bool rp2350b_adc_read_all_channels(uint16_t values_out[8])
 }
 
 /**
- * Read all 8 sun sensor channels and return voltage values
+ * Read all 8 sun pyramid sensor channels and return voltage values
  * @param voltages_out Array to store voltage values for all channels
  * @return true if all readings successful, false otherwise
  */

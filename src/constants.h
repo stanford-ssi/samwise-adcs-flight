@@ -20,18 +20,25 @@ constexpr uint32_t NUM_REACTION_WHEELS = 4;
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 
 // ========================================================================
+//          GPS SPECIFICATIONS
+// ========================================================================
+constexpr uint32_t GPS_DATA_EXPIRATION_MS =
+    15000; // At 7.6 km/s, gives us 114 km max error
+
+// ========================================================================
 //          MAGNETOMETER CALIBRATION
 // ========================================================================
 
 // TODO: Update with FLIGHT model (see scripts/calibrations/magnetometer)
 
 // Hard iron offset correction (sensor units)
-constexpr float3 MAG_HARD_IRON_OFFSET = float3{-0.647650, 1.238939, -0.935132};
+constexpr float3 MAG_HARD_IRON_OFFSET =
+    float3{-2.540693, 16.138800, -24.242187};
 
 // Soft iron matrix correction (in sensor units)
-constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.000000f, 0.000000f, 0.000000f},
-                                           {0.000000f, 1.000000f, 0.000000f},
-                                           {0.000000f, 0.000000f, 1.000000f}};
+constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{0.026047f, 0.000375f, -0.001275f},
+                                           {0.000375f, 0.027098f, -0.000445f},
+                                           {-0.001275f, -0.000445f, 0.026726f}};
 
 // ========================================================================
 //          MAGNETOMETER SAMPLING
@@ -88,16 +95,25 @@ constexpr float REACTION_WHEEL_SATURATION_LOWER_LIMIT = 0.1;
 //          SATELLITE INERTIA
 // ========================================================================
 
-// !!!!!!!!!!!!!!!! TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// These are calculated from a really hacky estimate
-// made back in fall quarter. We should replace these with
-// something much more accurate, ideally measured with the actual
-// flight model before launch
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-constexpr float3 SATELLITE_INERTIA = {0.01461922201, 0.0412768466,
-                                      0.03235309961}; // Principle axes [kg m^2]
+constexpr float3 I_PRINCIPAL = {
+    0.0237644, 0.0155789,
+    0.0131767}; // Satellite inertia tensor in principal axes [kg m^2]
 
-// TODO: Add principal axes to body rotation
+constexpr float3x3 PRINCIPAL_AXES_DCM = {
+    {-0.716356336507477, 0.004404837035993194, -0.6977207152982292},
+    {-0.6975131547302291, -0.029713909797595195, 0.7159556428598237},
+    {-0.017578342466487904, 0.999548738669219,
+     0.02435817934296709}}; // DCM from body to principal axes
+
+constexpr quaternion Q_BODY_TO_PRINCIPAL = {
+    0.268793, -0.644648, -0.665287,
+    0.263765}; // Quaternion from body to principal axes (scalar-last)
+
+constexpr float3x3 I_BODY = {
+    {0.01861, 0.00529, 0.0001439},
+    {0.00529, 0.01833, 0.0000584709},
+    {0.0001439, 0.0000584709,
+     0.01558}}; // Satellite inertia tensor in body frame [kg m^2]
 
 // ========================================================================
 //          SENSOR NOISE
@@ -130,6 +146,7 @@ constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 // ========================================================================
 
 // Define all sun sensor normal vectors (NUM_SUN_SENSORS x 3 matrix)
+// TODO: swap for new adcs board
 const float SUN_SENSOR_NORMALS[NUM_SUN_SENSORS][3] = {
     // Pyramid group 1 on +X face (0-3)
     {SQRT_2_INV, 0, SQRT_2_INV},  // sun_pyramid_1_1
@@ -159,15 +176,16 @@ const float SUN_SENSOR_NORMALS[NUM_SUN_SENSORS][3] = {
 //          SUN SENSOR ADC NORMALIZATION
 // ========================================================================
 
-// RP2350B ADC Configuration (TODO: verify for ADCS board v1.8)
+// RP2350B ADC Configuration (ADCS board v1.8)
+// Reads sun pyramid sensors (GPIO 40-47)
 constexpr float VREF_RP2350B_ADC = 3.3f;
 constexpr uint16_t BIT_RESOLUTION_RP2350B_ADC = 12;
 constexpr uint16_t MAX_VALUE_RP2350B_ADC =
     (1 << BIT_RESOLUTION_RP2350B_ADC); // 4095 for 12-bit ADC
 
-// ADS7830 ADC Configuration (TODO: verify for ADCS board v1.8)
-constexpr float VREF_ADS7830 =
-    2.5f; // TODO: check internal (always 2.5v) vs external (we set)
+// ADS7830 ADC Configuration (ADCS board v1.8)
+// Reads Y/Z photodiode sensors via I2C1
+constexpr float VREF_ADS7830 = 2.5f; // Internal reference voltage
 constexpr uint16_t BIT_RESOLUTION_ADS7830 = 8;
 constexpr uint16_t MAX_VALUE_ADS7830 =
     (1 << BIT_RESOLUTION_ADS7830); // 8-bit ADC max value
