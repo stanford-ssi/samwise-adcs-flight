@@ -132,17 +132,25 @@ void sun_sensor_task_dispatch(slate_t *slate)
     }
 
     // Log all sun sensor intensities in an array format (uint32_t)
-    LOG_DEBUG("[sensor] Sun sensor intensities: ["
-                "%.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u, "
-                "%.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u]",
-                slate->sun_sensor_intensities[0], slate->sun_sensor_intensities[1],
-                slate->sun_sensor_intensities[2], slate->sun_sensor_intensities[3],
-                slate->sun_sensor_intensities[4], slate->sun_sensor_intensities[5],
-                slate->sun_sensor_intensities[6], slate->sun_sensor_intensities[7],
-                slate->sun_sensor_intensities[8], slate->sun_sensor_intensities[9],
-                slate->sun_sensor_intensities[10], slate->sun_sensor_intensities[11],
-                slate->sun_sensor_intensities[12], slate->sun_sensor_intensities[13],
-                slate->sun_sensor_intensities[14], slate->sun_sensor_intensities[15]);
+    // LOG_DEBUG("[sensor] Sun sensor intensities: ["
+    //             "%.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u, "
+    //             "%.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u]",
+    //             slate->sun_sensor_intensities[0],
+    //             slate->sun_sensor_intensities[1],
+    //             slate->sun_sensor_intensities[2],
+    //             slate->sun_sensor_intensities[3],
+    //             slate->sun_sensor_intensities[4],
+    //             slate->sun_sensor_intensities[5],
+    //             slate->sun_sensor_intensities[6],
+    //             slate->sun_sensor_intensities[7],
+    //             slate->sun_sensor_intensities[8],
+    //             slate->sun_sensor_intensities[9],
+    //             slate->sun_sensor_intensities[10],
+    //             slate->sun_sensor_intensities[11],
+    //             slate->sun_sensor_intensities[12],
+    //             slate->sun_sensor_intensities[13],
+    //             slate->sun_sensor_intensities[14],
+    //             slate->sun_sensor_intensities[15]);
 
     // --- Compute sun vector in body frame --- //
     sun_sensors_to_vector(slate);
