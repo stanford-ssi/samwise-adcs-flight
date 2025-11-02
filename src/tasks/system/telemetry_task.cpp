@@ -7,6 +7,7 @@
  */
 
 #include "telemetry_task.h"
+#include <cstring>
 #include "drivers/picubed/picubed.h"
 #include "macros.h"
 

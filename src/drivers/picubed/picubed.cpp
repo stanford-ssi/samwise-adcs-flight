@@ -66,26 +66,21 @@ static uint32_t read_uart_with_timeout(char *buf, uint32_t num_bytes,
  */
 static void send_packet(const adcs_packet_t *packet)
 {
-    // log current telemetry packet
-    LOG_DEBUG(
-        "[picubed-uart] Sending telemetry packet: w=%.2f, q0=%.2f, q1=%.2f, "
-        "q2=%.2f, q3=%.2f, state=%c, boot_count=%u",
-        packet->w, packet->q0, packet->q1, packet->q2, packet->q3,
-        packet->state, packet->boot_count);
-
     const char *data = (const char *)packet;
 
-    // Log *data
-    LOG_DEBUG("[picubed-uart] Sending telemetry packet data: %u",
-              sizeof(adcs_packet_t));
+    // Log full telemetry packet as raw bytes
+    printf("[picubed-uart] Telemetry packet (%u bytes): ", sizeof(adcs_packet_t));
+    for (uint32_t i = 0; i < sizeof(adcs_packet_t); i++)
+    {
+        printf("%02x ", (unsigned char)data[i]);
+    }
+    printf("\n");
 
     // Send bytes one by one
     for (uint32_t i = 0; i < sizeof(adcs_packet_t); i++)
     {
-        printf("%02x ", (unsigned char)data[i]);
         uart_putc_raw(SAMWISE_ADCS_PICUBED_UART, data[i]);
     }
-    printf("\n");
 }
 
 /**
