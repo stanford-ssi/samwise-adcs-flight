@@ -52,6 +52,7 @@ void gps_world_task_init(slate_t *slate)
  */
 void gps_world_task_dispatch(slate_t *slate)
 {
+    LOG_INFO("[sensor] GPS world task dispatching...");
     if (!slate->gps_alive)
     {
         LOG_DEBUG("[sensor] Skipping GPS due to invalid initialization!");
