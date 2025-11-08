@@ -41,6 +41,7 @@ file(GLOB top CONFIGURE_DEPENDS "src/*.cpp")
 
 # GNC Algorithms
 file(GLOB gnc CONFIGURE_DEPENDS "src/gnc/*.cpp")
+file(GLOB gnc_actuators CONFIGURE_DEPENDS "src/gnc/actuators/*.cpp")
 file(GLOB gnc_estimation CONFIGURE_DEPENDS "src/gnc/estimation/*.cpp")
 file(GLOB gnc_control CONFIGURE_DEPENDS "src/gnc/control/*.cpp")
 file(GLOB gnc_dynamics CONFIGURE_DEPENDS "src/gnc/dynamics/*.cpp")
@@ -83,6 +84,7 @@ add_executable(samwise-adcs
 
     # GNC Algorithms
     ${gnc}
+    ${gnc_actuators}
     ${gnc_estimation}
     ${gnc_control}
     ${gnc_dynamics}
