@@ -10,20 +10,16 @@
 #include "constants.h"
 
 // Must include declarations of all states
-#include "states/cool_down_state.h"
 #include "states/detumble_state.h"
 #include "states/init_state.h"
-#include "states/slewing_state.h"
 #include "states/test_state.h"
 #include "states/safe_state.h"
-#include "states/emergency_state.h"
 
 /*
  * Include the actual state machine
  */
 static const sched_state_t *all_states[] = {&init_state, &test_state,
-                                            &detumble_state, &slewing_state,
-                                            &cool_down_state, &safe_state, &emergency_state};
+                                            &detumble_state, &safe_state};
 static sched_state_t *const initial_state = &init_state;
 
 static size_t n_tasks = 0;
@@ -126,14 +122,16 @@ void sched_dispatch(slate_t *slate)
      */
     sched_state_t *next_state = current_state_info->get_next_state(slate);
     // send to emergency state if voltage is too low
-    if (slate->adcs_voltage < BATTERY_VOLTAGE_SAFE)
+    LOG_INFO("[SCHED] ADCS Voltage: %.2f V", slate->adcs_voltage);
+    LOG_INFO("[SCHED] Power monitor status: %d", slate->power_monitor_alive);
+    if (slate->power_monitor_alive && slate->adcs_voltage < BATTERY_VOLTAGE_SAFE)
     {
         next_state = &safe_state;
     }
     // handle state transition -> log and update slate info
     if (next_state != current_state_info)
     {
-        LOG_DEBUG("sched: Transitioning to state %s", next_state->name);
+        LOG_DEBUG("[SCHED] Transitioning to state %s", next_state->name);
         slate->current_state = next_state;
         slate->entered_current_state_time = get_absolute_time();
         slate->time_in_current_state_ms = 0;

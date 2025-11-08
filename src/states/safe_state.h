@@ -1,7 +1,10 @@
 /**
- * @file safe_state.h
+ * @author Matthew Musson, Lundeen Cahilly
+ * @date 2025-11-08
  *
+ * This file defines our default safe state that reads sensors and does nothing else
  */
+
 #pragma once
 
 #include "scheduler/state_machine_types.h"

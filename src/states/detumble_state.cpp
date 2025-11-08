@@ -18,8 +18,7 @@
 #include "tasks/system/telemetry_task.h"
 #include "tasks/system/watchdog_task.h"
 
-#include "states/cool_down_state.h"
-#include "states/slewing_state.h"
+#include "safe_state.h"
 
 #include "drivers/neopixel/neopixel.h"
 
@@ -27,16 +26,10 @@ sched_state_t *detumble_get_next_state(slate_t *slate)
 {
     neopixel_set_color_rgb(0, 0, 255); // Blue for detumble state
 
-    // Enter slewing at low angular velocity
-    if (slate->imu_data_valid && (slate->w_mag < W_EXIT_DETUMBLE_THRESHOLD))
+    // Enter safe state at low angular velocity OR if angular velocity is super high (detumbled, await pointing mode)
+    if (slate->imu_data_valid && ((slate->w_mag < W_EXIT_DETUMBLE_THRESHOLD) || (slate->w_mag > W_ENTER_SAFE_THRESHOLD)))
     {
-        return &slewing_state;
-    }
-
-    // Enter cool down at excessively high angular velocity
-    if (slate->imu_data_valid && (slate->w_mag > W_COOL_DOWN_ENTER_THRESHOLD))
-    {
-        return &cool_down_state;
+        return &safe_state;
     }
 
     // For now, just stay in the state

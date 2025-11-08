@@ -1,8 +1,10 @@
 /**
- * @file safe_state.cpp
- * NEED TO ADD STATE OVERRIDE LOGIC
+ * @author Matthew Musson, Lundeen Cahilly
+ * @date 2025-11-08
+ *
+ * This file defines our default safe state that reads sensors and does nothing else
  */
-#include "emergency_state.h"
+
 #include "safe_state.h"
 #include "tasks/system/telemetry_task.h"
 #include "tasks/system/watchdog_task.h"
@@ -20,12 +22,9 @@
 
 sched_state_t *safe_get_next_state(slate_t *slate)
 {
-    neopixel_set_color_rgb(255, 255, 0); // Yellow for emergency state
+    neopixel_set_color_rgb(255, 255, 0); // Yellow for safe state
     // If testing, go straight to test. Otherwise, go to detumble
-    if (slate->adcs_voltage < BATTERY_VOLTAGE_EMERGENCY)
-    {
-        return &emergency_state;
-    }
+    // TODO: add state override into other states
     return &safe_state;
 }
 
