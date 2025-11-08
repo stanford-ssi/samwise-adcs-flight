@@ -90,6 +90,8 @@ typedef struct samwise_adcs_slate
     float adcs_voltage;       // [V] ADCS board voltage
     float adcs_current;       // [A] ADCS board current
     bool power_monitor_alive; // true if ADM1176 power monitor is initialized
+    sched_state_t *safe_state_override_target; // NULL = no override,
+                                               // non-NULL = transition to this state when in safe mode
 
     // ========================================================================
     //          ACTUATOR REQUESTS

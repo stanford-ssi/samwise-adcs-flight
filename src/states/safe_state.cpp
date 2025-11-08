@@ -15,7 +15,6 @@
 
 #include "tasks/sensors/imu_task.h"
 
-
 #include "macros.h"
 
 #include "drivers/neopixel/neopixel.h"
@@ -23,8 +22,16 @@
 sched_state_t *safe_get_next_state(slate_t *slate)
 {
     neopixel_set_color_rgb(255, 255, 0); // Yellow for safe state
-    // If testing, go straight to test. Otherwise, go to detumble
-    // TODO: add state override into other states
+
+    // If override target is set, transition to it
+    if (slate->safe_state_override_target != NULL)
+    {
+        LOG_INFO("[SAFE_STATE] Manual override enabled, transitioning to %s",
+                 slate->safe_state_override_target->name);
+        return slate->safe_state_override_target;
+    }
+
+    // Otherwise, stay in safe state
     return &safe_state;
 }
 
