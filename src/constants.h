@@ -63,13 +63,12 @@ constexpr float SQRT_2_INV = 0.7071067811865476f; // 1 / sqrt(2)
 //          STATE TRANSITION THRESHOLDS
 // ========================================================================
 
-// Emergency power saving thresholds TODO: Have AV get values 
-constexpr float BATTERY_VOLTAGE_EMERGENCY = 7.4f; // [V]
-constexpr float BATTERY_VOLTAGE_SAFE      = 7.6f; // [V]
+// Emergency power saving thresholds 
+constexpr float BATTERY_VOLTAGE_SAFE      = 7.0f; // [V]
 
 // Rotation thresholds for state transitions - TODO: pick good values!
-constexpr float W_COOL_DOWN_ENTER_THRESHOLD = (100.0 * DEG_TO_RAD); // in rad/s
-constexpr float W_COOL_DOWN_EXIT_THRESHOLD = (90.0 * DEG_TO_RAD);   // in rad/s
+constexpr float W_ENTER_SAFE_THRESHOLD = (100.0 * DEG_TO_RAD); // in rad/s
+constexpr float W_EXIT_SAFE_THRESHOLD = (90.0 * DEG_TO_RAD);   // in rad/s
 
 constexpr float W_ENTER_DETUMBLE_THRESHOLD = (10.0 * DEG_TO_RAD); // in rad/s
 constexpr float W_EXIT_DETUMBLE_THRESHOLD = (1.0 * DEG_TO_RAD);   // in rad/s
