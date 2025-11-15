@@ -10,6 +10,11 @@
 
 #include "slate.h"
 #include "linalg.h"
+#include "macros.h"
 using namespace linalg::aliases;
 
 void allocate_magnetorquers(slate_t *slate);
+
+#ifdef TEST
+void test_magtorq_allocation(slate_t *slate);
+#endif
