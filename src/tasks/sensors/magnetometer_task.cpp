@@ -158,7 +158,7 @@ void magnetometer_task_dispatch(slate_t *slate)
         case MAG_RESTARTING_TORQUERS:
         {
             // Restart magnetorquers with last requested moment
-            bool mag_result = do_magnetorquer_pwm(slate->magnetorquer_moment);
+            bool mag_result = do_magnetorquer_pwm(slate->magtorq_duty_cycle);
             if (!mag_result)
             {
                 LOG_ERROR("[sensor] Error reactivating magnetorquers");

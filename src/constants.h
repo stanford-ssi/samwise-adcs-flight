@@ -60,6 +60,20 @@ constexpr float RAD_TO_DEG = 57.2957795131;
 constexpr float SQRT_2_INV = 0.7071067811865476f; // 1 / sqrt(2)
 
 // ========================================================================
+//          MAGNETORQUER SPECIFICATIONS
+// ========================================================================
+// TODO: ask avionics for more precise measurements (need calibrations, etc.)
+// see https://colab.research.google.com/drive/1A7jBLSCj_VwKgwm2eZ4pXlFp_MV3QbE_#scrollTo=hYrvdx5w2mFa
+// for details on these calculations
+constexpr float3 MAGTORQ_RESISTANCE = float3{15.5f, 15.5f, 30.5f}; // [ohms] resistance
+                                                          // of each axis
+constexpr float3 MAGTORQ_MOMENTS = float3{0.046f, 0.046f, 0.018f}; // [Am^2] max
+                                                                   // dipole moments
+                                                                   // for each axis
+
+constexpr float MAGTORQ_MAX_POWER = 10.0f; // maximum power consumption we allow [W]
+
+// ========================================================================
 //          STATE TRANSITION THRESHOLDS
 // ========================================================================
 
@@ -136,10 +150,11 @@ constexpr float MAG_SENSOR_STD = 0.01;
 constexpr float DESATURATION_KP = 0.01; // [1/s]
 
 // ========================================================================
-//          POWER MONITORING
+//          POWER 
 // ========================================================================
 
 constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
+constexpr float V_BATT_MAX = 8.2f; // [V] maximum battery voltage
 
 // ========================================================================
 //          SUN SENSOR NORMALS
