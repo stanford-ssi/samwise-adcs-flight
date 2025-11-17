@@ -86,6 +86,7 @@ typedef struct samwise_adcs_slate
     float3 w_body_raw; // [rad/s] in body frame, raw reading
     float3 w_body;     // [rad/s] in body frame, low-pass filtered
     float w_mag;       // [rad/s] overall magnitude in body frame
+    float3 a_body;     // [km/s^2] specific force in body frame (non-gravitational acceleration)
 
     // Power monitor
     float adcs_power;         // [W] ADCS board power consumption

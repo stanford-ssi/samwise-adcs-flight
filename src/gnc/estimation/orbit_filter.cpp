@@ -76,61 +76,72 @@ static float H[6 * 6] = {
  * @param x_dot Output state derivative (6-vector)
  * @param x Current state (6-vector)
  */
-void compute_orbit_x_dot(float *x_dot, const float *x)
+void compute_orbit_x_dot(float *x_dot, const float *x, const float3 &a_imu_body,
+                         const quaternion &q_eci_to_body)
 {
     // Extract position and velocity
     float3 r = {x[0], x[1], x[2]}; // km
     float3 v = {x[3], x[4], x[5]}; // km/s
 
-    // Compute orbital dynamics: a = -μ/r³ * r
+    // Compute gravitational acceleration: a_grav = -μ/r³ * r
     float r_mag = length(r);
     float r_cubed = r_mag * r_mag * r_mag;
-    float3 a = -(MU_EARTH / r_cubed) * r; // km/s^2
+    float3 a_grav_eci = -(MU_EARTH / r_cubed) * r; // km/s^2
 
-    // State derivative: [r_dot; v_dot] = [v; a]
+    // IMU measures specific force (non-gravitational acceleration) in body frame
+    // Convert to ECI frame
+    float3 a_imu_eci = body_to_eci(a_imu_body, q_eci_to_body);
+
+    // Total acceleration = gravity + non-gravitational forces
+    float3 a_total = a_grav_eci + a_imu_eci;
+
+    // State derivative: [r_dot; v_dot] = [v; a_total]
     x_dot[0] = v.x;
     x_dot[1] = v.y;
     x_dot[2] = v.z;
-    x_dot[3] = a.x;
-    x_dot[4] = a.y;
-    x_dot[5] = a.z;
+    x_dot[3] = a_total.x;
+    x_dot[4] = a_total.y;
+    x_dot[5] = a_total.z;
 }
 
 /**
- * @brief RK4 integration step for state propagation
+ * @brief RK4 integration step for state propagation with IMU
  *
  * @param x_new Output propagated state (6-vector)
  * @param x Current state (6-vector)
  * @param dt Time step [seconds]
+ * @param a_imu_body IMU-measured specific force in body frame [km/s^2]
+ * @param q_eci_to_body Attitude quaternion (ECI to body frame)
  */
-void rk4_step(float *x_new, const float *x, float dt)
+void rk4_step(float *x_new, const float *x, float dt, const float3 &a_imu_body,
+              const quaternion &q_eci_to_body)
 {
     float k1[6], k2[6], k3[6], k4[6];
     float x_temp[6];
 
     // k1 = f(x)
-    compute_orbit_x_dot(k1, x);
+    compute_orbit_x_dot(k1, x, a_imu_body, q_eci_to_body);
 
     // k2 = f(x + dt/2 * k1)
     for (int i = 0; i < 6; i++)
     {
         x_temp[i] = x[i] + 0.5f * dt * k1[i];
     }
-    compute_orbit_x_dot(k2, x_temp);
+    compute_orbit_x_dot(k2, x_temp, a_imu_body, q_eci_to_body);
 
     // k3 = f(x + dt/2 * k2)
     for (int i = 0; i < 6; i++)
     {
         x_temp[i] = x[i] + 0.5f * dt * k2[i];
     }
-    compute_orbit_x_dot(k3, x_temp);
+    compute_orbit_x_dot(k3, x_temp, a_imu_body, q_eci_to_body);
 
     // k4 = f(x + dt * k3)
     for (int i = 0; i < 6; i++)
     {
         x_temp[i] = x[i] + dt * k3[i];
     }
-    compute_orbit_x_dot(k4, x_temp);
+    compute_orbit_x_dot(k4, x_temp, a_imu_body, q_eci_to_body);
 
     // x_new = x + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
     for (int i = 0; i < 6; i++)
@@ -159,6 +170,9 @@ void rk4_step(float *x_new, const float *x, float dt)
  */
 void orbit_filter_init(slate_t *slate)
 {
+    // Initialize IMU acceleration to zero (will be set by IMU driver in flight)
+    slate->a_body = {0.0f, 0.0f, 0.0f};
+
     // Initialize position from GPS (LLA -> ECEF -> ECI)
     float3 r_ecef = lla_to_ecef(slate->gps_lat, slate->gps_lon, slate->gps_alt);
     slate->r_ecef = r_ecef;
@@ -236,11 +250,11 @@ void orbit_filter_propagate(slate_t *slate)
         1e-6f;
     slate->of_last_propagate_time = current_time;
 
-    // Propagate state using RK4 (much better energy conservation than Euler)
+    // Propagate state using RK4 with IMU acceleration
     float x[6] = {slate->r_eci.x, slate->r_eci.y, slate->r_eci.z,
                   slate->v_eci.x, slate->v_eci.y, slate->v_eci.z};
     float x_new[6];
-    rk4_step(x_new, x, dt);
+    rk4_step(x_new, x, dt, slate->a_body, slate->q_eci_to_body);
 
     // Write back to slate
     slate->r_eci = {x_new[0], x_new[1], x_new[2]};
@@ -761,9 +775,10 @@ void orbit_filter_multi_orbit_gps_test(slate_t *slate)
 
         orbit_filter_propagate(slate);
 
-        // Propagate true orbit independently
+        // Propagate true orbit independently (with zero IMU acceleration)
         float x_true_new[6];
-        rk4_step(x_true_new, x_true, dt);
+        float3 a_imu_zero = {0.0f, 0.0f, 0.0f};
+        rk4_step(x_true_new, x_true, dt, a_imu_zero, slate->q_eci_to_body);
         for (int j = 0; j < 6; j++)
             x_true[j] = x_true_new[j];
 
