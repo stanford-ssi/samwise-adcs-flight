@@ -61,6 +61,8 @@ typedef struct samwise_adcs_slate
     float gps_lon;                 // º (E+ W-)
     float gps_alt;                 // km
     float gps_time;                // utc = gps_time - 18 leap seconds
+    float gps_speed;               // knots (from RMC sentence)
+    float gps_course;              // degrees true (from RMC sentence)
 
     // Sun sensors
     bool sun_sensor_alive[NUM_SUN_SENSORS]; // first 8 from RP2350B ADCs, last

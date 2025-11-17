@@ -71,6 +71,8 @@ void gps_world_task_dispatch(slate_t *slate)
         slate->gps_alt = gps_data.altitude / 1000.0f; // Convert m to km
         slate->gps_time =
             static_cast<float>(gps_data.timestamp); // Convert HHMMSS to float
+        slate->gps_speed = gps_data.speed;          // knots
+        slate->gps_course = gps_data.course;        // degrees true
 
         // Parse GPS date (DDMMYY format) to UTC_date (year, month, day)
         uint32_t date = gps_data.date;
