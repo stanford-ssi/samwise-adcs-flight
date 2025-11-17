@@ -14,6 +14,66 @@
 #include <cmath>
 
 /**
+ * Convert geodetic coordinates (LLA) to ECEF position.
+ * Uses WGS84 ellipsoid parameters.
+ * 
+ * TODO: also use with magnetic field model
+ *
+ * @param lat Latitude in degrees (North positive)
+ * @param lon Longitude in degrees (East positive)
+ * @param alt Altitude above WGS84 ellipsoid in km
+ * @return float3 Position in ECEF frame [km]
+ */
+float3 lla_to_ecef(const float lat, const float lon, const float alt)
+{
+    // WGS84 ellipsoid parameters
+    constexpr float a = 6378.137f;         // Semi-major axis [km]
+    constexpr float f = 1.0f / 298.257223563f; // Flattening
+    constexpr float e2 = 2.0f * f - f * f;     // First eccentricity squared
+
+    const float lat_rad = lat * DEG_TO_RAD;
+    const float lon_rad = lon * DEG_TO_RAD;
+    const float sin_lat = sinf(lat_rad);
+    const float cos_lat = cosf(lat_rad);
+    const float sin_lon = sinf(lon_rad);
+    const float cos_lon = cosf(lon_rad);
+
+    // Radius of curvature in the prime vertical
+    const float N = a / sqrtf(1.0f - e2 * sin_lat * sin_lat);
+
+    // ECEF coordinates [km]
+    const float x = (N + alt) * cos_lat * cos_lon;
+    const float y = (N + alt) * cos_lat * sin_lon;
+    const float z = (N * (1.0f - e2) + alt) * sin_lat;
+
+    return {x, y, z};
+}
+
+/**
+ * Convert GPS speed and course to ENU velocity vector.
+ * Assumes horizontal motion (vertical component = 0).
+ *
+ * @param speed Speed over ground in knots (from GPS RMC sentence)
+ * @param course Course over ground in degrees true north (from GPS RMC sentence)
+ * @return float3 Velocity in ENU frame [km/s]
+ */
+float3 speed_course_to_enu_velocity(const float speed, const float course)
+{
+    // Convert knots to km/s: 1 knot = 1.852 km/h = 0.000514444 km/s
+    constexpr float KNOTS_TO_KMS = 0.000514444f;
+    const float speed_kms = speed * KNOTS_TO_KMS;
+    const float course_rad = course * DEG_TO_RAD;
+
+    // ENU velocity components:
+    // - East: speed * sin(course)  [course measured clockwise from north]
+    // - North: speed * cos(course)
+    // - Up: 0 (assume horizontal motion)
+    return {speed_kms * sinf(course_rad),  // East
+            speed_kms * cosf(course_rad),  // North
+            0.0f};                         // Up
+}
+
+/**
  * Convert East-North-Up (ENU) coordinates to Earth-Centered Earth-Fixed (ECEF).
  *
  * @param enu Vector containing [East, North, Up] components (same units as
@@ -118,6 +178,69 @@ void test_transforms()
 {
     printf("\n><=><=><=><=><= Testing frame transformation utilities... "
            "><=><=><=><=><=\n");
+
+    // ========================================================================
+    //      TEST LLA_TO_ECEF TRANSFORMATION
+    // ========================================================================
+    LOG_INFO("Testing lla_to_ecef transformation!");
+
+    // Test 1: Equator at prime meridian (0°N, 0°E, 0 km alt)
+    // Should give approximately [6378.137, 0, 0] km
+    float3 ecef_equator = lla_to_ecef(0.0f, 0.0f, 0.0f);
+    printf("Equator: ECEF=[%.3f, %.3f, %.3f] km\n", ecef_equator.x,
+           ecef_equator.y, ecef_equator.z);
+    ASSERT_ALMOST_EQ(ecef_equator.x, 6378.137f, 0.01f);
+    ASSERT_ALMOST_EQ(ecef_equator.y, 0.0f, 0.01f);
+    ASSERT_ALMOST_EQ(ecef_equator.z, 0.0f, 0.01f);
+
+    // Test 2: North pole (90°N, 0°E, 0 km alt)
+    // Should give approximately [0, 0, 6356.752] km (polar radius)
+    float3 ecef_north_pole = lla_to_ecef(90.0f, 0.0f, 0.0f);
+    printf("North Pole: ECEF=[%.3f, %.3f, %.3f] km\n", ecef_north_pole.x,
+           ecef_north_pole.y, ecef_north_pole.z);
+    ASSERT_ALMOST_EQ(ecef_north_pole.x, 0.0f, 0.01f);
+    ASSERT_ALMOST_EQ(ecef_north_pole.y, 0.0f, 0.01f);
+    ASSERT_ALMOST_EQ(ecef_north_pole.z, 6356.752f, 1.0f);
+
+    // Test 3: ISS-like orbit (51.6°N, -60°W, 400 km alt)
+    float3 ecef_iss = lla_to_ecef(51.6f, -60.0f, 400.0f);
+    float r_iss = sqrtf(ecef_iss.x * ecef_iss.x + ecef_iss.y * ecef_iss.y +
+                        ecef_iss.z * ecef_iss.z);
+    printf("ISS-like: ECEF=[%.3f, %.3f, %.3f] km, radius=%.3f km\n", ecef_iss.x,
+           ecef_iss.y, ecef_iss.z, r_iss);
+    // ISS orbit radius should be approximately 6765 km
+    // (ellipsoid radius at 51.6° lat is ~6365 km, + 400 km alt = 6765 km)
+    ASSERT_ALMOST_EQ(r_iss, 6765.0f, 20.0f);
+
+    // ========================================================================
+    //      TEST SPEED_COURSE_TO_ENU_VELOCITY TRANSFORMATION
+    // ========================================================================
+    LOG_INFO("Testing speed_course_to_enu_velocity transformation!");
+
+    // Test 1: 10 knots due north (course = 0°)
+    // Should give [0, ~0.00514, 0] km/s
+    float3 v_north = speed_course_to_enu_velocity(10.0f, 0.0f);
+    printf("10 knots N: v_enu=[%.6f, %.6f, %.6f] km/s\n", v_north.x, v_north.y,
+           v_north.z);
+    ASSERT_ALMOST_EQ(v_north.x, 0.0f, 0.0001f);           // East = 0
+    ASSERT_ALMOST_EQ(v_north.y, 0.00514444f, 0.0001f);    // North = 10 knots
+    ASSERT_ALMOST_EQ(v_north.z, 0.0f, 0.0001f);           // Up = 0
+
+    // Test 2: 10 knots due east (course = 90°)
+    float3 v_east = speed_course_to_enu_velocity(10.0f, 90.0f);
+    printf("10 knots E: v_enu=[%.6f, %.6f, %.6f] km/s\n", v_east.x, v_east.y,
+           v_east.z);
+    ASSERT_ALMOST_EQ(v_east.x, 0.00514444f, 0.0001f);     // East = 10 knots
+    ASSERT_ALMOST_EQ(v_east.y, 0.0f, 0.0001f);            // North = 0
+    ASSERT_ALMOST_EQ(v_east.z, 0.0f, 0.0001f);            // Up = 0
+
+    // Test 3: 100 knots northeast (course = 45°)
+    float3 v_ne = speed_course_to_enu_velocity(100.0f, 45.0f);
+    float v_ne_mag = sqrtf(v_ne.x * v_ne.x + v_ne.y * v_ne.y + v_ne.z * v_ne.z);
+    printf("100 knots NE: v_enu=[%.6f, %.6f, %.6f] km/s, mag=%.6f\n", v_ne.x,
+           v_ne.y, v_ne.z, v_ne_mag);
+    ASSERT_ALMOST_EQ(v_ne_mag, 0.0514444f, 0.001f);       // Total speed = 100 knots
+    ASSERT_ALMOST_EQ(v_ne.x, v_ne.y, 0.0001f);            // Equal E and N components
 
     // ========================================================================
     //      TEST ECI_TO_BODY TRANSFORMATION
