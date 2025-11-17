@@ -26,8 +26,10 @@ sched_state_t *detumble_get_next_state(slate_t *slate)
 {
     neopixel_set_color_rgb(0, 0, 255); // Blue for detumble state
 
-    // Enter safe state at low angular velocity OR if angular velocity is super high (detumbled, await pointing mode)
-    if (slate->imu_data_valid && ((slate->w_mag < W_EXIT_DETUMBLE_THRESHOLD) || (slate->w_mag > W_ENTER_SAFE_THRESHOLD)))
+    // Enter safe state at low angular velocity OR if angular velocity is super
+    // high (detumbled, await pointing mode)
+    if (slate->imu_data_valid && ((slate->w_mag < W_EXIT_DETUMBLE_THRESHOLD) ||
+                                  (slate->w_mag > W_ENTER_SAFE_THRESHOLD)))
     {
         return &safe_state;
     }
