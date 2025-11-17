@@ -121,13 +121,15 @@ void sched_dispatch(slate_t *slate)
      * If battery voltage is below safe threshold, go to emergency state
      */
     sched_state_t *next_state = current_state_info->get_next_state(slate);
-    // send to emergency state if voltage is too low
-    LOG_INFO("[SCHED] ADCS Voltage: %.2f V", slate->adcs_voltage);
+    // send to emergency state if voltage is too low.
+    #ifdef FLIGHT
     LOG_INFO("[SCHED] Power monitor status: %d", slate->power_monitor_alive);
+    LOG_INFO("[SCHED] ADCS Voltage: %.2f V", slate->adcs_voltage);
     if (slate->power_monitor_alive && slate->adcs_voltage < BATTERY_VOLTAGE_SAFE)
     {
         next_state = &safe_state;
     }
+    #endif
     // handle state transition -> log and update slate info
     if (next_state != current_state_info)
     {
