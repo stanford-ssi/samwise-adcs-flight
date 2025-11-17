@@ -2,7 +2,8 @@
  * @author Matthew Musson, Lundeen Cahilly
  * @date 2025-11-08
  *
- * This file defines our default safe state that reads sensors and does nothing else
+ * This file defines our default safe state that reads sensors and does nothing
+ * else
  */
 
 #pragma once
