@@ -12,6 +12,7 @@
 
 #include "drivers/neopixel/neopixel.h"
 #include "gnc/estimation/attitude_filter.h"
+#include "gnc/estimation/orbit_filter.h"
 #include "hardware/i2c.h"
 #include "pico/stdlib.h"
 
@@ -48,4 +49,5 @@ void init(slate_t *slate)
     init_i2c_buses();
     neopixel_init();
     attitude_filter_init(slate);
+    orbit_filter_init(slate);
 }

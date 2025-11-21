@@ -11,7 +11,10 @@
 #include "macros.h"
 
 #include "drivers/imu/imu.h"
+#include "gnc/estimation/attitude_filter.h"
+#include "gnc/estimation/orbit_filter.h"
 #include "gnc/utils/utils.h"
+#include "pico/time.h"
 #include <cmath>
 
 /**
@@ -49,7 +52,7 @@ void imu_task_dispatch(slate_t *slate)
         return;
     }
 
-    bool result = imu_get_rotation(&slate->w_body_raw);
+    bool result = imu_get_data(&slate->w_body_raw, &slate->a_body);
 
     if (result)
     {
@@ -65,6 +68,17 @@ void imu_task_dispatch(slate_t *slate)
 
         LOG_DEBUG("[sensor] w_body = [%.5f, %.5f, %.5f]", slate->w_body[0],
                   slate->w_body[1], slate->w_body[2]);
+
+        // Propagate filters
+        if (slate->af_is_initialized)
+        {
+            attitude_filter_propagate(slate);
+        }
+
+        if (slate->of_is_initialized)
+        {
+            orbit_filter_propagate(slate);
+        }
     }
 
     slate->imu_data_valid = result;

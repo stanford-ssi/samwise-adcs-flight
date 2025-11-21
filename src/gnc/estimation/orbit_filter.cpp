@@ -4,11 +4,12 @@
  *
  * This file implements an orbit Kalman filter using RK4 integration
  * for position and velocity estimation from GPS measurements.
- * 
+ *
  * NOTE: GPS speed/course from RMC sentence provides horizontal velocity only.
  * Vertical velocity component is estimated by the filter from dynamics.
- * 
- * TODO: Tune process and measurement noise covariances based on GPS and simulations
+ *
+ * TODO: Tune process and measurement noise covariances based on GPS and
+ * simulations
  * TODO: Integrate into the complete GNC system
  */
 
@@ -25,11 +26,13 @@
 // ========================================================================
 
 // Process noise covariance matrix - TODO: tune these values
-// Models uncertainty in 2-body dynamics (unmodeled perturbations like J2, drag, SRP)
-// Units: km^2 and (km/s)^2 to match orbit filter state units
-// These values account for ~1m position and ~1mm/s velocity drift per second
-constexpr float POSITION_PROCESS_VARIANCE = 1e-6f;  // km^2 (~1m std dev per second)
-constexpr float VELOCITY_PROCESS_VARIANCE = 1e-12f; // (km/s)^2 (~1mm/s std dev per second)
+// Models uncertainty in 2-body dynamics (unmodeled perturbations like J2, drag,
+// SRP) Units: km^2 and (km/s)^2 to match orbit filter state units These values
+// account for ~1m position and ~1mm/s velocity drift per second
+constexpr float POSITION_PROCESS_VARIANCE =
+    1e-6f; // km^2 (~1m std dev per second)
+constexpr float VELOCITY_PROCESS_VARIANCE =
+    1e-12f; // (km/s)^2 (~1mm/s std dev per second)
 static float Q[6 * 6] = {
     POSITION_PROCESS_VARIANCE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
     POSITION_PROCESS_VARIANCE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -43,7 +46,8 @@ static float Q[6 * 6] = {
 // GPS position accuracy (typical consumer GPS ~5-10m accuracy)
 // GPS velocity accuracy from Doppler (typical ~0.1 m/s)
 // Units: km^2 and (km/s)^2 to match orbit filter state units
-constexpr float GPS_POSITION_VARIANCE = 0.01f * 0.01f; // (0.01 km)^2 = (10m)^2 std dev
+constexpr float GPS_POSITION_VARIANCE =
+    0.01f * 0.01f; // (0.01 km)^2 = (10m)^2 std dev
 constexpr float GPS_VELOCITY_VARIANCE =
     0.0001f * 0.0001f; // (0.0001 km/s)^2 = (0.1 m/s)^2 std dev
 
@@ -88,8 +92,8 @@ void compute_orbit_x_dot(float *x_dot, const float *x, const float3 &a_imu_body,
     float r_cubed = r_mag * r_mag * r_mag;
     float3 a_grav_eci = -(MU_EARTH / r_cubed) * r; // km/s^2
 
-    // IMU measures specific force (non-gravitational acceleration) in body frame
-    // Convert to ECI frame
+    // IMU measures specific force (non-gravitational acceleration) in body
+    // frame Convert to ECI frame
     float3 a_imu_eci = body_to_eci(a_imu_body, q_eci_to_body);
 
     // Total acceleration = gravity + non-gravitational forces
@@ -186,9 +190,10 @@ void orbit_filter_init(slate_t *slate)
     slate->v_eci = ecef_to_eci(v_ecef, slate->MJD);
 
     // Initialize covariance matrix P
-    // Initial position uncertainty: ~0.1 km (100m, conservative GPS + conversion)
-    // Initial velocity uncertainty: ~0.01 km/s (10 m/s, conservative)
-    constexpr float INIT_POSITION_VARIANCE = 0.1f * 0.1f;     // km^2
+    // Initial position uncertainty: ~0.1 km (100m, conservative GPS +
+    // conversion) Initial velocity uncertainty: ~0.01 km/s (10 m/s,
+    // conservative)
+    constexpr float INIT_POSITION_VARIANCE = 0.1f * 0.1f;   // km^2
     constexpr float INIT_VELOCITY_VARIANCE = 0.01f * 0.01f; // (km/s)^2
 
     for (int i = 0; i < 6 * 6; i++)
@@ -212,7 +217,8 @@ void orbit_filter_init(slate_t *slate)
     slate->of_init_count++;
     slate->of_last_propagate_time = get_absolute_time();
 
-    LOG_INFO("Initialized orbit filter! (%d times so far)", slate->of_init_count);
+    LOG_INFO("Initialized orbit filter! (%d times so far)",
+             slate->of_init_count);
     LOG_DEBUG("[orbit_filter] r_eci = [%.3f, %.3f, %.3f] km", slate->r_eci.x,
               slate->r_eci.y, slate->r_eci.z);
     LOG_DEBUG("[orbit_filter] v_eci = [%.6f, %.6f, %.6f] km/s", slate->v_eci.x,
@@ -265,7 +271,8 @@ void orbit_filter_propagate(slate_t *slate)
     float r_squared = r_mag * r_mag;
     float r_cubed = r_mag * r_squared;
     float3x3 rrt = outerprod(slate->r_eci, slate->r_eci);
-    float3x3 da_dr = -(MU_EARTH / r_cubed) * (identity3x3 - 3.0f * rrt / r_squared);
+    float3x3 da_dr =
+        -(MU_EARTH / r_cubed) * (identity3x3 - 3.0f * rrt / r_squared);
 
     // Build F matrix [6x6]: F = [ 0    I   ]
     //                            [ da_dr  0 ]
@@ -300,7 +307,8 @@ void orbit_filter_propagate(slate_t *slate)
 
     // LOG_DEBUG("[orbit_filter] r_eci = [%.3f, %.3f, %.3f] km", slate->r_eci.x,
     //           slate->r_eci.y, slate->r_eci.z);
-    // LOG_DEBUG("[orbit_filter] v_eci = [%.6f, %.6f, %.6f] km/s", slate->v_eci.x,
+    // LOG_DEBUG("[orbit_filter] v_eci = [%.6f, %.6f, %.6f] km/s",
+    // slate->v_eci.x,
     //           slate->v_eci.y, slate->v_eci.z);
 }
 
@@ -370,9 +378,11 @@ void orbit_filter_update(slate_t *slate)
 
     slate->P_orbit_log_frobenius = mat_log_frobenius(slate->P_orbit, 6);
 
-    // LOG_DEBUG("[orbit_filter] Updated from GPS: r_eci = [%.3f, %.3f, %.3f] km",
+    // LOG_DEBUG("[orbit_filter] Updated from GPS: r_eci = [%.3f, %.3f, %.3f]
+    // km",
     //           slate->r_eci.x, slate->r_eci.y, slate->r_eci.z);
-    // LOG_DEBUG("[orbit_filter] v_eci = [%.6f, %.6f, %.6f] km/s", slate->v_eci.x,
+    // LOG_DEBUG("[orbit_filter] v_eci = [%.6f, %.6f, %.6f] km/s",
+    // slate->v_eci.x,
     //           slate->v_eci.y, slate->v_eci.z);
 }
 
@@ -383,32 +393,34 @@ void orbit_filter_stationary_test(slate_t *slate)
            "><=><=><=><=><=\n");
 
     // Equator at prime meridian (stationary on ground)
-    slate->gps_lat = 0.0f;          // degrees (equator)
-    slate->gps_lon = 0.0f;          // degrees (prime meridian)
-    slate->gps_alt = 0.0f;          // km (sea level)
-    slate->gps_speed = 0.0f;        // stationary
-    slate->gps_course = 0.0f;       // doesn't matter
+    slate->gps_lat = 0.0f;    // degrees (equator)
+    slate->gps_lon = 0.0f;    // degrees (prime meridian)
+    slate->gps_alt = 0.0f;    // km (sea level)
+    slate->gps_speed = 0.0f;  // stationary
+    slate->gps_course = 0.0f; // doesn't matter
     slate->MJD = 60000.0f;
 
     orbit_filter_init(slate);
 
     LOG_INFO("Initialized at equator (stationary on ground, sea level)");
-    LOG_INFO("Initial r_eci: [%.3f, %.3f, %.3f] km (mag=%.3f)",
-             slate->r_eci.x, slate->r_eci.y, slate->r_eci.z, length(slate->r_eci));
+    LOG_INFO("Initial r_eci: [%.3f, %.3f, %.3f] km (mag=%.3f)", slate->r_eci.x,
+             slate->r_eci.y, slate->r_eci.z, length(slate->r_eci));
     LOG_INFO("Initial v_eci: [%.6f, %.6f, %.6f] km/s (mag=%.6f)",
-             slate->v_eci.x, slate->v_eci.y, slate->v_eci.z, length(slate->v_eci));
+             slate->v_eci.x, slate->v_eci.y, slate->v_eci.z,
+             length(slate->v_eci));
 
     float r_initial_mag = length(slate->r_eci);
     float v_initial_mag = length(slate->v_eci);
 
     // Propagate for 10 seconds - should stay near Earth's surface
-    // v_eci magnitude should stay constant (~0.465 km/s at equator from rotation)
+    // v_eci magnitude should stay constant (~0.465 km/s at equator from
+    // rotation)
     int steps = 10;
     float dt = 1.0f;
 
     LOG_INFO("Propagating for %d steps (dt=%.1f s)", steps, dt);
-    LOG_INFO("Expected: r stays at ~%.3f km, v_mag stays at ~%.6f km/s",
-             R_E, v_initial_mag);
+    LOG_INFO("Expected: r stays at ~%.3f km, v_mag stays at ~%.6f km/s", R_E,
+             v_initial_mag);
 
     bool passed = true;
     for (int i = 0; i < steps; i++)
@@ -430,8 +442,9 @@ void orbit_filter_stationary_test(slate_t *slate)
         float r_mag = length(slate->r_eci);
         if (fabsf(r_mag - R_E) > 100.0f)
         {
-            LOG_ERROR("Position drifted far from Earth surface: %.3f km at step %d",
-                      r_mag, i);
+            LOG_ERROR(
+                "Position drifted far from Earth surface: %.3f km at step %d",
+                r_mag, i);
             passed = false;
             break;
         }
@@ -441,8 +454,9 @@ void orbit_filter_stationary_test(slate_t *slate)
         float v_mag = length(slate->v_eci);
         if (fabsf(v_mag - v_initial_mag) > 0.1f)
         {
-            LOG_ERROR("Velocity magnitude changed too much: %.6f km/s at step %d",
-                      v_mag, i);
+            LOG_ERROR(
+                "Velocity magnitude changed too much: %.6f km/s at step %d",
+                v_mag, i);
             passed = false;
             break;
         }
@@ -451,10 +465,10 @@ void orbit_filter_stationary_test(slate_t *slate)
     float r_final_mag = length(slate->r_eci);
     float v_final_mag = length(slate->v_eci);
 
-    LOG_INFO("Final r_eci: [%.3f, %.3f, %.3f] km (mag=%.3f)",
-             slate->r_eci.x, slate->r_eci.y, slate->r_eci.z, r_final_mag);
-    LOG_INFO("Final v_eci: [%.6f, %.6f, %.6f] km/s (mag=%.6f)",
-             slate->v_eci.x, slate->v_eci.y, slate->v_eci.z, v_final_mag);
+    LOG_INFO("Final r_eci: [%.3f, %.3f, %.3f] km (mag=%.3f)", slate->r_eci.x,
+             slate->r_eci.y, slate->r_eci.z, r_final_mag);
+    LOG_INFO("Final v_eci: [%.6f, %.6f, %.6f] km/s (mag=%.6f)", slate->v_eci.x,
+             slate->v_eci.y, slate->v_eci.z, v_final_mag);
     LOG_INFO("Position magnitude drift: %.3f km (%.3f%%)",
              fabsf(r_final_mag - r_initial_mag),
              100.0f * fabsf(r_final_mag - r_initial_mag) / r_initial_mag);
@@ -472,10 +486,10 @@ void orbit_filter_convergence_test(slate_t *slate)
            "><=><=><=><=><=\n");
 
     // Initialize with simulated GPS data (ISS-like circular orbit)
-    slate->gps_lat = 0.0f;          // degrees (equator for simplicity)
-    slate->gps_lon = 0.0f;          // degrees
-    slate->gps_alt = 400.0f;        // km
-    slate->MJD = 60000.0f;          // Some MJD value
+    slate->gps_lat = 0.0f;   // degrees (equator for simplicity)
+    slate->gps_lon = 0.0f;   // degrees
+    slate->gps_alt = 400.0f; // km
+    slate->MJD = 60000.0f;   // Some MJD value
 
     // Compute position from GPS
     float3 r_ecef = lla_to_ecef(slate->gps_lat, slate->gps_lon, slate->gps_alt);
@@ -493,20 +507,26 @@ void orbit_filter_convergence_test(slate_t *slate)
     float3 v_eci_init = v_orbital * float3(-r_xy_norm.y, r_xy_norm.x, 0.0f);
 
     // Convert velocity back to GPS speed/course for initialization
-    // This is approximate - we're essentially reverse-engineering GPS from orbital velocity
-    float v_horizontal = sqrtf(v_eci_init.x * v_eci_init.x + v_eci_init.y * v_eci_init.y);
+    // This is approximate - we're essentially reverse-engineering GPS from
+    // orbital velocity
+    float v_horizontal =
+        sqrtf(v_eci_init.x * v_eci_init.x + v_eci_init.y * v_eci_init.y);
     slate->gps_speed = v_horizontal / 0.000514444f; // Convert km/s to knots
-    slate->gps_course = atan2f(v_eci_init.x, v_eci_init.y) * RAD_TO_DEG; // North = 0
-    if (slate->gps_course < 0) slate->gps_course += 360.0f;
+    slate->gps_course =
+        atan2f(v_eci_init.x, v_eci_init.y) * RAD_TO_DEG; // North = 0
+    if (slate->gps_course < 0)
+        slate->gps_course += 360.0f;
 
     orbit_filter_init(slate);
 
-    LOG_INFO("Initialized circular orbit at equator, alt=%.1f km", slate->gps_alt);
+    LOG_INFO("Initialized circular orbit at equator, alt=%.1f km",
+             slate->gps_alt);
     LOG_INFO("Orbital velocity: %.3f km/s", v_orbital);
-    LOG_INFO("Initial r_eci: [%.3f, %.3f, %.3f] km (mag=%.3f)",
-             slate->r_eci.x, slate->r_eci.y, slate->r_eci.z, length(slate->r_eci));
+    LOG_INFO("Initial r_eci: [%.3f, %.3f, %.3f] km (mag=%.3f)", slate->r_eci.x,
+             slate->r_eci.y, slate->r_eci.z, length(slate->r_eci));
     LOG_INFO("Initial v_eci: [%.3f, %.3f, %.3f] km/s (mag=%.6f)",
-             slate->v_eci.x, slate->v_eci.y, slate->v_eci.z, length(slate->v_eci));
+             slate->v_eci.x, slate->v_eci.y, slate->v_eci.z,
+             length(slate->v_eci));
 
     int steps = 100;
     float dt = 1.0f; // 1 second propagation steps
@@ -540,7 +560,8 @@ void orbit_filter_convergence_test(slate_t *slate)
         float r_mag = length(slate->r_eci);
         if (r_mag < 6400.0f || r_mag > 7000.0f)
         {
-            LOG_ERROR("Orbit radius out of bounds: %.3f km at step %d", r_mag, i);
+            LOG_ERROR("Orbit radius out of bounds: %.3f km at step %d", r_mag,
+                      i);
             passed = false;
             break;
         }
@@ -565,11 +586,13 @@ void orbit_filter_convergence_test(slate_t *slate)
 
     LOG_INFO("Initial orbit radius: %.3f km", r_initial);
     LOG_INFO("Final orbit radius: %.3f km", r_final_mag);
-    LOG_INFO("Radius drift: %.3f km (%.3f%%)", r_drift, 100.0f * r_drift / r_initial);
+    LOG_INFO("Radius drift: %.3f km (%.3f%%)", r_drift,
+             100.0f * r_drift / r_initial);
 
     LOG_INFO("Initial velocity: %.6f km/s", v_initial);
     LOG_INFO("Final velocity: %.6f km/s", v_final_mag);
-    LOG_INFO("Velocity drift: %.6f km/s (%.3f%%)", v_drift, 100.0f * v_drift / v_initial);
+    LOG_INFO("Velocity drift: %.6f km/s (%.3f%%)", v_drift,
+             100.0f * v_drift / v_initial);
 
     LOG_INFO("Final P log frobenius: %.6f", slate->P_orbit_log_frobenius);
     LOG_INFO("Final r_eci: [%.3f, %.3f, %.3f] km", slate->r_eci.x,
@@ -613,16 +636,19 @@ void orbit_filter_multi_orbit_test(slate_t *slate)
     float3 r_xy_norm = normalize(float3(r_eci_init.x, r_eci_init.y, 0.0f));
     float3 v_eci_init = v_orbital * float3(-r_xy_norm.y, r_xy_norm.x, 0.0f);
 
-    float v_horizontal = sqrtf(v_eci_init.x * v_eci_init.x + v_eci_init.y * v_eci_init.y);
+    float v_horizontal =
+        sqrtf(v_eci_init.x * v_eci_init.x + v_eci_init.y * v_eci_init.y);
     slate->gps_speed = v_horizontal / 0.000514444f;
     slate->gps_course = atan2f(v_eci_init.x, v_eci_init.y) * RAD_TO_DEG;
-    if (slate->gps_course < 0) slate->gps_course += 360.0f;
+    if (slate->gps_course < 0)
+        slate->gps_course += 360.0f;
 
     orbit_filter_init(slate);
 
     // ISS orbital period ~ 92.7 minutes = 5562 seconds
     // Test for 3 orbits = ~16686 seconds
-    float orbital_period = 2.0f * 3.14159f * sqrtf(r_mag * r_mag * r_mag / MU_EARTH);
+    float orbital_period =
+        2.0f * 3.14159f * sqrtf(r_mag * r_mag * r_mag / MU_EARTH);
     int num_orbits = 3;
     float total_time = num_orbits * orbital_period;
     int steps = static_cast<int>(total_time); // 1 second timesteps
@@ -651,8 +677,10 @@ void orbit_filter_multi_orbit_test(slate_t *slate)
 
         // Track min/max radius
         float r_mag_current = length(slate->r_eci);
-        if (r_mag_current > r_max) r_max = r_mag_current;
-        if (r_mag_current < r_min) r_min = r_mag_current;
+        if (r_mag_current > r_max)
+            r_max = r_mag_current;
+        if (r_mag_current < r_min)
+            r_min = r_mag_current;
 
         // Check for NaN
         if (std::isnan(slate->r_eci.x) || std::isnan(slate->v_eci.x))
@@ -665,7 +693,8 @@ void orbit_filter_multi_orbit_test(slate_t *slate)
         // Check bounds (allow some drift but catch major issues)
         if (r_mag_current < 6400.0f || r_mag_current > 7200.0f)
         {
-            LOG_ERROR("Radius out of bounds: %.3f km at step %d", r_mag_current, i);
+            LOG_ERROR("Radius out of bounds: %.3f km at step %d", r_mag_current,
+                      i);
             passed = false;
             break;
         }
@@ -688,11 +717,12 @@ void orbit_filter_multi_orbit_test(slate_t *slate)
     LOG_INFO("Final radius: %.3f km", r_final);
     LOG_INFO("Min radius: %.3f km", r_min);
     LOG_INFO("Max radius: %.3f km", r_max);
-    LOG_INFO("Eccentricity estimate: %.6f (should be ~0 for circular)", eccentricity);
-    LOG_INFO("Radius drift: %.3f km (%.3f%%)",
-             fabsf(r_final - r_initial), 100.0f * fabsf(r_final - r_initial) / r_initial);
-    LOG_INFO("Velocity drift: %.6f km/s (%.3f%%)",
-             fabsf(v_final - v_initial), 100.0f * fabsf(v_final - v_initial) / v_initial);
+    LOG_INFO("Eccentricity estimate: %.6f (should be ~0 for circular)",
+             eccentricity);
+    LOG_INFO("Radius drift: %.3f km (%.3f%%)", fabsf(r_final - r_initial),
+             100.0f * fabsf(r_final - r_initial) / r_initial);
+    LOG_INFO("Velocity drift: %.6f km/s (%.3f%%)", fabsf(v_final - v_initial),
+             100.0f * fabsf(v_final - v_initial) / v_initial);
     LOG_INFO("Final P log frobenius: %.6f", slate->P_orbit_log_frobenius);
 
     // Check orbit stayed reasonably circular over multiple orbits
@@ -801,9 +831,10 @@ void orbit_filter_multi_orbit_gps_test(slate_t *slate)
             slate->gps_lon = lla_meas.y;
             slate->gps_alt = lla_meas.z;
 
-            float v_horizontal_meas =
-                sqrtf(v_enu_meas.x * v_enu_meas.x + v_enu_meas.y * v_enu_meas.y);
-            slate->gps_speed = v_horizontal_meas / 0.000514444f; // km/s to knots
+            float v_horizontal_meas = sqrtf(v_enu_meas.x * v_enu_meas.x +
+                                            v_enu_meas.y * v_enu_meas.y);
+            slate->gps_speed =
+                v_horizontal_meas / 0.000514444f; // km/s to knots
             slate->gps_course = atan2f(v_enu_meas.x, v_enu_meas.y) * RAD_TO_DEG;
             if (slate->gps_course < 0)
                 slate->gps_course += 360.0f;

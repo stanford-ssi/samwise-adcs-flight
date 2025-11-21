@@ -11,6 +11,7 @@
 #include "macros.h"
 
 #include "drivers/gps/gps.h"
+#include "gnc/estimation/orbit_filter.h"
 #include "gnc/utils/mjd.h"
 #include "gnc/utils/transforms.h"
 #include "gnc/world/b_field.h"
@@ -104,6 +105,11 @@ void gps_world_task_dispatch(slate_t *slate)
                   slate->sun_vector_eci.z);
         LOG_DEBUG("[sensor] b_eci = [%.3f, %.3f, %.3f]", slate->b_eci.x,
                   slate->b_eci.y, slate->b_eci.z);
+
+        if (slate->of_is_initialized)
+        {
+            orbit_filter_update(slate);
+        }
 
         slate->gps_data_valid = true;
     }
