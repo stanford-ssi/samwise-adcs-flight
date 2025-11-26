@@ -68,6 +68,9 @@ void imu_task_dispatch(slate_t *slate)
 
         LOG_DEBUG("[sensor] w_body = [%.5f, %.5f, %.5f]", slate->w_body[0],
                   slate->w_body[1], slate->w_body[2]);
+        LOG_DEBUG("[sensor] a_body = [%.6f, %.6f, %.6f] km/s^2, af_init=%d",
+                  slate->a_body.x, slate->a_body.y, slate->a_body.z,
+                  slate->af_is_initialized);
 
         // Propagate filters
         if (slate->af_is_initialized)
