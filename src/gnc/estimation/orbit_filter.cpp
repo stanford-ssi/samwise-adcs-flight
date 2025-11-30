@@ -92,9 +92,20 @@ void compute_orbit_x_dot(float *x_dot, const float *x, const float3 &a_imu_body,
     float r_cubed = r_mag * r_mag * r_mag;
     float3 a_grav_eci = -(MU_EARTH / r_cubed) * r; // km/s^2
 
-    // IMU measures specific force (non-gravitational acceleration) in body
-    // frame Convert to ECI frame
+#ifdef TEST
+    // In test builds (ground testing), ignore IMU acceleration data.
+    // On the ground, we're in an accelerating reference frame - the table pushes
+    // up on the satellite with ~9.8 m/s² (normal force). The IMU measures this
+    // as proper acceleration. If we include this in the orbit filter, it thinks
+    // there's a constant upward thrust, causing position/velocity to drift
+    // nonsensically. In orbit (free fall), the IMU correctly reads ~0 plus small
+    // perturbations (drag, thrust), so this data is only useful on-orbit.
+    float3 a_imu_eci = {0.0f, 0.0f, 0.0f};
+#else
+    // IMU measures specific force (non-gravitational acceleration) in body frame
+    // Convert to ECI frame
     float3 a_imu_eci = body_to_eci(a_imu_body, q_eci_to_body);
+#endif
 
     // Total acceleration = gravity + non-gravitational forces
     float3 a_total = a_grav_eci + a_imu_eci;
@@ -305,11 +316,12 @@ void orbit_filter_propagate(slate_t *slate)
 
     slate->P_orbit_log_frobenius = mat_log_frobenius(slate->P_orbit, 6);
 
-    // LOG_DEBUG("[orbit_filter] r_eci = [%.3f, %.3f, %.3f] km", slate->r_eci.x,
-    //           slate->r_eci.y, slate->r_eci.z);
-    // LOG_DEBUG("[orbit_filter] v_eci = [%.6f, %.6f, %.6f] km/s",
-    // slate->v_eci.x,
-    //           slate->v_eci.y, slate->v_eci.z);
+    LOG_DEBUG("[orbit] r_eci = [%.3f, %.3f, %.3f] km", slate->r_eci.x,
+              slate->r_eci.y, slate->r_eci.z);
+    LOG_DEBUG("[orbit] v_eci = [%.6f, %.6f, %.6f] km/s", slate->v_eci.x,
+              slate->v_eci.y, slate->v_eci.z);
+    LOG_DEBUG("[orbit] P_orbit_log_frobenius = %.6f",
+              slate->P_orbit_log_frobenius);
 }
 
 /**
