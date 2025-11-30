@@ -81,8 +81,8 @@ typedef struct samwise_adcs_slate
     float3 sun_vector_principal; // (unit vector) in principal axes frame
 
     // IMU
-    float imu_alive;
-    float imu_data_valid;
+    bool imu_alive;
+    bool imu_data_valid;
     float3 w_body_raw; // [rad/s] in body frame, raw reading
     float3 w_body;     // [rad/s] in body frame, low-pass filtered
     float w_mag;       // [rad/s] overall magnitude in body frame

@@ -25,4 +25,4 @@ void imu_power_disable();
 void imu_power_enable();
 bool imu_init();
 bool imu_get_rotation(float3 *w_out);
-bool imu_get_data(float3 *w_out, float3 *a_out);
+bool imu_get_accel(float3 *a_out);

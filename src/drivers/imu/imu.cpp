@@ -456,6 +456,45 @@ static int8_t set_gyro_config(struct bmi2_dev *dev)
 }
 
 /*!
+ *  @brief This internal API is used to set configurations for accelerometer.
+ */
+static int8_t set_accel_config(struct bmi2_dev *dev)
+{
+    /* Status of api are returned to this variable. */
+    int8_t rslt;
+
+    /* Structure to define the type of sensor and its configurations. */
+    struct bmi2_sens_config config;
+
+    /* Configure the type of feature. */
+    config.type = BMI2_ACCEL;
+
+    /* Get default configurations for the type of feature selected. */
+    rslt = bmi2_get_sensor_config(&config, 1, dev);
+    bmi2_error_codes_print_result(rslt);
+
+    if (rslt == BMI2_OK)
+    {
+        /* Set Output Data Rate - match gyro at 50Hz */
+        config.cfg.acc.odr = BMI2_ACC_ODR_50HZ;
+
+        /* Accelerometer range - 2g is default and suitable for most applications */
+        config.cfg.acc.range = BMI2_ACC_RANGE_2G;
+
+        /* Accelerometer bandwidth parameters */
+        config.cfg.acc.bwp = BMI2_ACC_OSR4_AVG1;
+
+        /* Enable high performance mode */
+        config.cfg.acc.filter_perf = BMI2_PERF_OPT_MODE;
+
+        /* Set the accel configurations. */
+        rslt = bmi2_set_sensor_config(&config, 1, dev);
+    }
+
+    return rslt;
+}
+
+/*!
  * @brief This function converts lsb to degree per second for 16 bit gyro at
  * range 125, 250, 500, 1000 or 2000dps.
  */
@@ -519,8 +558,8 @@ bool imu_init()
     imu_power_enable();
     sleep_ms(10);
 
-    /* Assign gyro sensor to variable. */
-    uint8_t sens_list = BMI2_GYRO;
+    /* Create array with both gyro and accelerometer sensors */
+    uint8_t sens_list[2] = {BMI2_GYRO, BMI2_ACCEL};
     int8_t result;
 
     result = bmi2_interface_init(&bmi, BMI2_I2C_INTF);
@@ -552,13 +591,6 @@ bool imu_init()
     }
     sleep_us(500);
 
-    result = set_gyro_config(&bmi);
-    bmi2_error_codes_print_result(result);
-    if (result != BMI2_OK)
-    {
-        return false;
-    }
-
     /* Verify chip ID */
     uint8_t chip_id = 0;
     bmi2_get_regs(0x00, &chip_id, 1, &bmi);
@@ -569,14 +601,36 @@ bool imu_init()
         return false;
     }
 
-    /* Enable the selected sensors. */
-    result = bmi2_sensor_enable(&sens_list, 1, &bmi);
+    /* Enable the selected sensors FIRST - pass count of 2 for both gyro and accel */
+    result = bmi2_sensor_enable(sens_list, 2, &bmi);
     bmi2_error_codes_print_result(result);
     if (result != BMI2_OK)
     {
         return false;
     }
-    sleep_ms(3);
+
+    // Verify PWR_CTRL register
+    uint8_t pwr_ctrl = 0;
+    bmi2_get_regs(0x7D, &pwr_ctrl, 1, &bmi); // 0x7D = BMI2_PWR_CTRL_ADDR
+    LOG_INFO("PWR_CTRL register = 0x%02x (should have bits 2=acc, 3=gyro set)",
+             pwr_ctrl);
+
+    sleep_ms(50); // Give sensors time to power up - accel needs longer than gyro
+
+    /* THEN configure the sensors */
+    result = set_gyro_config(&bmi);
+    bmi2_error_codes_print_result(result);
+    if (result != BMI2_OK)
+    {
+        return false;
+    }
+
+    result = set_accel_config(&bmi);
+    bmi2_error_codes_print_result(result);
+    if (result != BMI2_OK)
+    {
+        return false;
+    }
 
     return true;
 }
@@ -614,42 +668,24 @@ bool imu_get_rotation(float3 *w_out)
 
         return true;
     }
-
-    LOG_DEBUG("[IMU] Reading the gyro with no data!");
     return false;
 }
 
 /**
- * @brief Gets the current rotation rate and acceleration from the IMU
+ * @brief Gets the current acceleration from the IMU
  *
- * @param w_out     Pointer to put angular speed (in radians per second)
  * @param a_out     Pointer to put acceleration (in km/s^2)
  * @return true if data is available, false otherwise
  */
-bool imu_get_data(float3 *w_out, float3 *a_out)
+bool imu_get_accel(float3 *a_out)
 {
     /* Structure to define type of sensor and their respective data. */
     struct bmi2_sens_data sensor_data;
 
     int8_t result = bmi2_get_sensor_data(&sensor_data, &bmi);
 
-    if ((result == BMI2_OK) && (sensor_data.status & BMI2_DRDY_GYR) &&
-        (sensor_data.status & BMI2_DRDY_ACC))
+    if ((result == BMI2_OK) && (sensor_data.status & BMI2_DRDY_ACC))
     {
-        /*
-         * Converting lsb to radians per second for 16 bit gyro at 125 dps
-         range.
-         */
-        const float gx = lsb_to_rps(sensor_data.gyr.x, 125.0f, bmi.resolution);
-        const float gy = lsb_to_rps(sensor_data.gyr.y, 125.0f, bmi.resolution);
-        const float gz = lsb_to_rps(sensor_data.gyr.z, 125.0f, bmi.resolution);
-
-        /*
-         * Apply calibration offset
-         */
-        float3 w_raw(gx, gy, gz);
-        *w_out = w_raw - IMU_ZERO_READING_RPS;
-
         /*
          * Convert lsb to m/s^2 for 16 bit accel at 2g range
          * 1 LSB = (2 * range) / 65536 = 4g / 65536
