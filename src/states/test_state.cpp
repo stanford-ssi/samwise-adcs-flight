@@ -20,8 +20,7 @@ sched_state_t *test_get_next_state(slate_t *slate)
 }
 
 // Add test tasks to the task list
-sched_state_t test_state = {
-    .name = "test",
-    .num_tasks = 2,
-    .task_list = {&test_task, &watchdog_task},
-    .get_next_state = &test_get_next_state};
+sched_state_t test_state = {.name = "test",
+                            .num_tasks = 2,
+                            .task_list = {&test_task, &watchdog_task},
+                            .get_next_state = &test_get_next_state};
