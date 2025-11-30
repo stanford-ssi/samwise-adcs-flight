@@ -94,11 +94,13 @@ void compute_orbit_x_dot(float *x_dot, const float *x, const float3 &a_imu_body,
 
     // TODO: Integrate IMU acceleration data for orbit determination
     // Currently ignoring IMU data because:
-    // - On ground: We're in an accelerating reference frame. The table pushes up
-    //   with ~9.8 m/s² (normal force), which the IMU reads as proper acceleration.
-    //   Including this makes the filter think there's constant upward thrust,
-    //   causing position/velocity to drift nonsensically.
-    // - In orbit (free fall): IMU reads ~0 plus small perturbations (drag, thrust).
+    // - On ground: We're in an accelerating reference frame. The table pushes
+    // up
+    //   with ~9.8 m/s² (normal force), which the IMU reads as proper
+    //   acceleration. Including this makes the filter think there's constant
+    //   upward thrust, causing position/velocity to drift nonsensically.
+    // - In orbit (free fall): IMU reads ~0 plus small perturbations (drag,
+    // thrust).
     //   This data would be useful but needs proper integration.
     //
     // To enable in the future:

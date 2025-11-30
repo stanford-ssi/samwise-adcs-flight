@@ -478,7 +478,8 @@ static int8_t set_accel_config(struct bmi2_dev *dev)
         /* Set Output Data Rate - match gyro at 50Hz */
         config.cfg.acc.odr = BMI2_ACC_ODR_50HZ;
 
-        /* Accelerometer range - 2g is default and suitable for most applications */
+        /* Accelerometer range - 2g is default and suitable for most
+         * applications */
         config.cfg.acc.range = BMI2_ACC_RANGE_2G;
 
         /* Accelerometer bandwidth parameters */
@@ -601,7 +602,8 @@ bool imu_init()
         return false;
     }
 
-    /* Enable the selected sensors FIRST - pass count of 2 for both gyro and accel */
+    /* Enable the selected sensors FIRST - pass count of 2 for both gyro and
+     * accel */
     result = bmi2_sensor_enable(sens_list, 2, &bmi);
     bmi2_error_codes_print_result(result);
     if (result != BMI2_OK)
@@ -615,7 +617,8 @@ bool imu_init()
     LOG_INFO("PWR_CTRL register = 0x%02x (should have bits 2=acc, 3=gyro set)",
              pwr_ctrl);
 
-    sleep_ms(50); // Give sensors time to power up - accel needs longer than gyro
+    sleep_ms(
+        50); // Give sensors time to power up - accel needs longer than gyro
 
     /* THEN configure the sensors */
     result = set_gyro_config(&bmi);

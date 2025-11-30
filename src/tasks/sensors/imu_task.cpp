@@ -85,7 +85,8 @@ void imu_task_dispatch(slate_t *slate)
         LOG_DEBUG("[sensor] a_body = [%.6f, %.6f, %.6f] km/s^2",
                   slate->a_body.x, slate->a_body.y, slate->a_body.z);
 
-        // Propagate orbit filter with accel data (requires quaternion from attitude filter)
+        // Propagate orbit filter with accel data (requires quaternion from
+        // attitude filter)
         if (slate->of_is_initialized)
         {
             orbit_filter_propagate(slate);

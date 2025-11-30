@@ -7,11 +7,11 @@
 
 #include "slewing_state.h"
 
+#include "tasks/navigation/reference_vector_task.h"
 #include "tasks/sensors/gps_task.h"
 #include "tasks/sensors/imu_task.h"
 #include "tasks/sensors/magnetometer_task.h"
 #include "tasks/sensors/power_monitor_task.h"
-#include "tasks/navigation/reference_vector_task.h"
 #include "tasks/sensors/sun_sensor_task.h"
 #include "tasks/system/telemetry_task.h"
 #include "tasks/system/watchdog_task.h"
