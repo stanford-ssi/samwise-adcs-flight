@@ -16,7 +16,7 @@
 /**
  * Convert geodetic coordinates (LLA) to ECEF position.
  * Uses WGS84 ellipsoid parameters.
- * 
+ *
  * TODO: also use with magnetic field model
  *
  * @param lat Latitude in degrees (North positive)
@@ -27,7 +27,7 @@
 float3 lla_to_ecef(const float lat, const float lon, const float alt)
 {
     // WGS84 ellipsoid parameters
-    constexpr float a = 6378.137f;         // Semi-major axis [km]
+    constexpr float a = 6378.137f;             // Semi-major axis [km]
     constexpr float f = 1.0f / 298.257223563f; // Flattening
     constexpr float e2 = 2.0f * f - f * f;     // First eccentricity squared
 
@@ -54,7 +54,8 @@ float3 lla_to_ecef(const float lat, const float lon, const float alt)
  * Assumes horizontal motion (vertical component = 0).
  *
  * @param speed Speed over ground in knots (from GPS RMC sentence)
- * @param course Course over ground in degrees true north (from GPS RMC sentence)
+ * @param course Course over ground in degrees true north (from GPS RMC
+ * sentence)
  * @return float3 Velocity in ENU frame [km/s]
  */
 float3 speed_course_to_enu_velocity(const float speed, const float course)
@@ -68,9 +69,9 @@ float3 speed_course_to_enu_velocity(const float speed, const float course)
     // - East: speed * sin(course)  [course measured clockwise from north]
     // - North: speed * cos(course)
     // - Up: 0 (assume horizontal motion)
-    return {speed_kms * sinf(course_rad),  // East
-            speed_kms * cosf(course_rad),  // North
-            0.0f};                         // Up
+    return {speed_kms * sinf(course_rad), // East
+            speed_kms * cosf(course_rad), // North
+            0.0f};                        // Up
 }
 
 /**
@@ -207,12 +208,11 @@ float3 ecef_to_enu(const float3 &ecef, const float3 &lla)
 
     // Rotation matrix from ECEF to ENU (transpose of enu_to_ecef)
     // ENU = R_ecef_to_enu * ECEF
-    const float east =
-        -sin_lon * ecef.x + cos_lon * ecef.y;
-    const float north =
-        -sin_lat * cos_lon * ecef.x - sin_lat * sin_lon * ecef.y + cos_lat * ecef.z;
-    const float up =
-        cos_lat * cos_lon * ecef.x + cos_lat * sin_lon * ecef.y + sin_lat * ecef.z;
+    const float east = -sin_lon * ecef.x + cos_lon * ecef.y;
+    const float north = -sin_lat * cos_lon * ecef.x -
+                        sin_lat * sin_lon * ecef.y + cos_lat * ecef.z;
+    const float up = cos_lat * cos_lon * ecef.x + cos_lat * sin_lon * ecef.y +
+                     sin_lat * ecef.z;
 
     return {east, north, up};
 }
@@ -314,25 +314,25 @@ void test_transforms()
     float3 v_north = speed_course_to_enu_velocity(10.0f, 0.0f);
     printf("10 knots N: v_enu=[%.6f, %.6f, %.6f] km/s\n", v_north.x, v_north.y,
            v_north.z);
-    ASSERT_ALMOST_EQ(v_north.x, 0.0f, 0.0001f);           // East = 0
-    ASSERT_ALMOST_EQ(v_north.y, 0.00514444f, 0.0001f);    // North = 10 knots
-    ASSERT_ALMOST_EQ(v_north.z, 0.0f, 0.0001f);           // Up = 0
+    ASSERT_ALMOST_EQ(v_north.x, 0.0f, 0.0001f);        // East = 0
+    ASSERT_ALMOST_EQ(v_north.y, 0.00514444f, 0.0001f); // North = 10 knots
+    ASSERT_ALMOST_EQ(v_north.z, 0.0f, 0.0001f);        // Up = 0
 
     // Test 2: 10 knots due east (course = 90°)
     float3 v_east = speed_course_to_enu_velocity(10.0f, 90.0f);
     printf("10 knots E: v_enu=[%.6f, %.6f, %.6f] km/s\n", v_east.x, v_east.y,
            v_east.z);
-    ASSERT_ALMOST_EQ(v_east.x, 0.00514444f, 0.0001f);     // East = 10 knots
-    ASSERT_ALMOST_EQ(v_east.y, 0.0f, 0.0001f);            // North = 0
-    ASSERT_ALMOST_EQ(v_east.z, 0.0f, 0.0001f);            // Up = 0
+    ASSERT_ALMOST_EQ(v_east.x, 0.00514444f, 0.0001f); // East = 10 knots
+    ASSERT_ALMOST_EQ(v_east.y, 0.0f, 0.0001f);        // North = 0
+    ASSERT_ALMOST_EQ(v_east.z, 0.0f, 0.0001f);        // Up = 0
 
     // Test 3: 100 knots northeast (course = 45°)
     float3 v_ne = speed_course_to_enu_velocity(100.0f, 45.0f);
     float v_ne_mag = sqrtf(v_ne.x * v_ne.x + v_ne.y * v_ne.y + v_ne.z * v_ne.z);
     printf("100 knots NE: v_enu=[%.6f, %.6f, %.6f] km/s, mag=%.6f\n", v_ne.x,
            v_ne.y, v_ne.z, v_ne_mag);
-    ASSERT_ALMOST_EQ(v_ne_mag, 0.0514444f, 0.001f);       // Total speed = 100 knots
-    ASSERT_ALMOST_EQ(v_ne.x, v_ne.y, 0.0001f);            // Equal E and N components
+    ASSERT_ALMOST_EQ(v_ne_mag, 0.0514444f, 0.001f); // Total speed = 100 knots
+    ASSERT_ALMOST_EQ(v_ne.x, v_ne.y, 0.0001f);      // Equal E and N components
 
     // ========================================================================
     //      TEST ECI_TO_BODY TRANSFORMATION
