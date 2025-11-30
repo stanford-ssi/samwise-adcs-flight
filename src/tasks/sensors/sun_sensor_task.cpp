@@ -12,6 +12,7 @@
 
 #include "drivers/sun_sensors/ads7830.h"
 #include "drivers/sun_sensors/rp2350b_adc.h"
+#include "gnc/estimation/attitude_filter.h"
 #include "gnc/estimation/sun_sensor_to_vector.h"
 
 /**
@@ -138,6 +139,12 @@ void sun_sensor_task_dispatch(slate_t *slate)
         LOG_DEBUG("[sensor] sun_vector_body = [%.3f, %.3f, %.3f]",
                   slate->sun_vector_body.x, slate->sun_vector_body.y,
                   slate->sun_vector_body.z);
+
+        // Update attitude filter with sun vector measurement
+        if (slate->af_is_initialized)
+        {
+            attitude_filter_update(slate, 'S');
+        }
     }
 }
 
