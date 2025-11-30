@@ -143,11 +143,11 @@ bool compute_B(slate_t *slate)
 
     // Store raw results (currently for debugging)
     // TODO: could be used for attitude-independent calibration
-    float3 b_enu_raw = {b_phi, b_theta, b_r}; // East-North-Up (ENU) frame
-    float3 b_ecef_raw =
-        enu_to_ecef(b_enu_raw, float3(lat, lon, alt)); // Convert to ECEF frame
-    float3 b_eci_raw =
-        ecef_to_eci(b_ecef_raw, slate->MJD); // Convert to ECI frame
+    float3 b_enu_raw = {b_phi, -b_theta, -b_r}; // East-North-Up (ENU) frame
+    float3 b_ecef_raw = enu_to_ecef(
+        b_enu_raw, float3(lat, lon, alt)); // Passive transform to ECEF frame
+    float3 b_eci_raw = ecef_to_eci(
+        b_ecef_raw, slate->MJD); // Passive transformation to ECI frame
 
     slate->b_ecef = normalize(b_ecef_raw);
     slate->b_eci = normalize(b_eci_raw);

@@ -17,8 +17,8 @@
  *
  * IMPORTANT: Uncomment before flight!
  */
-// #define FLIGHT
-#define TEST
+#define FLIGHT
+// #define TEST
 
 /**
  * Convenience macros to get whether we are in flight in a runtime build.

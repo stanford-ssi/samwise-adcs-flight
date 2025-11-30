@@ -69,7 +69,7 @@ void sun_sensor_task_init(slate_t *slate)
  */
 void sun_sensor_task_dispatch(slate_t *slate)
 {
-    // --- Read rp2350b ADC (sensors 0-7) --- //
+    // --- Read rp2350b ADC (sensors 0-7: sun pyramids) --- //
     bool rp2350b_adc_alive = slate->sun_sensor_alive[0];
     if (rp2350b_adc_alive)
     {
@@ -100,7 +100,7 @@ void sun_sensor_task_dispatch(slate_t *slate)
             "[sensor] Skipping rp2350b_adc due to invalid initialization!");
     }
 
-    // --- Read ads7830 ADC (sensors 8-15) --- //
+    // --- Read ads7830 ADC (sensors 8-15: Y/Z photodiodes) --- //
     bool ads7830_alive = slate->sun_sensor_alive[8];
     if (ads7830_alive)
     {
@@ -130,6 +130,27 @@ void sun_sensor_task_dispatch(slate_t *slate)
     {
         LOG_DEBUG("[sensor] Skipping ads7830 due to invalid initialization!");
     }
+
+    // Log all sun sensor intensities in an array format (uint32_t)
+    // LOG_DEBUG("[sensor] Sun sensor intensities: ["
+    //             "%.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u, "
+    //             "%.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u]",
+    //             slate->sun_sensor_intensities[0],
+    //             slate->sun_sensor_intensities[1],
+    //             slate->sun_sensor_intensities[2],
+    //             slate->sun_sensor_intensities[3],
+    //             slate->sun_sensor_intensities[4],
+    //             slate->sun_sensor_intensities[5],
+    //             slate->sun_sensor_intensities[6],
+    //             slate->sun_sensor_intensities[7],
+    //             slate->sun_sensor_intensities[8],
+    //             slate->sun_sensor_intensities[9],
+    //             slate->sun_sensor_intensities[10],
+    //             slate->sun_sensor_intensities[11],
+    //             slate->sun_sensor_intensities[12],
+    //             slate->sun_sensor_intensities[13],
+    //             slate->sun_sensor_intensities[14],
+    //             slate->sun_sensor_intensities[15]);
 
     // --- Compute sun vector in body frame --- //
     sun_sensors_to_vector(slate);

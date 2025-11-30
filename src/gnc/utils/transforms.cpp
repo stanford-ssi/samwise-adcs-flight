@@ -93,18 +93,19 @@ float3 enu_to_ecef(const float3 &enu, const float3 &lla)
     const float sin_lon = sinf(lon);
     const float cos_lon = cosf(lon);
 
+    // Passive rotation: ECEF = R_ENU_to_ECEF * ENU
     return {
-        -sin_lon * enu[0] + (-sin_lat * cos_lon) * enu[1] +
-            (cos_lat * cos_lon) * enu[2], // ECEF X
-        cos_lon * enu[0] + (-sin_lat * sin_lon) * enu[1] +
-            (cos_lat * sin_lon) * enu[2],          // ECEF Y
-        0.0f + cos_lat * enu[1] + sin_lat * enu[2] // ECEF Z
+        -sin_lon * enu[0] - sin_lat * cos_lon * enu[1] +
+            cos_lat * cos_lon * enu[2], // ECEF X
+        cos_lon * enu[0] - sin_lat * sin_lon * enu[1] +
+            cos_lat * sin_lon * enu[2],     // ECEF Y
+        cos_lat * enu[1] + sin_lat * enu[2] // ECEF Z
     };
 }
 
 /**
  * Convert Earth-Centered Earth-Fixed (ECEF) coordinates to Earth-Centered
- * Inertial (ECI).
+ * Inertial (ECI) via passive rotation
  *
  * @param enu Vector containing ECEF X Y Z components (same units as
  * output)
@@ -119,10 +120,11 @@ float3 ecef_to_eci(const float3 &ecef, const float &MJD)
     const float sin_GMST = sinf(GMST);
     const float cos_GMST = cosf(GMST);
 
+    // Passive rotation: ECI = R_ECEF_to_ECI * ECEF
     return {
-        cos_GMST * ecef[0] - sin_GMST * ecef[1], // ECI I
-        sin_GMST * ecef[0] + cos_GMST * ecef[1], // ECI J
-        ecef[2]                                  // ECI K
+        cos_GMST * ecef[0] + sin_GMST * ecef[1],  // ECI I
+        -sin_GMST * ecef[0] + cos_GMST * ecef[1], // ECI J
+        ecef[2]                                   // ECI K
     };
 }
 

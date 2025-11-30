@@ -664,9 +664,10 @@ bool imu_get_rotation(float3 *w_out)
         const float z = lsb_to_rps(sensor_data.gyr.z, 125.0f, bmi.resolution);
 
         /*
-         * Apply calibration offset
+         * Apply calibration offset and IMPORTANT convert axes
+         * from [x, y, z] IMU frame to [-x, -y, -z] body frame
          */
-        float3 w_raw(x, y, z);
+        float3 w_raw = {-x, -y, -z};
         *w_out = w_raw - IMU_ZERO_READING_RPS;
 
         return true;
