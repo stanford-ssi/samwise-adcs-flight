@@ -29,11 +29,10 @@ sched_state_t *safe_get_next_state(slate_t *slate)
     return &safe_state;
 }
 
-sched_state_t safe_state = {.name = "safe",
-                            .num_tasks = 8,
-                            .task_list = {&watchdog_task, &telemetry_task,
-                                          &gps_task, &magnetometer_task,
-                                          &sun_sensor_task, &imu_task,
-                                          &power_monitor_task,
-                                          &reference_vector_task},
-                            .get_next_state = &safe_get_next_state};
+sched_state_t safe_state = {
+    .name = "safe",
+    .num_tasks = 8,
+    .task_list = {&watchdog_task, &telemetry_task, &gps_task,
+                  &magnetometer_task, &sun_sensor_task, &imu_task,
+                  &power_monitor_task, &reference_vector_task},
+    .get_next_state = &safe_get_next_state};
