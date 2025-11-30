@@ -22,27 +22,18 @@
 void reference_vector_task_init(slate_t *slate)
 {
     LOG_INFO("[world] Initializing reference vector task...");
-    // No hardware initialization needed - just computation
 }
 
 /**
  * @brief Dispatch reference vector task.
  *
  * Computes reference vectors (b_eci, sun_vector_eci) based on GPS
- * position/time. Only updates when GPS data is valid.
+ * position/time.
  *
  * @param slate Pointer to the current satellite slate
  */
 void reference_vector_task_dispatch(slate_t *slate)
 {
-    // Only compute reference vectors if GPS data is valid
-    if (!slate->gps_data_valid)
-    {
-        LOG_DEBUG(
-            "[world] Skipping reference vector update - GPS data invalid");
-        return;
-    }
-
     // Compute sun vector in ECI frame
     compute_sun_vector_eci(slate);
 
