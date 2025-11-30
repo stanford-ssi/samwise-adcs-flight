@@ -433,7 +433,7 @@ void attitude_filter_propagate(slate_t *slate)
         std::isnan(slate->b_gyro_drift[0]) ||
         std::isnan(slate->b_gyro_drift[1]) ||
         std::isnan(slate->b_gyro_drift[2]) ||
-        std::isnan(slate->P_log_frobenius))
+        std::isnan(slate->P_attitude_log_frobenius))
     {
         LOG_ERROR("[ekf] NaN detected in propagate! Reinitializing filter...");
         attitude_filter_init(slate);
@@ -548,7 +548,7 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
 
     // Compute (I - K*H)*P*(I - K*H)'
     mat_transpose(I_minus_KH, I_minus_KH_T, 6, 6);
-    mat_mul(I_minus_KH, slate->P, I_minus_KH_P, 6, 6, 6);
+    mat_mul(I_minus_KH, slate->P_attitude, I_minus_KH_P, 6, 6, 6);
     mat_mul(I_minus_KH_P, I_minus_KH_T, I_minus_KH_P_I_minus_KH_T, 6, 6, 6);
 
     // Compute K*R*K'
@@ -579,7 +579,7 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
         std::isnan(slate->b_gyro_drift[0]) ||
         std::isnan(slate->b_gyro_drift[1]) ||
         std::isnan(slate->b_gyro_drift[2]) ||
-        std::isnan(slate->P_log_frobenius))
+        std::isnan(slate->P_attitude_log_frobenius))
     {
         LOG_ERROR("[ekf] NaN detected in update (sensor '%c')! Reinitializing "
                   "filter...",
@@ -1114,7 +1114,7 @@ void ekf_rotation_with_bias_test(slate_t *slate)
 
     printf("\nEstimated MRP: [%.6f, %.6f, %.6f]\n", slate->p_eci_to_body.x,
            slate->p_eci_to_body.y, slate->p_eci_to_body.z);
-    printf("P log frobenius: %.6f\n", slate->P_log_frobenius);
+    printf("P log frobenius: %.6f\n", slate->P_attitude_log_frobenius);
     printf("Attitude uncertainty (1-sigma): [%.3f, %.3f, %.3f] deg\n",
            sqrtf(slate->P[0]) * RAD_TO_DEG, sqrtf(slate->P[7]) * RAD_TO_DEG,
            sqrtf(slate->P[14]) * RAD_TO_DEG);
