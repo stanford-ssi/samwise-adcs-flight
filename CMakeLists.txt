@@ -69,6 +69,7 @@ file(GLOB states CONFIGURE_DEPENDS "src/states/*.cpp")
 # Tasks
 file(GLOB tasks CONFIGURE_DEPENDS "src/tasks/*.cpp")
 file(GLOB tasks_control CONFIGURE_DEPENDS "src/tasks/control/*.cpp")
+file(GLOB tasks_navigation CONFIGURE_DEPENDS "src/tasks/navigation/*.cpp")
 file(GLOB tasks_sensors CONFIGURE_DEPENDS "src/tasks/sensors/*.cpp")
 file(GLOB tasks_system CONFIGURE_DEPENDS "src/tasks/system/*.cpp")
 
@@ -111,6 +112,7 @@ add_executable(samwise-adcs
     # Tasks
     ${tasks}
     ${tasks_control}
+    ${tasks_navigation}
     ${tasks_sensors}
     ${tasks_system}
     
