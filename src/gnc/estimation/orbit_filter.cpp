@@ -92,20 +92,19 @@ void compute_orbit_x_dot(float *x_dot, const float *x, const float3 &a_imu_body,
     float r_cubed = r_mag * r_mag * r_mag;
     float3 a_grav_eci = -(MU_EARTH / r_cubed) * r; // km/s^2
 
-#ifdef TEST
-    // In test builds (ground testing), ignore IMU acceleration data.
-    // On the ground, we're in an accelerating reference frame - the table pushes
-    // up on the satellite with ~9.8 m/s² (normal force). The IMU measures this
-    // as proper acceleration. If we include this in the orbit filter, it thinks
-    // there's a constant upward thrust, causing position/velocity to drift
-    // nonsensically. In orbit (free fall), the IMU correctly reads ~0 plus small
-    // perturbations (drag, thrust), so this data is only useful on-orbit.
-    float3 a_imu_eci = {0.0f, 0.0f, 0.0f};
-#else
-    // IMU measures specific force (non-gravitational acceleration) in body frame
-    // Convert to ECI frame
-    float3 a_imu_eci = body_to_eci(a_imu_body, q_eci_to_body);
-#endif
+    // TODO: Integrate IMU acceleration data for orbit determination
+    // Currently ignoring IMU data because:
+    // - On ground: We're in an accelerating reference frame. The table pushes up
+    //   with ~9.8 m/s² (normal force), which the IMU reads as proper acceleration.
+    //   Including this makes the filter think there's constant upward thrust,
+    //   causing position/velocity to drift nonsensically.
+    // - In orbit (free fall): IMU reads ~0 plus small perturbations (drag, thrust).
+    //   This data would be useful but needs proper integration.
+    //
+    // To enable in the future:
+    //   float3 a_imu_eci = body_to_eci(a_imu_body, q_eci_to_body);
+    //   float3 a_total = a_grav_eci + a_imu_eci;
+    float3 a_imu_eci = {0.0f, 0.0f, 0.0f}; // Currently disabled
 
     // Total acceleration = gravity + non-gravitational forces
     float3 a_total = a_grav_eci + a_imu_eci;
