@@ -67,13 +67,13 @@ void imu_task_dispatch(slate_t *slate)
         // Update magnitude
         slate->w_mag = length(slate->w_body);
 
-        // LOG_DEBUG("[sensor] w_body = [%.5f, %.5f, %.5f]", slate->w_body[0],
-        //           slate->w_body[1], slate->w_body[2]);
+        LOG_DEBUG("[sensor] w_body = [%.5f, %.5f, %.5f]", slate->w_body[0],
+                  slate->w_body[1], slate->w_body[2]);
 
         // Propagate attitude filter with gyro data
         if (slate->af_is_initialized)
         {
-            // attitude_filter_propagate(slate);
+            attitude_filter_propagate(slate);
         }
     }
 
