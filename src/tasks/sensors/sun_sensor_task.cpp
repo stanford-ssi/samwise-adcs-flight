@@ -161,9 +161,10 @@ void sun_sensor_task_dispatch(slate_t *slate)
                   slate->sun_vector_body.x, slate->sun_vector_body.y,
                   slate->sun_vector_body.z);
 
+        // Update attitude filter with sun vector measurement
         if (slate->af_is_initialized)
         {
-            attitude_filter_update(slate, 'S'); // Update with sun vector
+            attitude_filter_update(slate, 'S');
         }
     }
 }

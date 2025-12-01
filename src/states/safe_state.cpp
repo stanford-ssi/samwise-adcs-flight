@@ -7,7 +7,8 @@
  */
 
 #include "safe_state.h"
-#include "tasks/sensors/gps_world_task.h"
+#include "tasks/navigation/reference_vector_task.h"
+#include "tasks/sensors/gps_task.h"
 #include "tasks/sensors/magnetometer_task.h"
 #include "tasks/sensors/power_monitor_task.h"
 #include "tasks/sensors/sun_sensor_task.h"
@@ -28,10 +29,10 @@ sched_state_t *safe_get_next_state(slate_t *slate)
     return &safe_state;
 }
 
-sched_state_t safe_state = {.name = "safe",
-                            .num_tasks = 7,
-                            .task_list = {&watchdog_task, &telemetry_task,
-                                          &gps_world_task, &magnetometer_task,
-                                          &sun_sensor_task, &imu_task,
-                                          &power_monitor_task},
-                            .get_next_state = &safe_get_next_state};
+sched_state_t safe_state = {
+    .name = "safe",
+    .num_tasks = 8,
+    .task_list = {&watchdog_task, &telemetry_task, &gps_task,
+                  &magnetometer_task, &sun_sensor_task, &imu_task,
+                  &power_monitor_task, &reference_vector_task},
+    .get_next_state = &safe_get_next_state};

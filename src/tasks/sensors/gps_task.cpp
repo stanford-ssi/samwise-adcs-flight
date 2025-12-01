@@ -2,32 +2,27 @@
  * @author Lundeen Cahilly
  * @date 2025-10-18
  *
- * GPS and world model task. Reads GPS at 1 Hz and updates reference vectors
- * (b_eci, sun_vector_eci) and position (r_eci, r_ecef) when GPS data is valid.
+ * GPS task. Reads GPS at 5 Hz and updates position/time data when valid.
  */
 
-#include "gps_world_task.h"
+#include "gps_task.h"
 #include "constants.h"
 #include "macros.h"
 
 #include "drivers/gps/gps.h"
+#include "gnc/estimation/orbit_filter.h"
 #include "gnc/utils/mjd.h"
-#include "gnc/utils/transforms.h"
-#include "gnc/world/b_field.h"
-#include "gnc/world/sun_vector.h"
 #include "pico/time.h"
 
 /**
- * @brief Initialize GPS and world model task.
+ * @brief Initialize GPS task.
  *
  * @param slate Pointer to the current satellite slate
  */
-void gps_world_task_init(slate_t *slate)
+void gps_task_init(slate_t *slate)
 {
     LOG_INFO("[sensor] Initializing GPS...");
 
-    // --- GPS --- //
-    LOG_INFO("[sensor] Initializing GPS...");
     bool gps_result = gps_init();
     slate->gps_alive = gps_result;
 
@@ -42,15 +37,13 @@ void gps_world_task_init(slate_t *slate)
 }
 
 /**
- * @brief Dispatch GPS and world model task.
+ * @brief Dispatch GPS task.
  *
- * Reads GPS and updates position, time, and reference vectors (b_eci,
- * sun_vector_eci). Reference vectors only update when GPS provides valid
- * position/time data.
+ * Reads GPS and updates position, time, and MJD when GPS provides valid data.
  *
  * @param slate Pointer to the current satellite slate
  */
-void gps_world_task_dispatch(slate_t *slate)
+void gps_task_dispatch(slate_t *slate)
 {
     LOG_DEBUG("[sensor] GPS world task dispatching...");
     if (!slate->gps_alive)
@@ -72,6 +65,8 @@ void gps_world_task_dispatch(slate_t *slate)
         slate->gps_alt = gps_data.altitude / 1000.0f; // Convert m to km
         slate->gps_time =
             static_cast<float>(gps_data.timestamp); // Convert HHMMSS to float
+        slate->gps_speed = gps_data.speed;          // knots
+        slate->gps_course = gps_data.course;        // degrees true
 
         // Parse GPS date (DDMMYY format) to UTC_date (year, month, day)
         uint32_t date = gps_data.date;
@@ -86,23 +81,21 @@ void gps_world_task_dispatch(slate_t *slate)
         slate->UTC_date[1] = static_cast<float>(month); // Month
         slate->UTC_date[2] = static_cast<float>(day);   // Day
 
-        // Compute reference vectors b_eci and sun_vector_eci from GPS
-        // position/time
+        // Compute MJD from GPS time/date
         compute_MJD(slate);
-        compute_sun_vector_eci(slate);
-        compute_B(slate);
 
         LOG_DEBUG("[sensor] Lat = %.6f, Lon = %.6f, Alt = %.3f, "
                   "Time = %.3f, "
-                  "Date = %02d/%02d/%04d,"
+                  "Date = %02d/%02d/%04d, "
                   "MJD = %.5f",
                   slate->gps_lat, slate->gps_lon, slate->gps_alt,
                   slate->gps_time, day, month, year, slate->MJD);
-        LOG_DEBUG("[sensor] sun_vector_eci = [%.6f, %.6f, %.6f]",
-                  slate->sun_vector_eci.x, slate->sun_vector_eci.y,
-                  slate->sun_vector_eci.z);
-        LOG_DEBUG("[sensor] b_eci = [%.3f, %.3f, %.3f]", slate->b_eci.x,
-                  slate->b_eci.y, slate->b_eci.z);
+
+        // Update orbit filter with new GPS measurement
+        if (slate->of_is_initialized)
+        {
+            orbit_filter_update(slate);
+        }
 
         slate->gps_data_valid = true;
     }
@@ -117,8 +110,8 @@ void gps_world_task_dispatch(slate_t *slate)
     }
 }
 
-sched_task_t gps_world_task = {.name = "gps_world",
-                               .dispatch_period_ms = 200, // 5 Hz
-                               .task_init = &gps_world_task_init,
-                               .task_dispatch = &gps_world_task_dispatch,
-                               .next_dispatch = 0};
+sched_task_t gps_task = {.name = "gps",
+                         .dispatch_period_ms = 200, // 5 Hz
+                         .task_init = &gps_task_init,
+                         .task_dispatch = &gps_task_dispatch,
+                         .next_dispatch = 0};
