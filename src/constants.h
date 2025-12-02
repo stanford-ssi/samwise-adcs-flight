@@ -20,18 +20,25 @@ constexpr uint32_t NUM_REACTION_WHEELS = 4;
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 
 // ========================================================================
+//          GPS SPECIFICATIONS
+// ========================================================================
+constexpr uint32_t GPS_DATA_EXPIRATION_MS =
+    15000; // At 7.6 km/s, gives us 114 km max error
+
+// ========================================================================
 //          MAGNETOMETER CALIBRATION
 // ========================================================================
 
 // TODO: Update with FLIGHT model (see scripts/calibrations/magnetometer)
 
 // Hard iron offset correction (sensor units)
-constexpr float3 MAG_HARD_IRON_OFFSET = float3{-0.647650, 1.238939, -0.935132};
+constexpr float3 MAG_HARD_IRON_OFFSET =
+    float3{-2.540693, 16.138800, -24.242187};
 
 // Soft iron matrix correction (in sensor units)
-constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.000000f, 0.000000f, 0.000000f},
-                                           {0.000000f, 1.000000f, 0.000000f},
-                                           {0.000000f, 0.000000f, 1.000000f}};
+constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{0.026047f, 0.000375f, -0.001275f},
+                                           {0.000375f, 0.027098f, -0.000445f},
+                                           {-0.001275f, -0.000445f, 0.026726f}};
 
 // ========================================================================
 //          MAGNETOMETER SAMPLING
@@ -46,6 +53,8 @@ constexpr uint32_t MAGNETOMETER_FIELD_SETTLE_TIME_MS = 20; // [ms]
 // ========================================================================
 
 constexpr float R_E = 6378.0f; // Earth radius in km
+constexpr float MU_EARTH =
+    398600.4418f; // Earth gravitational parameter in km^3/s^2
 
 // (These are generally useful)
 constexpr float DEG_TO_RAD = 0.01745329251;
@@ -53,12 +62,28 @@ constexpr float RAD_TO_DEG = 57.2957795131;
 constexpr float SQRT_2_INV = 0.7071067811865476f; // 1 / sqrt(2)
 
 // ========================================================================
+//          MATH CONSTANTS
+// ========================================================================
+
+constexpr float3x3 identity3x3 = {
+    {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}};
+
+constexpr float identity6x6[6 * 6] = {
+    1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+};
+
+// ========================================================================
 //          STATE TRANSITION THRESHOLDS
 // ========================================================================
 
+// Emergency power saving thresholds
+constexpr float BATTERY_VOLTAGE_SAFE = 7.0f; // [V]
+
 // Rotation thresholds for state transitions - TODO: pick good values!
-constexpr float W_COOL_DOWN_ENTER_THRESHOLD = (100.0 * DEG_TO_RAD); // in rad/s
-constexpr float W_COOL_DOWN_EXIT_THRESHOLD = (90.0 * DEG_TO_RAD);   // in rad/s
+constexpr float W_ENTER_SAFE_THRESHOLD = (100.0 * DEG_TO_RAD); // in rad/s
+constexpr float W_EXIT_SAFE_THRESHOLD = (90.0 * DEG_TO_RAD);   // in rad/s
 
 constexpr float W_ENTER_DETUMBLE_THRESHOLD = (10.0 * DEG_TO_RAD); // in rad/s
 constexpr float W_EXIT_DETUMBLE_THRESHOLD = (1.0 * DEG_TO_RAD);   // in rad/s
@@ -139,6 +164,7 @@ constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 // ========================================================================
 
 // Define all sun sensor normal vectors (NUM_SUN_SENSORS x 3 matrix)
+// TODO: swap for new adcs board
 const float SUN_SENSOR_NORMALS[NUM_SUN_SENSORS][3] = {
     // Pyramid group 1 on +X face (0-3)
     {SQRT_2_INV, 0, SQRT_2_INV},  // sun_pyramid_1_1
@@ -168,15 +194,16 @@ const float SUN_SENSOR_NORMALS[NUM_SUN_SENSORS][3] = {
 //          SUN SENSOR ADC NORMALIZATION
 // ========================================================================
 
-// RP2350B ADC Configuration (TODO: verify for ADCS board v1.8)
+// RP2350B ADC Configuration (ADCS board v1.8)
+// Reads sun pyramid sensors (GPIO 40-47)
 constexpr float VREF_RP2350B_ADC = 3.3f;
 constexpr uint16_t BIT_RESOLUTION_RP2350B_ADC = 12;
 constexpr uint16_t MAX_VALUE_RP2350B_ADC =
     (1 << BIT_RESOLUTION_RP2350B_ADC); // 4095 for 12-bit ADC
 
-// ADS7830 ADC Configuration (TODO: verify for ADCS board v1.8)
-constexpr float VREF_ADS7830 =
-    2.5f; // TODO: check internal (always 2.5v) vs external (we set)
+// ADS7830 ADC Configuration (ADCS board v1.8)
+// Reads Y/Z photodiode sensors via I2C1
+constexpr float VREF_ADS7830 = 2.5f; // Internal reference voltage
 constexpr uint16_t BIT_RESOLUTION_ADS7830 = 8;
 constexpr uint16_t MAX_VALUE_ADS7830 =
     (1 << BIT_RESOLUTION_ADS7830); // 8-bit ADC max value

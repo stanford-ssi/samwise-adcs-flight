@@ -36,13 +36,16 @@ void gps_uart_irq_handler(void)
     {
         char c = uart_getc(SAMWISE_ADCS_GPS_UART);
 
+        // If we have a sentence ready, don't overwrite it until it's processed
+        if (sentence_ready)
+        {
+            continue; // Skip incoming data until sentence is consumed
+        }
+
         // Handle sentence start
         if (c == '$')
         {
-            if (!sentence_ready)
-            {
-                buffer_index = 0;
-            }
+            buffer_index = 0;
         }
 
         // Add character to buffer if there's space
@@ -312,10 +315,11 @@ static void process_nmea_sentence(const char *sentence)
         // Validate checksum for RMC sentences
         if (!validate_nmea_checksum(sentence))
         {
+            LOG_DEBUG("[gps] RMC checksum FAIL");
             return;
         }
-        LOG_DEBUG("[gps] Processing RMC: %s", sentence);
         parse_rmc_sentence(sentence);
+        return;
     }
 
     // Check for GGA sentence
@@ -325,10 +329,11 @@ static void process_nmea_sentence(const char *sentence)
         // Validate checksum for GGA sentences
         if (!validate_nmea_checksum(sentence))
         {
+            LOG_DEBUG("[gps] GGA checksum FAIL");
             return;
         }
-        LOG_DEBUG("[gps] Processing GGA: %s", sentence);
         parse_gga_sentence(sentence);
+        return;
     }
 }
 
@@ -407,16 +412,23 @@ bool gps_get_data(gps_data_t *data)
     if (!data)
         return false;
 
+    // Track if we got NEW data this call
+    bool new_data = false;
+
     // Process any pending sentences
     if (sentence_ready)
     {
+        LOG_DEBUG("[gps] RX: %s", gps_buffer);
         process_nmea_sentence(gps_buffer);
         sentence_ready = false;
+        new_data = true;
     }
 
     // Copy current data
     *data = current_gps_data;
-    return current_gps_data.valid;
+
+    // Only return true if we got NEW valid data this call
+    return new_data && current_gps_data.valid;
 }
 
 /**

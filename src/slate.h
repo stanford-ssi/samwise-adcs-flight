@@ -47,19 +47,22 @@ typedef struct samwise_adcs_slate
 
     // Magnetometer
     bool magnetometer_alive;
-    bool magnetometer_data_valid;
-    absolute_time_t b_body_read_time;
-    float3 b_body_raw; // magnetic field in body frame (values in nT)
-    float3 b_body;     // (unit vector)
+    bool magnetometer_data_valid;     // Flag for magnetometer data validity
+    absolute_time_t b_body_read_time; // Time of read [millisecond]
+    float3 b_body;     // calibrated magnetic field unit vector in body frame
+                       // [unitless]
+    float3 b_body_raw; // uncalibrated magnetic field in body frame [microtesla]
 
     // GPS
     bool gps_alive;
     bool gps_data_valid;
-    absolute_time_t gps_read_time; // time of last GPS read
+    absolute_time_t gps_read_time; // time of last valid/non-stale GPS read
     float gps_lat;                 // º (N+ S-)
     float gps_lon;                 // º (E+ W-)
     float gps_alt;                 // km
     float gps_time;                // utc = gps_time - 18 leap seconds
+    float gps_speed;               // knots (from RMC sentence)
+    float gps_course;              // degrees true (from RMC sentence)
 
     // Sun sensors
     bool sun_sensor_alive[NUM_SUN_SENSORS]; // first 8 from RP2350B ADCs, last
@@ -77,11 +80,13 @@ typedef struct samwise_adcs_slate
     float3 sun_vector_body; // (unit vector) in body frame
 
     // IMU
-    float imu_alive;
-    float imu_data_valid;
+    bool imu_alive;
+    bool imu_data_valid;
     float3 w_body_raw; // [rad/s] in body frame, raw reading
     float3 w_body;     // [rad/s] in body frame, low-pass filtered
     float w_mag;       // [rad/s] overall magnitude in body frame
+    float3 a_body; // [km/s^2] specific force in body frame (non-gravitational
+                   // acceleration)
 
     // Power monitor
     float adcs_power;         // [W] ADCS board power consumption
@@ -117,9 +122,9 @@ typedef struct samwise_adcs_slate
     float3 sun_vector_eci; // (unit vector)
 
     // Magnetic field reference
-    float3 b_eci_raw; // Magnetic field in ECI frame (values in nT)
-    float3 b_ecef;    // Magnetic field in ECEF frame (unit vector)
-    float3 b_eci;     // Magnetic field in ECI frame (unit vector)
+    float3 b_eci_raw; // Magnetic field reference in ECI frame (values in nT)
+    float3 b_ecef;    // Magnetic field reference in ECEF frame (unit vector)
+    float3 b_eci;     // Magnetic field reference in ECI frame (unit vector)
 
     // Bdot
     float3 b_body_prev; // (unit vector)
@@ -132,9 +137,11 @@ typedef struct samwise_adcs_slate
                             // initialized
     int af_init_count; // number of times attitude filter has been initialized
     absolute_time_t af_last_propagate_time; // time of last propagate call
-    float P[6 * 6];                         // attitude covariance matrix (6x6)
-    float P_log_frobenius;                  // log frobenius norm of attitude
-                                            // covariance
+    float P_attitude[6 * 6];                // attitude covariance matrix (6x6)
+                             // used in attitude filter, so no need for
+                             // principal axes
+    float P_attitude_log_frobenius; // log frobenius norm of attitude
+                                    // covariance
     quaternion
         q_eci_to_body; // scalar-last x,y,z,w in body frame. no inertia tensor
     float3 p_eci_to_body; // modified Rodrigues parameter from ECI to body frame
@@ -152,9 +159,17 @@ typedef struct samwise_adcs_slate
     float3 tau_mt_body;      // [Nm] torque from magnetorquers in body frame
     float3 error_i;          // accumulated integral error for PID controller
 
-    // Position
+    // Orbit state
     float3 r_ecef;
     float3 r_eci;
+    float3 v_eci;
+
+    // Orbit filter
+    bool of_is_initialized; // true if orbit filter has been initialized
+    int of_init_count;      // number of times orbit filter has been initialized
+    absolute_time_t of_last_propagate_time; // time of last propagate call
+    float P_orbit[6 * 6];                   // orbit covariance matrix (6x6)
+    float P_orbit_log_frobenius; // log frobenius norm of orbit covariance
 
 // ========================================================================
 //         TESTING  / EXPERIMENTAL FIELDS

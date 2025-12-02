@@ -99,19 +99,23 @@ void magnetometer_task_dispatch(slate_t *slate)
                 else
                 {
                     // Magnetorquers already off, read directly
-                    rm3100_error_t result = rm3100_get_reading(&slate->b_body);
+                    rm3100_error_t result =
+                        rm3100_get_reading(&slate->b_body, &slate->b_body_raw);
                     slate->magnetometer_data_valid = (result == RM3100_OK);
                     slate->b_body_read_time = get_absolute_time();
                     slate->bdot_data_has_updated = true;
                     last_mag_read_start = get_absolute_time();
 
-                    LOG_DEBUG("[sensor] b_body = [%.3f, %.3f, %.3f]",
-                              slate->b_body.x, slate->b_body.y,
-                              slate->b_body.z);
-
+                    if (result != RM3100_OK)
+                    {
+                        LOG_ERROR("[sensor] Error reading magnetometer");
+                    }
                     // Update attitude filter with magnetometer measurement
                     if (result == RM3100_OK && slate->af_is_initialized)
                     {
+                        LOG_DEBUG("[sensor] b_body = [%.3f, %.3f, %.3f]",
+                                  slate->b_body.x, slate->b_body.y,
+                                  slate->b_body.z);
                         attitude_filter_update(slate, 'M');
                     }
                     // Stay in IDLE
@@ -132,7 +136,8 @@ void magnetometer_task_dispatch(slate_t *slate)
         case MAG_READING:
         {
             // Read magnetometer
-            rm3100_error_t result = rm3100_get_reading(&slate->b_body);
+            rm3100_error_t result =
+                rm3100_get_reading(&slate->b_body, &slate->b_body_raw);
             slate->magnetometer_data_valid = (result == RM3100_OK);
             slate->b_body_read_time = get_absolute_time();
             slate->bdot_data_has_updated = true;

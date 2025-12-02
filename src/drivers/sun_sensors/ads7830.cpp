@@ -4,20 +4,11 @@
  *
  * This file defines utilities for controlling the ADS7830 ADC.
  *
- * ADS7830 is an 8-bit, 8-channel ADC with I2C interface for sun pyramids
- * readings.
+ * ADS7830 is an 8-bit, 8-channel ADC with I2C interface for Y/Z photodiode
+ * sun sensor readings.
+ *
+ * Board v1.8: Y/Z photodiodes connected to ADS7830 ADC via I2C1
  */
-
-// ---------------------------------------------------- //
-// TODO: for the v1.8 version of the ADCS board,
-// we need to swap which ADCs read which sun sensors
-// to the following:
-// - Sun Pyramids -> RP2350B ADC
-// - Y/Z Photodiodes -> ADS7830 ADC
-//
-// Also, the reference voltages also may been switched,
-// that's worth checking on the schematic
-// ---------------------------------------------------- //
 
 #include "ads7830.h"
 
@@ -109,7 +100,7 @@ static int8_t ads7830_read_i2c(uint8_t *data, uint16_t count)
  */
 static void ads7830_init_pins(void)
 {
-    // Enable photodiodes
+    // Enable Y/Z photodiode sun sensors
     gpio_init(SAMWISE_ADCS_EN_PD);
     gpio_set_dir(SAMWISE_ADCS_EN_PD, GPIO_OUT);
     gpio_put(SAMWISE_ADCS_EN_PD, 0); // Pull low to enable photodiodes

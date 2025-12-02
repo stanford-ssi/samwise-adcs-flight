@@ -12,6 +12,7 @@
 
 #include "drivers/sun_sensors/ads7830.h"
 #include "drivers/sun_sensors/rp2350b_adc.h"
+#include "gnc/estimation/attitude_filter.h"
 #include "gnc/estimation/sun_sensor_to_vector.h"
 
 /**
@@ -68,7 +69,7 @@ void sun_sensor_task_init(slate_t *slate)
  */
 void sun_sensor_task_dispatch(slate_t *slate)
 {
-    // --- Read rp2350b ADC (sensors 0-7) --- //
+    // --- Read rp2350b ADC (sensors 0-7: sun pyramids) --- //
     bool rp2350b_adc_alive = slate->sun_sensor_alive[0];
     if (rp2350b_adc_alive)
     {
@@ -99,7 +100,7 @@ void sun_sensor_task_dispatch(slate_t *slate)
             "[sensor] Skipping rp2350b_adc due to invalid initialization!");
     }
 
-    // --- Read ads7830 ADC (sensors 8-15) --- //
+    // --- Read ads7830 ADC (sensors 8-15: Y/Z photodiodes) --- //
     bool ads7830_alive = slate->sun_sensor_alive[8];
     if (ads7830_alive)
     {
@@ -130,6 +131,27 @@ void sun_sensor_task_dispatch(slate_t *slate)
         LOG_DEBUG("[sensor] Skipping ads7830 due to invalid initialization!");
     }
 
+    // Log all sun sensor intensities in an array format (uint32_t)
+    // LOG_DEBUG("[sensor] Sun sensor intensities: ["
+    //             "%.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u, "
+    //             "%.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u, %.0u]",
+    //             slate->sun_sensor_intensities[0],
+    //             slate->sun_sensor_intensities[1],
+    //             slate->sun_sensor_intensities[2],
+    //             slate->sun_sensor_intensities[3],
+    //             slate->sun_sensor_intensities[4],
+    //             slate->sun_sensor_intensities[5],
+    //             slate->sun_sensor_intensities[6],
+    //             slate->sun_sensor_intensities[7],
+    //             slate->sun_sensor_intensities[8],
+    //             slate->sun_sensor_intensities[9],
+    //             slate->sun_sensor_intensities[10],
+    //             slate->sun_sensor_intensities[11],
+    //             slate->sun_sensor_intensities[12],
+    //             slate->sun_sensor_intensities[13],
+    //             slate->sun_sensor_intensities[14],
+    //             slate->sun_sensor_intensities[15]);
+
     // --- Compute sun vector in body frame --- //
     sun_sensors_to_vector(slate);
 
@@ -138,6 +160,12 @@ void sun_sensor_task_dispatch(slate_t *slate)
         LOG_DEBUG("[sensor] sun_vector_body = [%.3f, %.3f, %.3f]",
                   slate->sun_vector_body.x, slate->sun_vector_body.y,
                   slate->sun_vector_body.z);
+
+        // Update attitude filter with sun vector measurement
+        if (slate->af_is_initialized)
+        {
+            attitude_filter_update(slate, 'S');
+        }
     }
 }
 
