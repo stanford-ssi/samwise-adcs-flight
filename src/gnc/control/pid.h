@@ -15,8 +15,10 @@ using namespace linalg::aliases;
 
 void pid_init(slate_t *slate); // call to reset PID controller state
 
-void compute_control_torque_pid(slate_t *slate);
+void compute_control_torque_pid(slate_t *slate, float dt);
 
 #ifdef TEST
-// put tests here
+void test_pid_proportional(slate_t *slate);
+void test_pid_derivative(slate_t *slate);
+void test_pid_integral(slate_t *slate);
 #endif
