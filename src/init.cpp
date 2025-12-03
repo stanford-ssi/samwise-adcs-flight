@@ -46,6 +46,10 @@ void init(slate_t *slate)
 {
     LOG_INFO("[init] Initializing...");
 
+    // Increment boot counter
+    slate->boot_count++;
+    LOG_INFO("[init] Boot count: %u", slate->boot_count);
+
     init_i2c_buses();
     neopixel_init();
     attitude_filter_init(slate);

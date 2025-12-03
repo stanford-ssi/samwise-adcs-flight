@@ -31,6 +31,7 @@ typedef struct samwise_adcs_slate
     sched_state_t *current_state;
     absolute_time_t entered_current_state_time;
     uint32_t time_in_current_state_ms;
+    uint8_t boot_count;
 
     // Telemetry
     adcs_packet_t telemetry;
@@ -90,10 +91,10 @@ typedef struct samwise_adcs_slate
                    // acceleration)
 
     // Power monitor
+    bool power_monitor_alive; // true if ADM1176 power monitor is initialized
     float adcs_power;         // [W] ADCS board power consumption
     float adcs_voltage;       // [V] ADCS board voltage
     float adcs_current;       // [A] ADCS board current
-    bool power_monitor_alive; // true if ADM1176 power monitor is initialized
 
     // ========================================================================
     //          ACTUATOR REQUESTS
@@ -150,7 +151,6 @@ typedef struct samwise_adcs_slate
     float3 tau_body;      // [Nm] total torque in body frame
 
     // Attitude control
-    float3 tau_control_principal; // [Nm] total torque in principal axes frame
     float3 tau_rw_principal; // [Nm] torque from reaction wheels in principal
                              // axes frame
     float3 tau_mt_principal; // [Nm] torque from magnetorquers in principal
