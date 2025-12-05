@@ -76,9 +76,8 @@ typedef struct samwise_adcs_slate
                                                  // sensors
 
     // Sun vector
-    bool sun_vector_valid;       // true if sun vector is valid
-    float3 sun_vector_body;      // (unit vector) in body frame
-    float3 sun_vector_principal; // (unit vector) in principal axes frame
+    bool sun_vector_valid;  // true if sun vector is valid
+    float3 sun_vector_body; // (unit vector) in body frame
 
     // IMU
     bool imu_alive;
@@ -149,11 +148,16 @@ typedef struct samwise_adcs_slate
     float3 b_gyro_drift;  // gyro drift
     float3 tau_body;      // [Nm] total torque in body frame
 
+    // Guidance
+    quaternion
+        q_desired;    // desired attitude quaternion in eci to body axes frame
+    float3 w_desired; // [rad/s] desired angular velocity in body axes frame
+
     // Attitude control
-    float3 tau_control_principal; // [Nm] total torque in principal axes frame
-    float3 tau_rw_principal; // [Nm] torque from reaction wheels in principal
-                             // axes frame
-    float3 tau_mt_principal; // [Nm] torque from magnetorquers in principal
+    float3 tau_control_body; // [Nm] total torque in body frame
+    float3 tau_rw_body;      // [Nm] torque from reaction wheels in bodyframe
+    float3 tau_mt_body;      // [Nm] torque from magnetorquers in body frame
+    float3 error_i;          // accumulated integral error for PID controller
 
     // Orbit state
     float3 r_ecef;
