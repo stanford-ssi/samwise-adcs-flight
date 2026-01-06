@@ -36,6 +36,10 @@ project(samwise-adcs C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+# Apps
+file(GLOB adcs_main CONFIGURE_DEPENDS "src/apps/adcs_main.cpp")
+file(GLOB motor_main CONFIGURE_DEPENDS "src/apps/motor_main.cpp")
+
 # Core
 file(GLOB top CONFIGURE_DEPENDS "src/*.cpp")
 
@@ -78,8 +82,10 @@ file(GLOB tests CONFIGURE_DEPENDS "src/tests/*.cpp")
 file(GLOB tests_hardware CONFIGURE_DEPENDS "src/tests/hardware/*.cpp")
 file(GLOB tests_software CONFIGURE_DEPENDS "src/tests/software/*.cpp")
 
+# First target (main adcs board)
 add_executable(samwise-adcs 
     # Core
+    ${adcs_main}
     ${top}
 
     # GNC Algorithms
@@ -149,3 +155,51 @@ target_include_directories(samwise-adcs PRIVATE
 target_include_directories(samwise-adcs PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
 pico_add_extra_outputs(samwise-adcs)
+
+# ////////////////////////////////
+# Second target (ADCS Motor Board)
+# ////////////////////////////////
+add_executable(samwise-adcs-motor
+    # Core
+    ${motor_main}
+    ${top}
+
+    # Drivers
+    ${drivers}
+    ${drivers_power_monitor}
+    ${drivers_magnetometer}
+    ${drivers_mram}
+    ${drivers_watchdog}
+    ${drivers_external}
+   
+)
+
+pico_set_program_name(samwise-adcs-motor "samwise_adcs_motor")
+pico_set_program_version(samwise-adcs-motor "0.1")
+
+# Modify the below lines to enable/disable output over UART/USB
+pico_enable_stdio_uart(samwise-adcs-motor 0)
+pico_enable_stdio_usb(samwise-adcs-motor 1)
+
+# Add the standard library to the build
+target_link_libraries(samwise-adcs-motor
+  hardware_i2c
+  hardware_spi
+  hardware_uart
+  hardware_flash
+  hardware_pwm
+  hardware_adc
+  pico_stdlib 
+  hardware_pio
+)
+
+# Add the standard include files to the build
+target_include_directories(samwise-adcs-motor PRIVATE
+  ${CMAKE_CURRENT_LIST_DIR}
+  ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts or any other standard includes, if required
+)
+
+target_include_directories(samwise-adcs-motor PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+
+pico_add_extra_outputs(samwise-adcs-motor)
+
