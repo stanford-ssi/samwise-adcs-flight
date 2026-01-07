@@ -1,5 +1,5 @@
 /**
- * @author  The ADCS Team :3
+ * @author  The ADCS Team :)
  * @date    2024-02-08
  *
  * This file defines the slate struct, a static struct which stores all data on
@@ -11,23 +11,31 @@
 
 #pragma once
 
-#include "adcs_packet.h"
-#include "constants.h"
 #include "linalg.h"
-#include "macros.h"
 #include "pico/types.h"
-#include "scheduler/state_machine_types.h"
+#include "drivers/adm1176/adm1176.h"
+#include "drivers/watchdog_motor/watchdog.h"
+#include "drivers/motor/motor.h"
+// #include "util/uart_package.h"
 
 using namespace linalg::aliases;
 using namespace linalg;
 
-typedef struct samwise_motor_slate
+typedef struct 
 {
-    // ========================================================================
-    //          GENERAL STATE
-    // ========================================================================
+	watchdog_t watchdog;
+	adm1176_t power_monitor;
 
-    // Temporary
-    float yippee;
+	motor_t motors[4];
+    motor_state_t motor_state[4];
+    volatile motor_state_t  motor_measured[4];
+
+    struct repeating_timer control_timer;
+    struct repeating_timer telem_timer;
+
+    // rx_package_t rx_package;
+    // tx_package_t tx_package;
+    // int rx_count;
 } motor_slate_t;
 
+extern motor_slate_t motor_slate;

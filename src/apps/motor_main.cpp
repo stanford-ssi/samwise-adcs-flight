@@ -15,10 +15,6 @@
 static_assert(PICO_RP2350A == 0,
               "PICO_RP2350A must be defined to 0 for PICUBED builds.");
 
-/**
- * One slate to rule them all!
- */
-motor_slate_t motor_slate;
 
 int main()
 {

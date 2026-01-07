@@ -64,7 +64,9 @@ file(GLOB drivers_neopixel CONFIGURE_DEPENDS "src/drivers/neopixel/*.cpp")
 file(GLOB drivers_sun_sensors CONFIGURE_DEPENDS "src/drivers/sun_sensors/*.cpp")
 file(GLOB drivers_picubed CONFIGURE_DEPENDS "src/drivers/picubed/*.cpp")
 file(GLOB drivers_watchdog CONFIGURE_DEPENDS "src/drivers/watchdog/*.cpp")
+file(GLOB drivers_watchdog_motor CONFIGURE_DEPENDS "src/drivers/watchdog_motor/*.cpp")
 file(GLOB drivers_external CONFIGURE_DEPENDS "src/drivers/external/*.[c|cpp]")
+file(GLOB drivers_motor CONFIGURE_DEPENDS "src/drivers/motor/*.cpp")
 
 # System Components
 file(GLOB scheduler CONFIGURE_DEPENDS "src/scheduler/*.cpp")
@@ -169,8 +171,9 @@ add_executable(samwise-adcs-motor
     ${drivers_power_monitor}
     ${drivers_magnetometer}
     ${drivers_mram}
-    ${drivers_watchdog}
+    ${drivers_watchdog_motor}
     ${drivers_external}
+    ${drivers_motor}
    
 )
 
