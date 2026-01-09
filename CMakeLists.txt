@@ -37,8 +37,8 @@ project(samwise-adcs C CXX ASM)
 pico_sdk_init()
 
 # Apps
-file(GLOB adcs_main CONFIGURE_DEPENDS "src/apps/adcs_main.cpp")
-file(GLOB motor_main CONFIGURE_DEPENDS "src/apps/motor_main.cpp")
+file(GLOB adcs_main CONFIGURE_DEPENDS "src/apps/adcs_app/*.cpp")
+file(GLOB motor_main CONFIGURE_DEPENDS "src/apps/motor_app/*.cpp")
 
 # Core
 file(GLOB top CONFIGURE_DEPENDS "src/*.cpp")
@@ -55,6 +55,7 @@ file(GLOB gnc_utils CONFIGURE_DEPENDS "src/gnc/utils/*.cpp")
 # Drivers
 file(GLOB drivers CONFIGURE_DEPENDS "src/drivers/*.cpp")
 file(GLOB drivers_power_monitor CONFIGURE_DEPENDS "src/drivers/power_monitor/*.cpp")
+file(GLOB drivers_power_monitor_motor CONFIGURE_DEPENDS "src/drivers/adm1176/*.cpp")
 file(GLOB drivers_gps CONFIGURE_DEPENDS "src/drivers/gps/*.cpp")
 file(GLOB drivers_imu CONFIGURE_DEPENDS "src/drivers/imu/*.cpp")
 file(GLOB drivers_magnetometer CONFIGURE_DEPENDS "src/drivers/magnetometer/*.cpp")
@@ -168,7 +169,7 @@ add_executable(samwise-adcs-motor
 
     # Drivers
     ${drivers}
-    ${drivers_power_monitor}
+    ${drivers_power_monitor_motor}
     ${drivers_magnetometer}
     ${drivers_mram}
     ${drivers_watchdog_motor}

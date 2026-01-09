@@ -1,4 +1,5 @@
 /**
+**
  * @author The SSI Sats ADCS team
  *
  * This is the main file, where it all begins!
@@ -6,19 +7,15 @@
 
 #include "pico/stdlib.h"
 
-#include "init.h"
+#include "apps/motor_app/init.h"
 #include "macros.h"
-#include "scheduler/scheduler.h"
-#include "slate.h"
+#include "apps/motor_app/motor_slate.h"
 
 // Make sure top gpio bank enabled
 static_assert(PICO_RP2350A == 0,
               "PICO_RP2350A must be defined to 0 for PICUBED builds.");
 
-/**
- * One slate to rule them all!
- */
-slate_t slate;
+motor_slate_t motor_slate;
 
 int main()
 {
@@ -30,15 +27,15 @@ int main()
      * Run global initialization
      */
     LOG_INFO("[main] Running global init...");
-    init(&slate);
+    init(&motor_slate);
 
     /*
      * Initialize the state machine
      */
     sleep_ms(1000);
 
-    LOG_INFO("[main] Slate takes up %d bytes!", sizeof(slate));
-    sched_init(&slate);
+    LOG_INFO("[main] Slate takes up %d bytes!", sizeof(motor_slate));
+    //sched_init(&slate);
 
     /*
      * Run the state machine for all of time
@@ -46,7 +43,9 @@ int main()
     LOG_INFO("[main] Initialization sequence complete - beginning main loop!");
     while (1)
     {
-        sched_dispatch(&slate);
+        sleep_ms(1000);
+        LOG_INFO("[loop] running");
+        //sched_dispatch(&slate);
     }
 
     // We should not be here -> very bad

@@ -2,7 +2,7 @@
  * @author: Marc Aaron Reyes
  * @date: 2025-05-21
  */
-#include "adm1176.h"
+#include "drivers/adm1176/adm1176.h"
 
 adm1176_t adm1176_mk_mock()
 {
