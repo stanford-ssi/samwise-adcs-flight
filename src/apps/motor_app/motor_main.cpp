@@ -65,19 +65,23 @@ int main()
                         &motor_slate.control_timer);
 
     // Timer for telemetry sending
+    /*
     add_repeating_timer_ms(20, 
             telem_timer_callback, 
             NULL, 
             &motor_slate.telem_timer);
+            */
 
     sleep_ms(1000);
 
     char* rx_bytes = (char*) &motor_slate.rx_package;
     int rx_count = 0;
 
-#ifdef TEST
     while (1)
     {
+        // Feed watchdog
+        watchdog_feed(&motor_slate.watchdog);
+
         // Read voltage and current
         float v = adm1176_get_voltage(&motor_slate.power_monitor);
         float c = adm1176_get_current(&motor_slate.power_monitor);
@@ -86,8 +90,8 @@ int main()
         motor_slate.tx_package.battery_current = c;
 
         // Output voltage
-        LOG_INFO("Voltage: %5d\n", v);
-        LOG_INFO("Current: %5d\n", c);
+        LOG_INFO("Voltage: %5d", v);
+        LOG_INFO("Current: %5d", c);
 
         if (uart_is_readable(uart1)) {
             char read = uart_getc(uart1);
@@ -96,9 +100,11 @@ int main()
            rx_count %= sizeof(rx_package_t);
         }
 
+        /*
         for (int i = 0; i < sizeof(rx_package_t); i++) {
             LOG_INFO("Byte %d: %2x\n", i, rx_bytes[i]); 
         }
+        */
 
         for (int m = 0; m < 4; m++) {
 
@@ -112,9 +118,8 @@ int main()
         }
         sleep_ms(10);
     }
-#else
-#endif
-	ERROR("END OF PROGRAM REACHED (BAD)\n");
+
+	ERROR("END OF PROGRAM REACHED (BAD)");
 
     while (1)
         ;

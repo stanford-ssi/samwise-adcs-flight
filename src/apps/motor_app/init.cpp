@@ -126,9 +126,17 @@ static bool init_uart(motor_slate_t* motor_slate) {
     return true;
 }
 
+static bool init_watchdog() {
+    motor_slate.watchdog = watchdog_mk(SAMWISE_WATCHDOG_FEED_PIN);
+    watchdog_init(&motor_slate.watchdog);
+    return true;
+}
+
 bool init(motor_slate_t *motor_slate) {
 	printf("Initializing...\n");
     gpio_init(SAMWISE_WATCHDOG_FEED_PIN);
+
+    ASSERT(init_watchdog());
 
 	ASSERT(init_gpio_pins(motor_slate));
     gpio_set_dir(SAMWISE_WATCHDOG_FEED_PIN, GPIO_OUT);

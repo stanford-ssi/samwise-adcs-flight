@@ -12,6 +12,6 @@ typedef struct
     uint64_t us_high;
 } watchdog_t;
 
-watchdog_t watchdog_mk();
+watchdog_t watchdog_mk(uint32_t pin);
 void watchdog_init(watchdog_t *wd);
 void watchdog_feed(watchdog_t *wd);
