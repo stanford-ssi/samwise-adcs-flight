@@ -17,8 +17,7 @@
 #include "drivers/adm1176/adm1176.h"
 #include "drivers/watchdog_motor/watchdog.h"
 #include "drivers/motor/motor.h"
-
-#include "apps/motor_app/uart_package.h"
+#include "drivers/telemetry/uart_package.h"
 
 using namespace linalg::aliases;
 using namespace linalg;
