@@ -2,7 +2,6 @@
 
 #include "pico/time.h"
 #include "hardware/gpio.h"
-#include "pins_motor.h"
 
 typedef struct
 {

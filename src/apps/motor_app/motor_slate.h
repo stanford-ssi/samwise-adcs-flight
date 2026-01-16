@@ -13,10 +13,12 @@
 
 #include "linalg.h"
 #include "pico/types.h"
+
 #include "drivers/adm1176/adm1176.h"
 #include "drivers/watchdog_motor/watchdog.h"
 #include "drivers/motor/motor.h"
-// #include "util/uart_package.h"
+
+#include "apps/motor_app/uart_package.h"
 
 using namespace linalg::aliases;
 using namespace linalg;
@@ -33,9 +35,9 @@ typedef struct
     struct repeating_timer control_timer;
     struct repeating_timer telem_timer;
 
-    // rx_package_t rx_package;
-    // tx_package_t tx_package;
-    // int rx_count;
+    rx_package_t rx_package;
+    tx_package_t tx_package;
+    int rx_count;
 } motor_slate_t;
 
 extern motor_slate_t motor_slate;

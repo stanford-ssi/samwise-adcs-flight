@@ -1,9 +1,9 @@
 #include "watchdog.h"
 
-watchdog_t watchdog_mk()
+watchdog_t watchdog_mk(uint32_t pin)
 {
     return (watchdog_t){
-        .pin = SAMWISE_WATCHDOG_FEED_PIN,
+        .pin = pin,
         .last_transition = nil_time,
         .set = false,
         .us_low = 1000 * 1000, // 5 second

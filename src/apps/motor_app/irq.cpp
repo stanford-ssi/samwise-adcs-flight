@@ -1,5 +1,6 @@
 #include "pico/time.h"
 
+#include "apps/motor_app/pins.h"
 #include "apps/motor_app/irq.h"
 #include "apps/motor_app/motor_slate.h"
 

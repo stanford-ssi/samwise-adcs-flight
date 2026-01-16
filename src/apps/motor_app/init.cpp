@@ -4,7 +4,7 @@
 #include "hardware/spi.h"
 
 #include "macros.h"
-#include "pins_motor.h"
+#include "pins.h"
 #include "motor_slate.h"
 
 #include "apps/motor_app/init.h"

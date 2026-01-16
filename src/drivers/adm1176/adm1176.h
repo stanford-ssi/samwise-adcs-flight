@@ -1,6 +1,5 @@
 #pragma once
 
-#include "pins_motor.h"
 #include "hardware/i2c.h"
 #include "macros.h"
 
