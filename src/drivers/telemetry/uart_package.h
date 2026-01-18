@@ -5,7 +5,7 @@ typedef struct {
     bool motors_enabled[4];
     float target_rpm[4];
     uint32_t checksum;
-} rx_package_t;
+} adcs_to_motor_package_t;
 
 typedef struct {
     float battery_voltage;
@@ -17,4 +17,4 @@ typedef struct {
     bool magnetometer_data_valid;
     float b_body_raw[3];
     uint32_t checksum;
-} tx_package_t;
+} motor_to_adcs_package_t;

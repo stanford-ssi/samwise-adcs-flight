@@ -1,8 +1,10 @@
 #include "pico/time.h"
+#include "macros.h"
 
 #include "apps/motor_app/pins.h"
 #include "apps/motor_app/irq.h"
 #include "apps/motor_app/motor_slate.h"
+#include "drivers/software_uart/software_uart.h"
 
 void gpio_irq(uint gpio, uint32_t events) {
     int motor_id = 0;
@@ -42,6 +44,12 @@ void gpio_irq(uint gpio, uint32_t events) {
         motor_id = 3;
         fault = true;
     }
+
+    if (gpio == ADCS_UART_COMM_RX) {
+        software_uart_handle_rx_start(&motor_slate.adcs_uart);
+        LOG_INFO("Receiving uart");
+    }
+
     if (fgout) {
         absolute_time_t now = get_absolute_time();
         absolute_time_t prev = motor_slate.motor_measured[motor_id].last_pulse_time_;
@@ -57,6 +65,6 @@ void gpio_irq(uint gpio, uint32_t events) {
     }
 
     if (fault) {
-        printf("Womp womp\n");
+        ERROR("WOMP WOMP MOTOR FAULT\n");
     }
 }

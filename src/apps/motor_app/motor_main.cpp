@@ -25,33 +25,20 @@ static_assert(PICO_RP2350A == 0,
 
 motor_slate_t motor_slate;
 
-bool timer_callback(struct repeating_timer *t) {
-
-    float kp = 0.3f;
-
-    for (int m = 0; m < 4; m++) {
-        float diff = motor_slate.motor_state[1].rpm_ 
-                                 - motor_slate.motor_measured[1].rpm_;
-        float du = kp*diff;
-
-        motor_slate.motor_state[m].speed_ += (int)round(du);
-        motor_slate.motor_state[m].speed_ &= 0b11111111111;
-    }
-
-    return true;
-}
-
 int main()
 {
     stdio_init_all();
     sleep_ms(1000);
+
+    // Initialize
     init(&motor_slate);
 
+    // Initialize motors
     for (int m = 0; m < 4; m++){
         motor_enable(&motor_slate.motors[m]);
 
-        motor_slate.rx_package.target_rpm[m] = 1000.f;
-        motor_slate.motor_state[m].rpm_ = 1000.f;
+        motor_slate.rx_package.target_rpm[m] = 2000.f;
+        motor_slate.motor_state[m].rpm_ = 2000.f;
 
         motor_slate.motor_state[m].enabled_ = 1;
     }
@@ -65,17 +52,15 @@ int main()
                         &motor_slate.control_timer);
 
     // Timer for telemetry sending
-    /*
-    add_repeating_timer_ms(20, 
+    add_repeating_timer_ms(1000, 
             telem_timer_callback, 
             NULL, 
             &motor_slate.telem_timer);
-            */
 
     sleep_ms(1000);
 
-    char* rx_bytes = (char*) &motor_slate.rx_package;
-    int rx_count = 0;
+    //char* rx_bytes = (char*) &motor_slate.rx_package;
+    //int rx_count = 0;
 
     while (1)
     {
@@ -89,31 +74,27 @@ int main()
         motor_slate.tx_package.battery_voltage = v;
         motor_slate.tx_package.battery_current = c;
 
-        // Output voltage
-        LOG_INFO("Voltage: %5d", v);
-        LOG_INFO("Current: %5d", c);
+        motor_slate.tx_package.checksum = 0x11223344;
 
+        // Output voltage
+        LOG_INFO("Voltage: %f", v);
+        LOG_INFO("Current: %f", c);
+
+        /*
         if (uart_is_readable(uart1)) {
             char read = uart_getc(uart1);
            rx_bytes[rx_count] = read; 
            rx_count += 1;
            rx_count %= sizeof(rx_package_t);
         }
-
-        /*
-        for (int i = 0; i < sizeof(rx_package_t); i++) {
-            LOG_INFO("Byte %d: %2x\n", i, rx_bytes[i]); 
-        }
         */
 
         for (int m = 0; m < 4; m++) {
-
-            motor_set_speed(&motor_slate.motors[m], 1<<10);
-
             motor_slate.motor_state[m].rpm_ = motor_slate.rx_package.target_rpm[m];
             if (motor_slate.motor_state[m].enabled_) {
                 // printf("Setting motor %d\n", m);
                 int motor_speed = motor_slate.motor_state[m].speed_;
+                motor_set_speed(&motor_slate.motors[m], motor_speed);
             }
         }
         sleep_ms(10);

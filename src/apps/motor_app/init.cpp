@@ -9,6 +9,7 @@
 
 #include "apps/motor_app/init.h"
 #include "apps/motor_app/irq.h"
+#include "drivers/software_uart/software_uart.h"
 #include "drivers/adm1176/adm1176.h"
 #include "drivers/watchdog_motor/watchdog.h"
 #include "drivers/motor/motor.h"
@@ -22,10 +23,8 @@ static bool init_gpio_pins(motor_slate_t *motor_slate){
 	return true;
 }
 
-static adm1176_t power_monitor;
-
 static bool init_drivers(motor_slate_t *motor_slate){
-	power_monitor = adm1176_mk(SAMWISE_POWER_MONITOR_I2C, 
+	adm1176_t power_monitor = adm1176_mk(SAMWISE_POWER_MONITOR_I2C, 
 					ADM1176_I2C_ADDR,
 					ADM1176_DEFAULT_SENSE_RESISTOR);
 
@@ -106,6 +105,7 @@ void uart_rx_read(){
 */
 
 static bool init_uart(motor_slate_t* motor_slate) {
+    /*
     uart_init(uart1, 115200);
 
     gpio_set_function(ADCS_UART_COMM_TX, UART_FUNCSEL_NUM(uart1, 0)); // TX
@@ -114,7 +114,6 @@ static bool init_uart(motor_slate_t* motor_slate) {
     // Disable FIFO to get interrupt per character 
     uart_set_fifo_enabled(uart1, false);
 
-    /*
     irq_set_exclusive_handler(UART1_IRQ, uart_rx_read);
     irq_set_enabled(UART1_IRQ, true);
 
@@ -122,6 +121,8 @@ static bool init_uart(motor_slate_t* motor_slate) {
     */
     
     // Initialise UART 1
+    gpio_set_irq_enabled_with_callback(ADCS_UART_COMM_RX, GPIO_IRQ_EDGE_FALL, true, &gpio_irq);
+    motor_slate->adcs_uart = software_uart_init(ADCS_UART_COMM_RX, ADCS_UART_COMM_TX);
 
     return true;
 }

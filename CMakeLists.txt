@@ -68,6 +68,7 @@ file(GLOB drivers_watchdog CONFIGURE_DEPENDS "src/drivers/watchdog/*.cpp")
 file(GLOB drivers_watchdog_motor CONFIGURE_DEPENDS "src/drivers/watchdog_motor/*.cpp")
 file(GLOB drivers_external CONFIGURE_DEPENDS "src/drivers/external/*.[c|cpp]")
 file(GLOB drivers_motor CONFIGURE_DEPENDS "src/drivers/motor/*.cpp")
+file(GLOB drivers_software_uart CONFIGURE_DEPENDS "src/drivers/software_uart/*.cpp")
 
 # System Components
 file(GLOB scheduler CONFIGURE_DEPENDS "src/scheduler/*.cpp")
@@ -146,6 +147,7 @@ target_link_libraries(samwise-adcs
   hardware_pwm
   hardware_adc
   pico_stdlib 
+  pico_platform
   hardware_pio
 )
 
@@ -175,7 +177,7 @@ add_executable(samwise-adcs-motor
     ${drivers_watchdog_motor}
     ${drivers_external}
     ${drivers_motor}
-   
+    ${drivers_software_uart} 
 )
 
 pico_set_program_name(samwise-adcs-motor "samwise_adcs_motor")
@@ -193,6 +195,7 @@ target_link_libraries(samwise-adcs-motor
   hardware_flash
   hardware_pwm
   hardware_adc
+  pico_platform
   pico_stdlib 
   hardware_pio
 )
