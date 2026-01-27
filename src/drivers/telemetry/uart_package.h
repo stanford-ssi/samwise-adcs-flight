@@ -5,7 +5,6 @@
 #define START_FLAG 0xAA
 
 struct base_telemetry_t {
-    char flag = START_FLAG;
 };
 
 struct adcs_to_motor_package_t : base_telemetry_t {
@@ -36,7 +35,7 @@ struct telemetry_handler_t {
 
 telemetry_handler_t telemetry_init(base_telemetry_t* dest);
 
-/* Returns true if it read any uart bits, else returns false.
+/* Returns number of characters received
  */
-bool telemetry_read(telemetry_handler_t* tel, software_uart_t* uart);
+uint32_t telemetry_read(telemetry_handler_t* tel, software_uart_t* uart);
 

@@ -11,7 +11,6 @@ void gpio_irq(uint gpio, uint32_t events) {
 
     if (gpio == HITL_RX) {
         software_uart_handle_rx_start(&slate.motor_uart);
-        LOG_INFO("Receiving uart");
     }
 
 }

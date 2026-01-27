@@ -10,10 +10,10 @@
 slate_t slate;
 
 bool telem_timer_callback(struct repeating_timer *t) {
-    LOG_INFO("Checking for packet received");
 
-    if(telemetry_read(&slate.telemetry, &slate.motor_uart)){
-        LOG_INFO("Received packet");
+    uint32_t chars = telemetry_read(&slate.telemetry, &slate.motor_uart);
+    if (chars) {
+        LOG_INFO("RX: Recieved chars: %d", chars);
     }
     
     return true;
@@ -26,7 +26,7 @@ int main(){
     init(&slate);
 
     // Timer for telemetry sending
-    add_repeating_timer_ms(100, 
+    add_repeating_timer_ms(255, 
             telem_timer_callback, 
             NULL, 
             &slate.telem_timer);
