@@ -29,8 +29,9 @@ software_uart_t software_uart_init(uint32_t rx, uint32_t tx, uint32_t baud, uint
     out.rx_buffer_end = 0;
 
     gpio_init(tx);
+    gpio_set_function(tx, GPIO_FUNC_SIO);
+	gpio_disable_pulls(tx);
 	gpio_set_dir(tx, GPIO_OUT);
-	gpio_pull_up(tx);
 	gpio_put(tx, 1);
 
     gpio_init(rx);
