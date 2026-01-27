@@ -56,6 +56,9 @@ void software_uart_handle_tx_start(software_uart_t* uart);
 // Put char to end of tx buffer
 void software_uart_tx_putbuf(software_uart_t* uart, uint8_t byte);
 
+// check if uart i- readable
+bool software_uart_is_readable(software_uart_t* uart);
+
 // Get top of rx buffer
 uint8_t software_uart_rx_getbuf(software_uart_t* uart);
 

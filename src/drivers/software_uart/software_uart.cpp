@@ -41,7 +41,7 @@ software_uart_t software_uart_init(uint32_t rx, uint32_t tx, uint32_t baud, uint
 
 
 software_uart_t software_uart_init(uint32_t rx, uint32_t tx) {
-    software_uart_t out = software_uart_init(rx, tx, 115200, 0);
+    software_uart_t out = software_uart_init(rx, tx, 9600, 0);
     return out;
 }
 
@@ -166,3 +166,11 @@ uint8_t software_uart_rx_getbuf(software_uart_t* uart) {
     uart->rx_buffer_start %= BUFFER_SIZE;
     return out; 
 }
+
+// check if uart i- readable
+bool software_uart_is_readable(software_uart_t* uart) {
+    bool readable = (uart->rx_buffer_start != uart->rx_buffer_end);
+    return readable;
+}
+
+

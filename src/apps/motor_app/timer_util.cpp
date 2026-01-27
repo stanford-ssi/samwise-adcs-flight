@@ -9,7 +9,8 @@ bool control_timer_callback(struct repeating_timer *t){
     float kp = 0.3f;
 
     for (int m = 0; m < 4; m++) {
-        float diff = motor_slate.motor_state[1].rpm_ - motor_slate.motor_measured[1].rpm_;
+        float diff = motor_slate.motor_state[1].rpm_ 
+                        - motor_slate.motor_measured[1].rpm_;
         float du = kp * diff;
 
         motor_slate.motor_state[m].speed_ += (int)round(du);
