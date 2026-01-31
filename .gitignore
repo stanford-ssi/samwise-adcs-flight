@@ -6,6 +6,7 @@ build
 *.png
 *.json
 documentation/site
+tags
 
 # Scripts - Python virtual environments
 scripts/**/venv/
