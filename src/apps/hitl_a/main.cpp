@@ -15,18 +15,18 @@
 
 slate_t slate;
 
-bool telem_timer_callback(struct repeating_timer *t) {
+bool telem_timer_callback(struct repeating_timer *t)
+{
     LOG_INFO("Sending telemetry package. Size: %d", sizeof(slate.tx_package));
 
-    software_uart_tx_package<adcs_to_motor_package_t>(
-            &slate.adcs_uart, 
-            &slate.tx_package);
-    
+    software_uart_tx_package<adcs_to_motor_package_t>(&slate.adcs_uart,
+                                                      &slate.tx_package);
+
     return true;
 }
 
-
-int main(){
+int main()
+{
     stdio_init_all();
     sleep_ms(1000);
 
@@ -34,15 +34,15 @@ int main(){
     sleep_ms(1000);
 
     // Timer for telemetry sending
-    add_repeating_timer_ms(1000, 
-            telem_timer_callback, 
-            NULL, 
-            &slate.telem_timer);
+    add_repeating_timer_ms(1000, telem_timer_callback, NULL,
+                           &slate.telem_timer);
 
     LOG_INFO("Initializing");
     sleep_ms(1000);
 
-    while(1){}
+    while (1)
+    {
+    }
     ERROR("Yikes END OF CODE");
 
     return 0;
