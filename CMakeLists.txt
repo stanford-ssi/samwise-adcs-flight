@@ -125,9 +125,8 @@ add_executable(samwise-adcs
     ${tasks_sensors}
     ${tasks_system}
     
-    # Tests
-    ${tests_hardware}
-    ${tests_software}
+    # Tools
+    ${tools}
 )
 
 pico_set_program_name(samwise-adcs "samwise_adcs")
