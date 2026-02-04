@@ -52,7 +52,7 @@ constexpr uint32_t MAGNETOMETER_FIELD_SETTLE_TIME_MS = 20; // [ms]
 //          WORLD CONSTANTS
 // ========================================================================
 
-constexpr float R_E = 6378.0f; // Earth radius in km
+constexpr float R_E = 6378.0f; // Earth equatorial radius in km
 constexpr float MU_EARTH =
     398600.4418f; // Earth gravitational parameter in km^3/s^2
 
