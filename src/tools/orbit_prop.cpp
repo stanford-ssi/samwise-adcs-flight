@@ -17,7 +17,7 @@
  * @param t time since t0 [s] (t0 = 0)
  * @return state vector [r_eci, v_eci] in km and km/s respectively
  */
-float6 propagate_polar_orbit(float t)
+void propagate_polar_orbit(float3 &r_eci, float3 &v_eci, float t)
 {
     // Define semi-major axis [km]
     float a = 500.0f + R_E;
@@ -26,10 +26,8 @@ float6 propagate_polar_orbit(float t)
     float n = sqrtf(MU_EARTH / (a * a * a));
 
     // Calculate position, velocity in ECI frame
-    float3 r_eci = {a * cos(n * t), 0.0f, a * sin(n * t)};          // [km]
-    float3 v_eci = {-a * n * sin(n * t), 0.0f, a * n * cos(n * t)}; // [km/s]
-
-    return float6(r_eci, v_eci);
+    r_eci = {a * cosf(n * t), 0.0f, a * sinf(n * t)};          // [km]
+    v_eci = {-a * n * sinf(n * t), 0.0f, a * n * cosf(n * t)}; // [km/s]
 }
 
 #ifdef TEST
@@ -39,20 +37,23 @@ void propagate_polar_orbit_test()
 
     // Time parameters
     float t0 = 0.0f;
-    float dt = 1.0f;        // [s] 1s timesteps
+    float dt = 60.0f;        // [s] 60s timesteps
     float a = 500.0f + R_E; // [km] semi-major axis
     float T = 2 * 3.14159f * sqrtf(a * a * a / MU_EARTH); // [s] orbital period
     float tf = 90 * 60; // [s] 90 minutes ~1 orbit
     int steps = static_cast<int>((tf - t0) / dt);
+    
+    // Initialize state vectors
+    float3 r_eci;
+    float3 v_eci;
 
     // Propagate orbit
     for (int i = 0; i < steps; i++)
     {
         float t = t0 + i * dt;
-        float6 x = propagate_polar_orbit(t);
-        LOG_INFO(
-            "r_eci = [%.3f, %.3f, %.3f] km, v_eci = [%.3f, %.3f, %.3f] km/s",
-            x[0], x[1], x[2], x[3], x[4], x[5]);
+        propagate_polar_orbit(r_eci, v_eci, t);
+        LOG_INFO("time = %.1f s, r_eci = [%.3f, %.3f, %.3f] km, v_eci = [%.3f, %.3f, %.3f] km/s",
+                 t, r_eci.x, r_eci.y, r_eci.z, v_eci.x, v_eci.y, v_eci.z);
     }
 
     bool passed = true; // TODO: Add actual test

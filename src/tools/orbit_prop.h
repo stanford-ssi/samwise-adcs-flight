@@ -13,7 +13,7 @@
 
 using namespace linalg::aliases;
 
-float6 propagate_polar_orbit(float dt);
+void propagate_polar_orbit(float3 &r_eci, float3 &v_eci, float t);
 
 #ifdef TEST
 void propagate_polar_orbit_test();
