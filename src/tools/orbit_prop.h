@@ -10,6 +10,7 @@
 
 #include "constants.h"
 #include "linalg.h"
+#include "macros.h"
 
 using namespace linalg::aliases;
 

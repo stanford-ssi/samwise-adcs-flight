@@ -34,29 +34,52 @@ void propagate_polar_orbit(float3 &r_eci, float3 &v_eci, float t)
 void propagate_polar_orbit_test()
 {
     LOG_INFO("=>=>=> Testing polar orbit propagation... <=<=<=");
+    bool passed = true; // prove me wrong
 
     // Time parameters
     float t0 = 0.0f;
-    float dt = 60.0f;        // [s] 60s timesteps
+    float dt = 1.0f;        // [s] 1.0s timestep
     float a = 500.0f + R_E; // [km] semi-major axis
     float T = 2 * 3.14159f * sqrtf(a * a * a / MU_EARTH); // [s] orbital period
-    float tf = 90 * 60; // [s] 90 minutes ~1 orbit
-    int steps = static_cast<int>((tf - t0) / dt);
+    int steps = static_cast<int>((T - t0) / dt); // one orbit
     
     // Initialize state vectors
     float3 r_eci;
     float3 v_eci;
 
-    // Propagate orbit
+    // header: time, r_eci, v_eci
+    // make the header work with the data of the table
+    printf("| %6s | %10s | %10s | %10s | %10s | %10s | %10s |\n", "time", "x", "y", "z", "vx", "vy", "vz");    
+
     for (int i = 0; i < steps; i++)
     {
         float t = t0 + i * dt;
         propagate_polar_orbit(r_eci, v_eci, t);
-        LOG_INFO("time = %.1f s, r_eci = [%.3f, %.3f, %.3f] km, v_eci = [%.3f, %.3f, %.3f] km/s",
-                 t, r_eci.x, r_eci.y, r_eci.z, v_eci.x, v_eci.y, v_eci.z);
-    }
 
-    bool passed = true; // TODO: Add actual test
+        if (i % 60 == 0 || i == steps - 1) { // log every 60 steps and the last step
+            // print with equal spacing like a table
+            // header: time, r_eci, v_eci
+            printf("| %6.1f | %10.3f | %10.3f | %10.3f | %10.6f | %10.6f | %10.6f |\n",
+                   t, r_eci.x, r_eci.y, r_eci.z, v_eci.x, v_eci.y, v_eci.z);    
+        }
+
+        // Assert that the r is constant
+        if (fabsf(length(r_eci) - a) > 1e-3f)
+        {
+            LOG_ERROR("r_eci is not constant: %.3f km", length(r_eci));
+            passed = false;
+            break;
+        }
+
+        // Assert that the v is constant
+        if (fabsf(length(v_eci) - sqrtf(MU_EARTH / a)) > 1e-3f)
+        {
+            LOG_ERROR("v_eci is not constant: %.3f km/s", length(v_eci));
+            passed = false;
+            break;
+        }
+    }
+    
     LOG_INFO("=>=>=> Test %s <=<=<=\n", passed ? "PASSED" : "FAILED");
 }
 #endif
