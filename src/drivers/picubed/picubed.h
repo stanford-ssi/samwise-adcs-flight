@@ -9,6 +9,6 @@
 #include "adcs_packet.h"
 #include "slate.h"
 
-void picubed_uart_init();
+void picubed_uart_init(slate_t *slate);
 
 bool picubed_uart_handle_commands(slate_t *slate);

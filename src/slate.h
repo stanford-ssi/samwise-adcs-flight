@@ -17,9 +17,19 @@
 #include "macros.h"
 #include "pico/types.h"
 #include "scheduler/state_machine_types.h"
+#include "adcs_command_packet.h"
+#include "pico/util/queue.h"
 
 using namespace linalg::aliases;
 using namespace linalg;
+
+typedef enum{
+    REST, // listening for no sync byte
+    SYNC_RECEIVED, // listening for length byte
+    LENGTH_RECEIVED, // listening for command byte
+    COMMAND_RECEIVED, // listening for all data packet bytes (put these into the queue)
+    DATA_FINISHED, // listening for the CRC byte
+} uart_interrupt_states;
 
 typedef struct samwise_adcs_slate
 {
@@ -34,6 +44,20 @@ typedef struct samwise_adcs_slate
 
     // Telemetry
     adcs_packet_t telemetry;
+
+    // Picubed UART Interrupt Variables ==========================================
+    uint8_t picubed_uart_queue[255]; // temporary queue. bytes immediately go here. If the CRC32 fails, then drain this
+    uint8_t temp_queue_iter;
+
+    adcs_command_packet temporaryPacket;
+    queue_t picubed_execution_queue; //fully formed execution commands go here. We read off this.
+    uart_interrupt_states interrupt_state;
+    absolute_time_t picubed_uart_last_received_time; // determines whether we should drop the byte or not.
+    uint8_t num_data_bytes; // the length of the data packet as specified by the message.
+    uint8_t num_data_bytes_received;
+    uint8_t num_crc_bytes_received;
+    uint8_t crc32_value[4];
+    // ==============================================================
 
     // Watchdog
     bool watchdog_alive;
