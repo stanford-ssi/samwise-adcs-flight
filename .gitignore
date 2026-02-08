@@ -25,5 +25,5 @@ scripts/**/*.pyd
 # Scripts - Output directories
 scripts/calibration/magnetometer/output/
 
-# Cached files
+# Sphinx
 *.idx

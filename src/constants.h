@@ -31,6 +31,8 @@ constexpr float DEG_TO_RAD = 0.01745329251;
 constexpr float RAD_TO_DEG = 57.2957795131;
 constexpr float KNOTS_TO_KMS =
     0.000514444f; // 1 knot = 1.852 km/h = 0.000514444 km/s
+constexpr float SQRT_2_INV = 0.7071067811865476f; // 1 / sqrt(2)
+constexpr float PI = 3.14159265358979323846f;
 
 // ========================================================================
 //          MATH
