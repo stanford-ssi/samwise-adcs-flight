@@ -14,10 +14,13 @@
 
 using namespace linalg::aliases;
 
-void propagate_attitude(float4& q_eci2body, float3& w_eci, float3 r_eci, float3 v_eci,
-                        float3 mu_mag, float3 tau_rw, float dt);
+void propagate_attitude(float4 &q_eci2body, float3 &w_eci, float3 r_eci,
+                        float3 v_eci, float3 b_eci, float3 mu_mt, float3 tau_rw,
+                        float dt);
 
 #ifdef TEST
+void test_propagator();
 void tau_gravity_gradient_test();
 void tau_drag_test();
+void tau_magnetorquer_test();
 #endif
