@@ -41,26 +41,29 @@ void propagate_polar_orbit_test()
     float dt = 1.0f;        // [s] 1.0s timestep
     float a = 500.0f + R_E; // [km] semi-major axis
     float T = 2 * 3.14159f * sqrtf(a * a * a / MU_EARTH); // [s] orbital period
-    int steps = static_cast<int>((T - t0) / dt); // one orbit
-    
+    int steps = static_cast<int>((T - t0) / dt);          // one orbit
+
     // Initialize state vectors
     float3 r_eci;
     float3 v_eci;
 
     // header: time, r_eci, v_eci
     // make the header work with the data of the table
-    printf("| %6s | %10s | %10s | %10s | %10s | %10s | %10s |\n", "time", "x", "y", "z", "vx", "vy", "vz");    
+    printf("| %6s | %10s | %10s | %10s | %10s | %10s | %10s |\n", "time", "x",
+           "y", "z", "vx", "vy", "vz");
 
     for (int i = 0; i < steps; i++)
     {
         float t = t0 + i * dt;
         propagate_polar_orbit(r_eci, v_eci, t);
 
-        if (i % 60 == 0 || i == steps - 1) { // log every 60 steps and the last step
+        if (i % 60 == 0 || i == steps - 1)
+        { // log every 60 steps and the last step
             // print with equal spacing like a table
             // header: time, r_eci, v_eci
-            printf("| %6.1f | %10.3f | %10.3f | %10.3f | %10.6f | %10.6f | %10.6f |\n",
-                   t, r_eci.x, r_eci.y, r_eci.z, v_eci.x, v_eci.y, v_eci.z);    
+            printf("| %6.1f | %10.3f | %10.3f | %10.3f | %10.6f | %10.6f | "
+                   "%10.6f |\n",
+                   t, r_eci.x, r_eci.y, r_eci.z, v_eci.x, v_eci.y, v_eci.z);
         }
 
         // Assert that the r is constant
@@ -79,7 +82,7 @@ void propagate_polar_orbit_test()
             break;
         }
     }
-    
+
     LOG_INFO("=>=>=> Test %s <=<=<=\n", passed ? "PASSED" : "FAILED");
 }
 #endif
