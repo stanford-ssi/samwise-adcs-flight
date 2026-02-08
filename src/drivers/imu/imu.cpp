@@ -9,7 +9,7 @@
 
 #include "imu.h"
 
-#include "constants.h"
+#include "params.h"
 #include "macros.h"
 #include "pins.h"
 

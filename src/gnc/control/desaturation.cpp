@@ -4,7 +4,7 @@
  */
 
 #include "desaturation.h"
-#include "constants.h"
+#include "params.h"
 #include "linalg.h"
 #include "macros.h"
 #include "pico/stdlib.h"

@@ -12,6 +12,7 @@
 #pragma once
 
 #include "adcs_packet.h"
+#include "params.h"
 #include "constants.h"
 #include "linalg.h"
 #include "macros.h"

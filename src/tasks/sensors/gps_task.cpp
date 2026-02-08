@@ -6,7 +6,7 @@
  */
 
 #include "gps_task.h"
-#include "constants.h"
+#include "params.h"
 #include "macros.h"
 
 #include "drivers/gps/gps.h"

@@ -7,7 +7,7 @@
  */
 
 #include "power_monitor_task.h"
-#include "constants.h"
+#include "params.h"
 #include "macros.h"
 
 #include "drivers/power_monitor/power_monitor.h"

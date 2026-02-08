@@ -7,7 +7,7 @@
  */
 
 #include "imu_task.h"
-#include "constants.h"
+#include "params.h"
 #include "macros.h"
 
 #include "drivers/imu/imu.h"

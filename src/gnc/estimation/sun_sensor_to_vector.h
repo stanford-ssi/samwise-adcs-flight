@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "constants.h"
+#include "params.h"
 #include "linalg.h"
 #include "slate.h"
 

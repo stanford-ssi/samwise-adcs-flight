@@ -9,7 +9,7 @@
  */
 
 #include "magnetometer_task.h"
-#include "constants.h"
+#include "params.h"
 #include "macros.h"
 
 #include "drivers/magnetometer/magnetometer.h"

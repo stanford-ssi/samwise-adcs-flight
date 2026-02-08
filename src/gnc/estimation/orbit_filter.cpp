@@ -14,7 +14,7 @@
  */
 
 #include "orbit_filter.h"
-#include "constants.h"
+#include "params.h"
 #include "gnc/utils/matrix_utils.h"
 #include "gnc/utils/transforms.h"
 #include "linalg.h"

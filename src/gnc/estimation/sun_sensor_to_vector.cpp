@@ -5,30 +5,14 @@
  */
 
 #include "sun_sensor_to_vector.h"
-#include "constants.h"
+#include "params.h"
 #include "gnc/utils/matrix_utils.h"
 #include "macros.h"
 #include "pico/stdlib.h"
 
 // ========================================================================
-//      CONSTANTS AND PARAMETERS
+//      RANSAC PARAMETERS
 // ========================================================================
-
-static constexpr uint16_t ACTIVE_THRESHOLD =
-    500; // TODO: determine what makes sense for our system in LEO (0.5 * max i
-         // think?) given the Earth's reflected light. this will limit our
-         // effective FOV for each sensor
-
-static constexpr uint16_t SATURATION_VALUE =
-    3102; // max clipped value for sun sensors due to differing ref voltages
-
-static constexpr int NUM_OPPOSITE_PAIRS = 8;
-
-static constexpr int OPPOSITE_PAIRS[NUM_OPPOSITE_PAIRS][2] = {
-    {0, 6},   {1, 5},  {2, 4}, {3, 7}, // pyramid opposites
-    {8, 10},  {9, 11},                 // Y+ vs Y- pairs
-    {12, 14}, {13, 15}                 // Z+ vs Z- pairs
-};
 
 static constexpr int MAX_ITERATIONS = 1000;
 static constexpr float INLIER_THRESHOLD =
@@ -101,7 +85,7 @@ int valid_sensors(slate_t *slate, bool *exclude_sensors)
     for (int i = 0; i < NUM_SUN_SENSORS; i++)
     {
         uint16_t intensity = slate->sun_sensor_intensities[i];
-        if (intensity >= SATURATION_VALUE)
+        if (intensity >= SUN_SENSOR_SATURATION_VALUE)
         {
             exclude_sensors[i] = true;
         }
@@ -111,7 +95,7 @@ int valid_sensors(slate_t *slate, bool *exclude_sensors)
     for (int i = 0; i < NUM_SUN_SENSORS; i++)
     {
         uint16_t intensity = slate->sun_sensor_intensities[i];
-        if (intensity < ACTIVE_THRESHOLD)
+        if (intensity < SUN_SENSOR_ACTIVE_THRESHOLD)
         {
             exclude_sensors[i] = true;
         }
@@ -119,10 +103,10 @@ int valid_sensors(slate_t *slate, bool *exclude_sensors)
 
     // Exclude opposite sensor pairs if both are active
     // (physically impossible - one must be faulty)
-    for (int i = 0; i < NUM_OPPOSITE_PAIRS; i++)
+    for (int i = 0; i < NUM_SUN_SENSOR_OPPOSITE_PAIRS; i++)
     {
-        int s1 = OPPOSITE_PAIRS[i][0];
-        int s2 = OPPOSITE_PAIRS[i][1];
+        int s1 = SUN_SENSOR_OPPOSITE_PAIRS[i][0];
+        int s2 = SUN_SENSOR_OPPOSITE_PAIRS[i][1];
 
         // Skip if either sensor already excluded
         if (exclude_sensors[s1] || exclude_sensors[s2])
@@ -134,7 +118,8 @@ int valid_sensors(slate_t *slate, bool *exclude_sensors)
         uint16_t intensity2 = slate->sun_sensor_intensities[s2];
 
         // If both are active, exclude both (we don't know which is faulty)
-        if (intensity1 >= ACTIVE_THRESHOLD && intensity2 >= ACTIVE_THRESHOLD)
+        if (intensity1 >= SUN_SENSOR_ACTIVE_THRESHOLD &&
+            intensity2 >= SUN_SENSOR_ACTIVE_THRESHOLD)
         {
             exclude_sensors[s1] = true;
             exclude_sensors[s2] = true;
@@ -401,7 +386,7 @@ void test_sun_sensor_cases(slate_t *slate)
             else if (test_cases[case_num].failures[i] == FLOATING)
             {
                 // FLOATING failure: stuck at ~half clip value with high noise
-                final_value = SUN_SENSOR_CLIP_VALUE / 2.0f +
+                final_value = SUN_SENSOR_SATURATION_VALUE / 2.0f +
                               generate_gaussian_noise(FLOATING_NOISE_STDDEV);
             }
             else if (!test_cases[case_num].occluded[i])
@@ -430,7 +415,7 @@ void test_sun_sensor_cases(slate_t *slate)
 
             // Clamp to valid sensor range and convert to uint16_t
             slate->sun_sensor_intensities[i] = (uint16_t)fmaxf(
-                0.0f, fminf((float)SUN_SENSOR_CLIP_VALUE, final_value));
+                0.0f, fminf((float)SUN_SENSOR_SATURATION_VALUE, final_value));
         }
 
         // Run estimation
@@ -536,7 +521,7 @@ void test_sun_sensor_monte_carlo(slate_t *slate)
                     // FLOATING failure: stuck at ~half clip value with high
                     // noise
                     final_value =
-                        SUN_SENSOR_CLIP_VALUE / 2.0f +
+                        SUN_SENSOR_SATURATION_VALUE / 2.0f +
                         generate_gaussian_noise(FLOATING_NOISE_STDDEV);
                 }
                 else if (!test_cases[case_num].occluded[i])
@@ -568,7 +553,8 @@ void test_sun_sensor_monte_carlo(slate_t *slate)
 
                 // Clamp to valid sensor range and convert to uint16_t
                 slate->sun_sensor_intensities[i] = (uint16_t)fmaxf(
-                    0.0f, fminf((float)SUN_SENSOR_CLIP_VALUE, final_value));
+                    0.0f,
+                    fminf((float)SUN_SENSOR_SATURATION_VALUE, final_value));
             }
 
             // Run estimation

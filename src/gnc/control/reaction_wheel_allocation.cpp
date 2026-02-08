@@ -4,7 +4,7 @@
  */
 
 #include "reaction_wheel_allocation.h"
-#include "constants.h"
+#include "params.h"
 #include "gnc/control/bdot.h"
 #include "linalg.h"
 #include "macros.h"
