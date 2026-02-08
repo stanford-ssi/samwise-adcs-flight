@@ -37,6 +37,10 @@ constexpr float3x3 I_BODY = {
     {0.0001439, 0.0000584709,
      0.01558}}; // Satellite inertia tensor in body frame [kg m^2]
 
+// Center of mass and center of pressure in body frame [m]
+constexpr float3 R_CM = {0.0f, 0.0f, 0.0f};
+constexpr float3 R_CP = {0.0f, 0.0f, 0.0f};
+
 // ========================================================================
 //          STATE TRANSITION
 // ========================================================================
