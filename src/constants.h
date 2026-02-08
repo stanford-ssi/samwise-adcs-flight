@@ -52,14 +52,18 @@ constexpr uint32_t MAGNETOMETER_FIELD_SETTLE_TIME_MS = 20; // [ms]
 //          WORLD CONSTANTS
 // ========================================================================
 
-constexpr float R_E = 6378.0f; // Earth radius in km
+constexpr float R_E = 6378.0f; // Earth equatorial radius in km
 constexpr float MU_EARTH =
     398600.4418f; // Earth gravitational parameter in km^3/s^2
+constexpr float W_EARTH =
+    7.292115e-5f; // Earth average rotation rate in rad/s around ECI z-axis
+                  // (ignoring nutation, precession, polar motion)
 
 // (These are generally useful)
 constexpr float DEG_TO_RAD = 0.01745329251;
 constexpr float RAD_TO_DEG = 57.2957795131;
 constexpr float SQRT_2_INV = 0.7071067811865476f; // 1 / sqrt(2)
+constexpr float PI = 3.14159265358979323846f;
 
 // ========================================================================
 //          MATH CONSTANTS
@@ -110,8 +114,12 @@ constexpr float REACTION_WHEEL_SATURATION_UPPER_LIMIT = 0.9;
 constexpr float REACTION_WHEEL_SATURATION_LOWER_LIMIT = 0.1;
 
 // ========================================================================
-//          SATELLITE INERTIA
+//          SATELLITE PHYSICAL PARAMS
 // ========================================================================
+
+// Satellite center of mass [m]
+constexpr float3 R_CM = {0.0f, 0.0f, 0.0f}; // [m]
+constexpr float3 R_CP = {0.0f, 0.0f, 0.0f}; // [m]
 
 constexpr float3 I_PRINCIPAL = {
     0.0237644, 0.0155789,

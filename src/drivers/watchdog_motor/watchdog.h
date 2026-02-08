@@ -1,7 +1,7 @@
 #pragma once
 
-#include "pico/time.h"
 #include "hardware/gpio.h"
+#include "pico/time.h"
 
 typedef struct
 {

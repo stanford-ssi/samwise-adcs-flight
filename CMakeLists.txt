@@ -82,10 +82,8 @@ file(GLOB tasks_navigation CONFIGURE_DEPENDS "src/tasks/navigation/*.cpp")
 file(GLOB tasks_sensors CONFIGURE_DEPENDS "src/tasks/sensors/*.cpp")
 file(GLOB tasks_system CONFIGURE_DEPENDS "src/tasks/system/*.cpp")
 
-# Tests
-file(GLOB tests CONFIGURE_DEPENDS "src/tests/*.cpp")
-file(GLOB tests_hardware CONFIGURE_DEPENDS "src/tests/hardware/*.cpp")
-file(GLOB tests_software CONFIGURE_DEPENDS "src/tests/software/*.cpp")
+# Tools
+file(GLOB tools CONFIGURE_DEPENDS "src/tools/*.cpp")
 
 # First target (main adcs board)
 add_executable(samwise-adcs 
@@ -127,9 +125,8 @@ add_executable(samwise-adcs
     ${tasks_sensors}
     ${tasks_system}
     
-    # Tests
-    ${tests_hardware}
-    ${tests_software}
+    # Tools
+    ${tools}
 )
 
 pico_set_program_name(samwise-adcs "samwise_adcs")

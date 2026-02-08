@@ -4,17 +4,20 @@
 
 #define START_FLAG 0xAA
 
-struct base_telemetry_t {
+struct base_telemetry_t
+{
 };
 
-struct adcs_to_motor_package_t : base_telemetry_t {
+struct adcs_to_motor_package_t : base_telemetry_t
+{
     char flag = START_FLAG;
     bool motors_enabled[4];
     float target_rpm[4];
     uint32_t checksum;
 };
 
-struct motor_to_adcs_package_t: base_telemetry_t{
+struct motor_to_adcs_package_t : base_telemetry_t
+{
     char flag = START_FLAG;
     float battery_voltage;
     float battery_current;
@@ -27,15 +30,15 @@ struct motor_to_adcs_package_t: base_telemetry_t{
     uint32_t checksum;
 };
 
-struct telemetry_handler_t {
+struct telemetry_handler_t
+{
     uint32_t frame_position;
     uint32_t frame_size;
-    uint8_t* dest;
+    uint8_t *dest;
 };
 
-telemetry_handler_t telemetry_init(base_telemetry_t* dest);
+telemetry_handler_t telemetry_init(base_telemetry_t *dest);
 
 /* Returns number of characters received
  */
-uint32_t telemetry_read(telemetry_handler_t* tel, software_uart_t* uart);
-
+uint32_t telemetry_read(telemetry_handler_t *tel, software_uart_t *uart);
