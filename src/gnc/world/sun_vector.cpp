@@ -4,7 +4,6 @@
  */
 
 #include "sun_vector.h"
-#include "constants.h"
 #include "gnc/utils/utils.h"
 #include "macros.h"
 #include "pico/stdlib.h"

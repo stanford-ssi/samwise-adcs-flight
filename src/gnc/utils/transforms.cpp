@@ -11,6 +11,7 @@
 #include "constants.h"
 #include "gnc/utils/matrix_utils.h"
 #include "gnc/utils/utils.h"
+#include "params.h"
 #include <cmath>
 
 /**
@@ -26,11 +27,6 @@
  */
 float3 lla_to_ecef(const float lat, const float lon, const float alt)
 {
-    // WGS84 ellipsoid parameters
-    constexpr float a = 6378.137f;             // Semi-major axis [km]
-    constexpr float f = 1.0f / 298.257223563f; // Flattening
-    constexpr float e2 = 2.0f * f - f * f;     // First eccentricity squared
-
     const float lat_rad = lat * DEG_TO_RAD;
     const float lon_rad = lon * DEG_TO_RAD;
     const float sin_lat = sinf(lat_rad);
@@ -39,12 +35,12 @@ float3 lla_to_ecef(const float lat, const float lon, const float alt)
     const float cos_lon = cosf(lon_rad);
 
     // Radius of curvature in the prime vertical
-    const float N = a / sqrtf(1.0f - e2 * sin_lat * sin_lat);
+    const float N = a_EARTH / sqrtf(1.0f - E2_EARTH * sin_lat * sin_lat);
 
     // ECEF coordinates [km]
     const float x = (N + alt) * cos_lat * cos_lon;
     const float y = (N + alt) * cos_lat * sin_lon;
-    const float z = (N * (1.0f - e2) + alt) * sin_lat;
+    const float z = (N * (1.0f - E2_EARTH) + alt) * sin_lat;
 
     return {x, y, z};
 }
@@ -61,7 +57,6 @@ float3 lla_to_ecef(const float lat, const float lon, const float alt)
 float3 speed_course_to_enu_velocity(const float speed, const float course)
 {
     // Convert knots to km/s: 1 knot = 1.852 km/h = 0.000514444 km/s
-    constexpr float KNOTS_TO_KMS = 0.000514444f;
     const float speed_kms = speed * KNOTS_TO_KMS;
     const float course_rad = course * DEG_TO_RAD;
 

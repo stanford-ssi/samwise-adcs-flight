@@ -7,8 +7,8 @@
  */
 
 #include "sun_sensor_task.h"
-#include "constants.h"
 #include "macros.h"
+#include "params.h"
 
 #include "drivers/sun_sensors/ads7830.h"
 #include "drivers/sun_sensors/rp2350b_adc.h"
@@ -84,7 +84,7 @@ void sun_sensor_task_dispatch(slate_t *slate)
             {
                 // Clip to 2.5V max value for consistency with ads7830
                 uint16_t normalized_intensity =
-                    min(intensities[i], SUN_SENSOR_CLIP_VALUE);
+                    min(intensities[i], SUN_SENSOR_SATURATION_VALUE);
                 slate->sun_sensor_intensities[i] = normalized_intensity;
                 slate->sun_sensor_data_valid[i] = true;
             }
@@ -116,7 +116,7 @@ void sun_sensor_task_dispatch(slate_t *slate)
                 // Scale 8-bit to 12-bit range for consistency
                 uint16_t normalized_intensity =
                     static_cast<uint16_t>(intensities[i]) *
-                    SUN_SENSOR_CLIP_VALUE / MAX_VALUE_ADS7830;
+                    SUN_SENSOR_SATURATION_VALUE / MAX_VALUE_ADS7830;
                 slate->sun_sensor_intensities[i + 8] = normalized_intensity;
                 slate->sun_sensor_data_valid[i + 8] = true;
             }

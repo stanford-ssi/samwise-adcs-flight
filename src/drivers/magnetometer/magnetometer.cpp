@@ -10,9 +10,9 @@
 #include "hardware/spi.h"
 #include "pico/stdlib.h"
 
-#include "constants.h"
 #include "macros.h"
 #include "magnetometer.h"
+#include "params.h"
 #include "pins.h"
 
 #include "linalg.h"

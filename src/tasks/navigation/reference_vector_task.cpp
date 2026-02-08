@@ -8,7 +8,6 @@
  */
 
 #include "reference_vector_task.h"
-#include "constants.h"
 #include "macros.h"
 
 #include "gnc/world/b_field.h"

@@ -7,7 +7,7 @@
  */
 
 #include "scheduler.h"
-#include "constants.h"
+#include "params.h"
 
 // Must include declarations of all states
 #include "states/detumble_state.h"

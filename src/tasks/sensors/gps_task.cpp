@@ -6,8 +6,8 @@
  */
 
 #include "gps_task.h"
-#include "constants.h"
 #include "macros.h"
+#include "params.h"
 
 #include "drivers/gps/gps.h"
 #include "gnc/estimation/orbit_filter.h"

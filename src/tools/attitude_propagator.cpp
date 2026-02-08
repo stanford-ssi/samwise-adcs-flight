@@ -7,6 +7,7 @@
 
 #include "attitude_propagator.h"
 #include "constants.h"
+#include "params.h"
 
 // Forward declarations
 static void q_dot(float4 &q_dot, float3 &w_dot, float4 q, float3 w,

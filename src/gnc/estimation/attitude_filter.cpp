@@ -11,42 +11,27 @@
  */
 
 #include "attitude_filter.h"
-#include "constants.h"
 #include "gnc/utils/matrix_utils.h"
 #include "gnc/utils/utils.h"
 #include "linalg.h"
 #include "macros.h"
+#include "params.h"
 #include "pico/time.h"
 
 // ========================================================================
 //      COVARIANCE MATRICES
 // ========================================================================
-// Process noise covariance matrix  - TODO: use (more) reasonable values
-// Datasheet:
-// https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmi270-ds000.pdf
-constexpr float GYRO_VARIANCE =
-    1.52309e-6f; // rad^2/s^2 For BMI270 at 50hz - TODO: change the update rate,
-                 // we are not doing 50hz
-constexpr float DRIFT_VARIANCE =
-    1.52309e-8f; // rad^2/s^4 (~100x smaller than gyro variance) - TODO: measure
-                 // this!
+// Process noise covariance matrix
 static float Q[6 * 6] = {
-    GYRO_VARIANCE,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-    GYRO_VARIANCE,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-    GYRO_VARIANCE,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-    DRIFT_VARIANCE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-    DRIFT_VARIANCE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-    DRIFT_VARIANCE,
+    IMU_GYRO_VARIANCE,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    IMU_GYRO_VARIANCE,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    IMU_GYRO_VARIANCE,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    IMU_DRIFT_VARIANCE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    IMU_DRIFT_VARIANCE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    IMU_DRIFT_VARIANCE,
 };
 
-// Measurement noise covariance matrix - TODO: use reasonable values from
-// datasheet and testing Magnetometer datasheet:
-// https://www.tri-m.com/products/pni/RM3100-User-Manual.pdf
-constexpr float SUN_VECTOR_VARIANCE =
-    (1.0f * DEG_TO_RAD) * (1.0f * DEG_TO_RAD); // Sun sensor noise ~+-2 degrees
-constexpr float MAGNETOMETER_VARIANCE =
-    (0.02f * DEG_TO_RAD) *
-    (0.02f * DEG_TO_RAD); // Magnetometer noise ~ 2 degrees
+// Measurement noise covariance matrix
 static float R_sun[3 * 3] = {SUN_VECTOR_VARIANCE, 0.0f, 0.0f, 0.0f,
                              SUN_VECTOR_VARIANCE, 0.0f, 0.0f, 0.0f,
                              SUN_VECTOR_VARIANCE};
@@ -297,7 +282,7 @@ void attitude_filter_init(slate_t *slate)
         else if (i % 7 == 0 and i >= 18)
         {
             slate->P_attitude[i] =
-                GYRO_VARIANCE; // initial variance on diagonal for gyro bias
+                IMU_GYRO_VARIANCE; // initial variance on diagonal for gyro bias
         }
         else
         {
