@@ -17,7 +17,7 @@
 using namespace linalg::aliases;
 using namespace linalg;
 
-typedef struct 
+typedef struct
 {
     telemetry_handler_t telemetry;
     software_uart_t adcs_uart;

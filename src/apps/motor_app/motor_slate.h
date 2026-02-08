@@ -15,27 +15,27 @@
 #include "pico/types.h"
 
 #include "drivers/adm1176/adm1176.h"
-#include "drivers/software_uart/software_uart.h"
-#include "drivers/watchdog_motor/watchdog.h"
 #include "drivers/motor/motor.h"
+#include "drivers/software_uart/software_uart.h"
 #include "drivers/telemetry/uart_package.h"
+#include "drivers/watchdog_motor/watchdog.h"
 
 using namespace linalg::aliases;
 using namespace linalg;
 
-typedef struct 
+typedef struct
 {
-	watchdog_t watchdog;
-	adm1176_t power_monitor;
+    watchdog_t watchdog;
+    adm1176_t power_monitor;
 
     software_uart_t adcs_uart;
 
     float voltage;
     float current;
 
-	motor_t motors[4];
+    motor_t motors[4];
     motor_state_t motor_state[4];
-    volatile motor_state_t  motor_measured[4];
+    volatile motor_state_t motor_measured[4];
 
     struct repeating_timer control_timer;
     struct repeating_timer telem_timer;

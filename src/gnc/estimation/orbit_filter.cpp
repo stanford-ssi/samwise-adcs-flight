@@ -14,11 +14,11 @@
  */
 
 #include "orbit_filter.h"
-#include "params.h"
 #include "gnc/utils/matrix_utils.h"
 #include "gnc/utils/transforms.h"
 #include "linalg.h"
 #include "macros.h"
+#include "params.h"
 #include "pico/time.h"
 
 // ========================================================================

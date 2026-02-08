@@ -9,10 +9,10 @@
 
 #include "pid.h"
 
-#include "params.h"
 #include "gnc/utils/matrix_utils.h"
 #include "gnc/utils/utils.h"
 #include "macros.h"
+#include "params.h"
 #include <cmath>
 
 // TODO: tune gains!!!

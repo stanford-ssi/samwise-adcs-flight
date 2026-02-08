@@ -7,8 +7,8 @@
  */
 
 #include "sun_sensor_task.h"
-#include "params.h"
 #include "macros.h"
+#include "params.h"
 
 #include "drivers/sun_sensors/ads7830.h"
 #include "drivers/sun_sensors/rp2350b_adc.h"

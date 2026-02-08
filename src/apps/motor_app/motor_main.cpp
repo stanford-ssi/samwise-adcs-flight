@@ -1,9 +1,9 @@
 /**
 **
- * @author Carson Lauer
- *
- * This is the main motor file
- */
+* @author Carson Lauer
+*
+* This is the main motor file
+*/
 
 #include "pico/float.h"
 #include "pico/stdlib.h"
@@ -14,9 +14,9 @@
 
 #include "drivers/motor/motor.h"
 
-#include "apps/motor_app/pins.h"
 #include "apps/motor_app/init.h"
 #include "apps/motor_app/motor_slate.h"
+#include "apps/motor_app/pins.h"
 #include "apps/motor_app/timer_util.h"
 
 // Make sure top gpio bank enabled
@@ -34,7 +34,8 @@ int main()
     init(&motor_slate);
 
     // Initialize motors
-    for (int m = 0; m < 4; m++){
+    for (int m = 0; m < 4; m++)
+    {
         motor_enable(&motor_slate.motors[m]);
 
         motor_slate.rx_package.target_rpm[m] = 2000.f;
@@ -46,21 +47,17 @@ int main()
     int period_ms = 100;
 
     // Timer for motor control loop
-    add_repeating_timer_ms(period_ms,
-                        control_timer_callback, 
-                        NULL, 
-                        &motor_slate.control_timer);
+    add_repeating_timer_ms(period_ms, control_timer_callback, NULL,
+                           &motor_slate.control_timer);
 
     // Timer for telemetry sending
-    add_repeating_timer_ms(1000, 
-            telem_timer_callback, 
-            NULL, 
-            &motor_slate.telem_timer);
+    add_repeating_timer_ms(1000, telem_timer_callback, NULL,
+                           &motor_slate.telem_timer);
 
     sleep_ms(1000);
 
-    //char* rx_bytes = (char*) &motor_slate.rx_package;
-    //int rx_count = 0;
+    // char* rx_bytes = (char*) &motor_slate.rx_package;
+    // int rx_count = 0;
 
     while (1)
     {
@@ -83,15 +80,18 @@ int main()
         /*
         if (uart_is_readable(uart1)) {
             char read = uart_getc(uart1);
-           rx_bytes[rx_count] = read; 
+           rx_bytes[rx_count] = read;
            rx_count += 1;
            rx_count %= sizeof(rx_package_t);
         }
         */
 
-        for (int m = 0; m < 4; m++) {
-            motor_slate.motor_state[m].rpm_ = motor_slate.rx_package.target_rpm[m];
-            if (motor_slate.motor_state[m].enabled_) {
+        for (int m = 0; m < 4; m++)
+        {
+            motor_slate.motor_state[m].rpm_ =
+                motor_slate.rx_package.target_rpm[m];
+            if (motor_slate.motor_state[m].enabled_)
+            {
                 // printf("Setting motor %d\n", m);
                 int motor_speed = motor_slate.motor_state[m].speed_;
                 motor_set_speed(&motor_slate.motors[m], motor_speed);
@@ -100,7 +100,7 @@ int main()
         sleep_ms(10);
     }
 
-	ERROR("END OF PROGRAM REACHED (BAD)");
+    ERROR("END OF PROGRAM REACHED (BAD)");
 
     while (1)
         ;

@@ -5,9 +5,9 @@
  */
 
 #include "sun_sensor_to_vector.h"
-#include "params.h"
 #include "gnc/utils/matrix_utils.h"
 #include "macros.h"
+#include "params.h"
 #include "pico/stdlib.h"
 
 // ========================================================================

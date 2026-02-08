@@ -18,9 +18,10 @@ constexpr float MU_EARTH =
     398600.4418f; // Earth gravitational parameter [km^3/s^2]
 
 // WGS84 ellipsoid parameters
-constexpr float a_EARTH = 6378.137f;                // Semi-major axis [km]
-constexpr float f_EARTH = 1.0f / 298.257223563f;    // Flattening
-constexpr float E2_EARTH = 2.0f * f_EARTH - f_EARTH * f_EARTH; // First eccentricity squared
+constexpr float a_EARTH = 6378.137f;             // Semi-major axis [km]
+constexpr float f_EARTH = 1.0f / 298.257223563f; // Flattening
+constexpr float E2_EARTH =
+    2.0f * f_EARTH - f_EARTH * f_EARTH; // First eccentricity squared
 
 // ========================================================================
 //          UNIT CONVERSIONS
@@ -28,7 +29,8 @@ constexpr float E2_EARTH = 2.0f * f_EARTH - f_EARTH * f_EARTH; // First eccentri
 
 constexpr float DEG_TO_RAD = 0.01745329251;
 constexpr float RAD_TO_DEG = 57.2957795131;
-constexpr float KNOTS_TO_KMS = 0.000514444f; // 1 knot = 1.852 km/h = 0.000514444 km/s
+constexpr float KNOTS_TO_KMS =
+    0.000514444f; // 1 knot = 1.852 km/h = 0.000514444 km/s
 
 // ========================================================================
 //          MATH

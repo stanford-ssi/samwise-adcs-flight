@@ -9,8 +9,8 @@
 
 #include "imu.h"
 
-#include "params.h"
 #include "macros.h"
+#include "params.h"
 #include "pins.h"
 
 #include <stdint.h>

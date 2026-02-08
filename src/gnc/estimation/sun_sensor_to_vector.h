@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "params.h"
 #include "linalg.h"
+#include "params.h"
 #include "slate.h"
 
 using namespace linalg::aliases;

@@ -9,8 +9,8 @@
  */
 
 #include "magnetometer_task.h"
-#include "params.h"
 #include "macros.h"
+#include "params.h"
 
 #include "drivers/magnetometer/magnetometer.h"
 #include "drivers/magnetorquers/magnetorquers.h"

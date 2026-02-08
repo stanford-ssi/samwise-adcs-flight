@@ -7,9 +7,9 @@
 
 #include "i2c_scanner.h"
 #include "macros.h"
-#include "pins.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
+#include "pins.h"
 #include <stdint.h>
 #include <stdlib.h>
 

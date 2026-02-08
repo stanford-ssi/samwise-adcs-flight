@@ -9,9 +9,9 @@
 #include "transforms.h"
 
 #include "constants.h"
-#include "params.h"
 #include "gnc/utils/matrix_utils.h"
 #include "gnc/utils/utils.h"
+#include "params.h"
 #include <cmath>
 
 /**
