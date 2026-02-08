@@ -1,4 +1,3 @@
-#include "pico/platform.h"
 #include "pico/stdio.h"
 #include "pico/stdlib.h"
 
