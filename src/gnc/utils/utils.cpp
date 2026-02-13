@@ -203,6 +203,7 @@ float3x3 mrp_to_dcm(float3 mrp)
 }
 
 #ifdef TEST
+#include "constants.h"
 void test_quaternions()
 {
     printf("\n><=><=><=><=><= Testing quaternion utilities... "

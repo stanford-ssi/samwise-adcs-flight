@@ -420,18 +420,28 @@ void attitude_filter_propagate(slate_t *slate)
         std::isnan(slate->b_gyro_drift[2]) ||
         std::isnan(slate->P_attitude_log_frobenius))
     {
-        LOG_ERROR("[ekf] NaN detected in propagate! Reinitializing filter...");
+        LOG_ERROR("[ekf] NaN detected in propagate!");
+        LOG_ERROR(
+            "[ekf] Final state: p=[%.6f,%.6f,%.6f], b_drift=[%.6f,%.6f,%.6f]",
+            slate->p_eci_to_body[0], slate->p_eci_to_body[1],
+            slate->p_eci_to_body[2], slate->b_gyro_drift[0],
+            slate->b_gyro_drift[1], slate->b_gyro_drift[2]);
+        float mrp_norm_error = length(slate->p_eci_to_body);
+        LOG_ERROR("[ekf] MRP norm = %.6f, P_log_frob = %.6f", mrp_norm_error,
+                  slate->P_attitude_log_frobenius);
+        LOG_ERROR("[ekf] Reinitializing filter...");
         attitude_filter_init(slate);
         return;
     }
 
-    LOG_DEBUG("[ekf] q_eci_to_body = [%.6f, %.6f, %.6f, %.6f]",
-              slate->q_eci_to_body[0], slate->q_eci_to_body[1],
-              slate->q_eci_to_body[2], slate->q_eci_to_body[3]);
-    LOG_DEBUG("[ekf] b_gyro_drift = [%.6f, %.6f, %.6f]", slate->b_gyro_drift[0],
-              slate->b_gyro_drift[1], slate->b_gyro_drift[2]);
-    LOG_DEBUG("[ekf] P_attitude_log_frobenius = %.6f",
-              slate->P_attitude_log_frobenius);
+    // LOG_DEBUG("[ekf] q_eci_to_body = [%.6f, %.6f, %.6f, %.6f]",
+    //           slate->q_eci_to_body[0], slate->q_eci_to_body[1],
+    //           slate->q_eci_to_body[2], slate->q_eci_to_body[3]);
+    // LOG_DEBUG("[ekf] b_gyro_drift = [%.6f, %.6f, %.6f]",
+    // slate->b_gyro_drift[0],
+    //           slate->b_gyro_drift[1], slate->b_gyro_drift[2]);
+    // LOG_DEBUG("[ekf] P_attitude_log_frobenius = %.6f",
+    //           slate->P_attitude_log_frobenius);
 }
 
 /**
@@ -573,18 +583,143 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
         return;
     }
 
-    LOG_DEBUG("[ekf] innovation = [%.6f, %.6f, %.6f]", innovation[0],
-              innovation[1], innovation[2]);
-    LOG_DEBUG("[ekf] q_eci_to_body = [%.6f, %.6f, %.6f, %.6f]",
-              slate->q_eci_to_body[0], slate->q_eci_to_body[1],
-              slate->q_eci_to_body[2], slate->q_eci_to_body[3]);
-    LOG_DEBUG("[ekf] b_gyro_drift = [%.6f, %.6f, %.6f]", slate->b_gyro_drift[0],
-              slate->b_gyro_drift[1], slate->b_gyro_drift[2]);
-    LOG_DEBUG("[ekf] P_attitude_log_frobenius = %.6f",
-              slate->P_attitude_log_frobenius);
+    // LOG_DEBUG("[ekf] innovation = [%.6f, %.6f, %.6f]", innovation[0],
+    //           innovation[1], innovation[2]);
+    // LOG_DEBUG("[ekf] q_eci_to_body = [%.6f, %.6f, %.6f, %.6f]",
+    //           slate->q_eci_to_body[0], slate->q_eci_to_body[1],
+    //           slate->q_eci_to_body[2], slate->q_eci_to_body[3]);
+    // LOG_DEBUG("[ekf] b_gyro_drift = [%.6f, %.6f, %.6f]",
+    // slate->b_gyro_drift[0],
+    //           slate->b_gyro_drift[1], slate->b_gyro_drift[2]);
+    // LOG_DEBUG("[ekf] P_attitude_log_frobenius = %.6f",
+    //           slate->P_attitude_log_frobenius);
 }
 
 #ifdef TEST
+#include "tools/attitude_propagator.h"
+#include "tools/orbit_prop.h"
+#include <random>
+// random float from standard normal distribution N(0,1)
+float random_gaussian()
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::normal_distribution<> dis(0.0f, 1.0f);
+    return dis(gen);
+}
+// random float3 from standard normal distribution
+float3 random_gaussian_float3()
+{
+    return float3(random_gaussian(), random_gaussian(), random_gaussian());
+}
+void ekf_propagator_test(slate_t *slate)
+{
+    // test with propagate_attitude function from tools
+    printf("\n><=><=><=><=><= EKF Test via Attitude Propagator! "
+           "><=><=><=><=><=\n");
+    // define ground truth state vector
+    float4 q_eci2body = {0.0f, 0.0f, 0.0f, 1.0f};
+    float3 w_body = {0.01f, 0.02f, 0.03f};
+    float3 r_eci;
+    float3 v_eci;
+    float3 b_eci = {1.0f, 0.0f, 0.0f};
+    float3 mu_mt = {0.0f, 0.0f, 0.0f};
+    float3 tau_rw = {0.0f, 0.0f, 0.0f};
+    float3 b_gyro_drift = {0.0f, 0.0f, 0.0f};
+    float t = 0.0f;
+
+    // initialize attitude filter
+    attitude_filter_init(slate);
+
+    // reference vectors in inertial frame
+    slate->sun_vector_eci = {0.0f, 1.0f, 0.0f};
+    slate->b_eci = b_eci;
+
+    // propagate attitude, orbit, update filter
+    float tf = 900.0f;
+    float dt = 0.05f;
+    int steps = static_cast<int>(tf / dt);
+    for (int i = 0; i < steps; i++)
+    {
+        propagate_polar_orbit(r_eci, v_eci, t);
+        propagate_attitude(q_eci2body, w_body, r_eci, v_eci, b_eci, mu_mt,
+                           tau_rw, dt);
+
+        // Simulate gyro measurement (ground truth + drift)
+        b_gyro_drift =
+            b_gyro_drift + sqrtf(IMU_DRIFT_VARIANCE * dt) *
+                               random_gaussian_float3(); // Gaussian random walk
+        slate->w_body = w_body + b_gyro_drift;
+
+        // Manually set timing for controlled dt in test environment
+        absolute_time_t now = get_absolute_time();
+        slate->af_last_propagate_time = now - static_cast<uint64_t>(dt * 1e6);
+
+        // Propagate EKF using gyro measurement
+        attitude_filter_propagate(slate);
+
+        // After first propagate (which skips if af_last_propagate_time was 0),
+        // ensure timing is set correctly for subsequent iterations
+        if (i == 0)
+        {
+            slate->af_last_propagate_time = now;
+        }
+
+        // Simulate vector measurements by rotating ECI references to body frame
+        slate->sun_vector_body = qrot(q_eci2body, slate->sun_vector_eci);
+        slate->b_body = qrot(q_eci2body, slate->b_eci);
+
+        // DEBUG: Compare ground truth rotation to EKF estimate
+        if (i == 100)
+        {
+            float3 sun_predicted =
+                mul(mrp_to_dcm(slate->p_eci_to_body), slate->sun_vector_eci);
+            float3 sun_actual = slate->sun_vector_body;
+            LOG_INFO("[DEBUG] Sun actual=[%.3f,%.3f,%.3f], "
+                     "predicted=[%.3f,%.3f,%.3f]",
+                     sun_actual.x, sun_actual.y, sun_actual.z, sun_predicted.x,
+                     sun_predicted.y, sun_predicted.z);
+            float3 mrp_true = quat_to_mrp(q_eci2body);
+            LOG_INFO(
+                "[DEBUG] MRP_true=[%.3f,%.3f,%.3f], MRP_est=[%.3f,%.3f,%.3f]",
+                mrp_true.x, mrp_true.y, mrp_true.z, slate->p_eci_to_body.x,
+                slate->p_eci_to_body.y, slate->p_eci_to_body.z);
+            LOG_INFO("[DEBUG] q_true=[%.3f,%.3f,%.3f,%.3f], "
+                     "q_est=[%.3f,%.3f,%.3f,%.3f]",
+                     q_eci2body[0], q_eci2body[1], q_eci2body[2], q_eci2body[3],
+                     slate->q_eci_to_body[0], slate->q_eci_to_body[1],
+                     slate->q_eci_to_body[2], slate->q_eci_to_body[3]);
+        }
+
+        if (i % 1000 == 0)
+        {
+            // log state health metrics every 1000 steps
+            float mrp_norm = length(slate->p_eci_to_body);
+            printf("[ekf] MRP norm = %.6f, P_log_frob = %.6f\n", mrp_norm,
+                   slate->P_attitude_log_frobenius);
+        }
+
+        // Update EKF with vector measurements
+        attitude_filter_update(slate, 'S');
+        attitude_filter_update(slate, 'M');
+        t = t + dt;
+    }
+    printf("q_eci2body (ground truth): [%.6f, %.6f, %.6f, %.6f]\n",
+           q_eci2body[0], q_eci2body[1], q_eci2body[2], q_eci2body[3]);
+    printf("q_eci2body (estimated): [%.6f, %.6f, %.6f, %.6f]\n",
+           slate->q_eci_to_body[0], slate->q_eci_to_body[1],
+           slate->q_eci_to_body[2], slate->q_eci_to_body[3]);
+    printf("w_body (ground truth): [%.6f, %.6f, %.6f]\n", w_body[0], w_body[1],
+           w_body[2]);
+    printf("w_body (estimated): [%.6f, %.6f, %.6f]\n", slate->w_body[0],
+           slate->w_body[1], slate->w_body[2]);
+    printf("r_eci (ground truth): [%.6f, %.6f, %.6f]\n", r_eci[0], r_eci[1],
+           r_eci[2]);
+    printf("v_eci (ground truth): [%.6f, %.6f, %.6f]\n", v_eci[0], v_eci[1],
+           v_eci[2]);
+    printf("><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=\n\n");
+}
+
 void ekf_time_test(slate_t *slate)
 {
     printf("\n><=><=><=><=><= Benchmarking EKF! ><=><=><=><=><=\n");
