@@ -7,7 +7,7 @@
 
 #include "detumble_state.h"
 
-#include "constants.h"
+#include "params.h"
 #include "tasks/control/actuators_task.h"
 #include "tasks/control/bdot_task.h"
 #include "tasks/navigation/reference_vector_task.h"

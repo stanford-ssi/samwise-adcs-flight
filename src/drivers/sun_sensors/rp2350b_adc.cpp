@@ -11,7 +11,7 @@
 
 #include "rp2350b_adc.h"
 
-#include "constants.h"
+#include "params.h"
 #include "pins.h"
 
 #include "hardware/adc.h"

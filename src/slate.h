@@ -15,6 +15,7 @@
 #include "constants.h"
 #include "linalg.h"
 #include "macros.h"
+#include "params.h"
 #include "pico/types.h"
 #include "scheduler/state_machine_types.h"
 #include "adcs_command_packet.h"

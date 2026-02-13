@@ -6,7 +6,7 @@
  * This file defines the main function for initializing hardware on the board
  */
 
-#include "init.h"
+#include "apps/adcs_app/init.h"
 #include "macros.h"
 #include "pins.h"
 

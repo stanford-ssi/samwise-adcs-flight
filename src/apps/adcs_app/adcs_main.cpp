@@ -6,7 +6,7 @@
 
 #include "pico/stdlib.h"
 
-#include "init.h"
+#include "apps/adcs_app/init.h"
 #include "macros.h"
 #include "scheduler/scheduler.h"
 #include "slate.h"

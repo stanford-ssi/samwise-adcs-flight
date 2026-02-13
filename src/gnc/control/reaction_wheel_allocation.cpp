@@ -4,10 +4,10 @@
  */
 
 #include "reaction_wheel_allocation.h"
-#include "constants.h"
 #include "gnc/control/bdot.h"
 #include "linalg.h"
 #include "macros.h"
+#include "params.h"
 #include "pico/stdlib.h"
 #include <cmath>
 
