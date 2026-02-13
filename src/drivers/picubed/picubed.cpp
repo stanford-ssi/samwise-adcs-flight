@@ -61,7 +61,7 @@ static void uart_rx_callback()
 
     if(slate_for_irq->interrupt_state == REST ||
     absolute_time_diff_us(slate_for_irq->picubed_uart_last_received_time, get_absolute_time()) > INTERRUPT_BYTE_TIMEOUT_US){
-        slate_for_irq -> interrupt_state == REST; // in case we timed out, make the state equal to rest.
+        slate_for_irq -> interrupt_state = REST; // in case we timed out, make the state equal to rest.
         if(ch == SYN_BYTE){
             slate_for_irq->interrupt_state = SYNC_RECEIVED;
             slate_for_irq->temp_queue_iter = 0;
@@ -75,7 +75,7 @@ static void uart_rx_callback()
         slate_for_irq->picubed_uart_queue[slate_for_irq->temp_queue_iter] = ch;
         slate_for_irq->temp_queue_iter++;
 
-        slate_for_irq->interrupt_state = SYNC_RECEIVED;
+        slate_for_irq->interrupt_state = LENGTH_RECEIVED;
 
         slate_for_irq->temporaryPacket.packet_length = ch;
     } else if (slate_for_irq->interrupt_state == LENGTH_RECEIVED){
@@ -97,6 +97,9 @@ static void uart_rx_callback()
          // add the data byte to the array.
         slate_for_irq->picubed_uart_queue[slate_for_irq->temp_queue_iter] = ch;
         slate_for_irq->temp_queue_iter++; 
+        if(slate_for_irq->temp_queue_iter >= 255){ // the max number of packets
+            slate_for_irq->interrupt_state = REST;
+        }
         
 
         slate_for_irq->temporaryPacket.packet_data[slate_for_irq->num_data_bytes_received] = ch; // update the temporary packet we are constructing
@@ -113,7 +116,7 @@ static void uart_rx_callback()
         if(slate_for_irq->num_crc_bytes_received == NUM_CRC_BYTES){
             
             //now check if the crc matches up!
-            unsigned int crcresult = crc32(slate_for_irq->picubed_uart_queue, slate_for_irq->num_data_bytes);
+            unsigned int crcresult = crc32(slate_for_irq->picubed_uart_queue, (slate_for_irq->num_data_bytes) + 2);
             if(memcmp(slate_for_irq->crc32_value, &crcresult, 4) == 0){
                 // SEND ACKNOWLEDGEMENT!
                 uart_putc_raw(SAMWISE_ADCS_PICUBED_UART, ACK_BYTE);
@@ -250,7 +253,7 @@ static bool handle_command_packet(slate_t *slate, adcs_command_packet pck)
             // Erase a single flash sector at the provided offset
             uint32_t offset;
             uint32_t num_bytes = read_uart_with_timeout(
-                (char *)offset, sizeof(offset), ADCS_BYTE_TIMEOUT_US);
+                (char *)&offset, sizeof(offset), ADCS_BYTE_TIMEOUT_US);
 
             if (num_bytes < sizeof(offset))
             {
