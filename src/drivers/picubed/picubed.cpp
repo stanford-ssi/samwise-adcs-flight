@@ -54,17 +54,24 @@ static slate_t *slate_for_irq; // Need to save to be accessible to IRQ
 
 unsigned int crc32(const uint8_t *message, uint8_t len);
 
+static void reset_parser(){
+    slate_for_irq -> interrupt_state = REST; // in case we timed out, make the state equal to rest, and reset all variables.
+    slate_for_irq->temp_queue_iter = 0;
+    slate_for_irq->num_data_bytes = 0;
+    slate_for_irq->num_data_bytes_received = 0;
+    slate_for_irq->num_crc_bytes_received = 0;
+}
+
 // RX interrupt handler
 static void uart_rx_callback()
 {
     uint8_t ch = uart_getc(SAMWISE_ADCS_PICUBED_UART);
-
-    if(slate_for_irq->interrupt_state == REST ||
+    LOG_DEBUG("[Picubed UART Handler] Received char: %x ; current state is %d", ch, slate_for_irq->interrupt_state);
+    if(ch == SYN_BYTE || slate_for_irq->interrupt_state == REST ||
     absolute_time_diff_us(slate_for_irq->picubed_uart_last_received_time, get_absolute_time()) > INTERRUPT_BYTE_TIMEOUT_US){
-        slate_for_irq -> interrupt_state = REST; // in case we timed out, make the state equal to rest.
+        reset_parser();
         if(ch == SYN_BYTE){
-            slate_for_irq->interrupt_state = SYNC_RECEIVED;
-            slate_for_irq->temp_queue_iter = 0;
+            slate_for_irq -> interrupt_state = SYNC_RECEIVED;
         }
     } else if (slate_for_irq->interrupt_state == SYNC_RECEIVED){
         //we have just received the length byte
@@ -98,6 +105,7 @@ static void uart_rx_callback()
         slate_for_irq->picubed_uart_queue[slate_for_irq->temp_queue_iter] = ch;
         slate_for_irq->temp_queue_iter++; 
         if(slate_for_irq->temp_queue_iter >= 255){ // the max number of packets
+            reset_parser();
             slate_for_irq->interrupt_state = REST;
         }
         
@@ -119,10 +127,13 @@ static void uart_rx_callback()
             unsigned int crcresult = crc32(slate_for_irq->picubed_uart_queue, (slate_for_irq->num_data_bytes) + 2);
             if(memcmp(slate_for_irq->crc32_value, &crcresult, 4) == 0){
                 // SEND ACKNOWLEDGEMENT!
-                uart_putc_raw(SAMWISE_ADCS_PICUBED_UART, ACK_BYTE);
-
                 //now, copy the temporary packet we constructed into the queue.
-                queue_try_add(&slate_for_irq->picubed_execution_queue, &(slate_for_irq->temporaryPacket));
+                if(!queue_try_add(&slate_for_irq->picubed_execution_queue, &(slate_for_irq->temporaryPacket))){
+                    uart_putc_raw(SAMWISE_ADCS_PICUBED_UART, PACKET_CORRUPTED_BYTE);
+                } else {
+                    uart_putc_raw(SAMWISE_ADCS_PICUBED_UART, ACK_BYTE);
+                }
+                
 
             } else {
                 // SEND ERROR!
@@ -338,10 +349,11 @@ void picubed_uart_init(slate_t* slate)
     // Set up a RX interrupt
     int UART_IRQ;
     if(SAMWISE_ADCS_PICUBED_UART == uart1){
-        UART_IRQ = 4;
+        UART_IRQ = 21;
     } else {
-        UART_IRQ = 10;//??
+        UART_IRQ = 20;//??
     }
+    UART_IRQ = 37;
     queue_init(&slate->picubed_execution_queue,
                sizeof(adcs_command_packet), /* Size of each element */
                256 /* Max elements */);
