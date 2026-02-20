@@ -353,7 +353,7 @@ void picubed_uart_init(slate_t* slate)
     } else {
         UART_IRQ = 20;//??
     }
-    UART_IRQ = 37;
+    //UART_IRQ = 37;
     queue_init(&slate->picubed_execution_queue,
                sizeof(adcs_command_packet), /* Size of each element */
                256 /* Max elements */);
