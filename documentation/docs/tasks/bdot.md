@@ -1,6 +1,6 @@
-# Telemetry Task
+# B-dot 
 
-Task for sending telemetry data to PiCubed.
+Task for executing B-dot detumbling control.
 
 ## Overview
 

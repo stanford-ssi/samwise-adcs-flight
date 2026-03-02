@@ -1,4 +1,4 @@
-# Detumble State
+# Detumble
 
 Magnetic damping control state to reduce angular rates using B-dot algorithm.
 

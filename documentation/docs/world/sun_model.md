@@ -1,4 +1,4 @@
-# Sun Vector Calculation
+# Sun Model
 
 Calculates theoretical Sun position in ECI coordinates using GPS time and orbital mechanics.
 

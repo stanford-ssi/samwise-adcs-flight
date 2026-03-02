@@ -1,4 +1,4 @@
-# Frame Transforms
+# Coordinate Transforms
 
 Coordinate frame transformations between body, ECEF, ECI, and other reference frames.
 
