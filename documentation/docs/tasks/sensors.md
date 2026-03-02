@@ -1,4 +1,4 @@
-# Sensors Task
+# Sensors 
 
 Task for reading all sensor data (IMU, magnetometer, GPS, sun sensors).
 

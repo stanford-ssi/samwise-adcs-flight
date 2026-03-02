@@ -1,6 +1,6 @@
-# Watchdog Task
+# Telemetry 
 
-Task for managing the watchdog timer.
+Task for sending telemetry data to PiCubed.
 
 ## Overview
 

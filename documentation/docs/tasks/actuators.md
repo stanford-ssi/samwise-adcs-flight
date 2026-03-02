@@ -1,4 +1,4 @@
-# Actuators Task
+# Actuators
 
 Task for controlling actuators (magnetorquers, reaction wheels).
 
