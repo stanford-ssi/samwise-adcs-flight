@@ -12,7 +12,6 @@
 
 #include "drivers/imu/imu.h"
 #include "gnc/estimation/attitude_filter.h"
-#include "gnc/estimation/orbit_filter.h"
 #include "gnc/utils/utils.h"
 #include "pico/time.h"
 #include <cmath>
@@ -89,13 +88,6 @@ void imu_task_dispatch(slate_t *slate)
     {
         LOG_DEBUG("[sensor] a_body = [%.6f, %.6f, %.6f] km/s^2",
                   slate->a_body.x, slate->a_body.y, slate->a_body.z);
-
-        // Propagate orbit filter with accel data (requires quaternion from
-        // attitude filter)
-        if (slate->of_is_initialized)
-        {
-            orbit_filter_propagate(slate);
-        }
     }
 
     slate->imu_data_valid = gyro_result;

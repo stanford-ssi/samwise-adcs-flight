@@ -276,20 +276,19 @@ void attitude_filter_init(slate_t *slate)
     {
         if (i % 7 == 0 and i < 18)
         {
-            slate->P_attitude[i] =
-                1.0f; // initial variance of 1.0 on diagonal for MRP
+            slate->P[i] = 1.0f; // initial variance of 1.0 on diagonal for MRP
         }
         else if (i % 7 == 0 and i >= 18)
         {
-            slate->P_attitude[i] =
+            slate->P[i] =
                 IMU_GYRO_VARIANCE; // initial variance on diagonal for gyro bias
         }
         else
         {
-            slate->P_attitude[i] = 0.0f; // rest zeros
+            slate->P[i] = 0.0f; // rest zeros
         }
     }
-    slate->P_attitude_log_frobenius = mat_log_frobenius(slate->P_attitude, 6);
+    slate->P_log_frobenius = mat_log_frobenius(slate->P, 6);
     slate->af_is_initialized = true;
     slate->af_init_count++;
     LOG_INFO("Initialized attitude filter! (%d times so far)",
@@ -388,8 +387,8 @@ void attitude_filter_propagate(slate_t *slate)
     float GQG_T[6 * 6];
     mat_transpose(F, F_T, 6, 6);
     mat_transpose(G, G_T, 6, 6);
-    mat_mul_square(F, slate->P_attitude, FP, 6);
-    mat_mul_square(slate->P_attitude, F_T, PF_T, 6);
+    mat_mul_square(F, slate->P, FP, 6);
+    mat_mul_square(slate->P, F_T, PF_T, 6);
     mat_mul_square(G, Q, GQ, 6);
     mat_mul_square(GQ, G_T, GQG_T, 6);
 
@@ -402,10 +401,10 @@ void attitude_filter_propagate(slate_t *slate)
     // Propagate covariance matrix P_new = P + dt * P_dot
     for (int i = 0; i < 36; i++)
     {
-        slate->P_attitude[i] = slate->P_attitude[i] + dt * P_dot[i];
+        slate->P[i] = slate->P[i] + dt * P_dot[i];
     }
     // Update log frobenius norm of attitude covariance matrix
-    slate->P_attitude_log_frobenius = mat_log_frobenius(slate->P_attitude, 6);
+    slate->P_log_frobenius = mat_log_frobenius(slate->P, 6);
 
     // Check for NaN in state or covariance and reinitialize if detected
     if (std::isnan(slate->p_eci_to_body[0]) ||
@@ -418,7 +417,7 @@ void attitude_filter_propagate(slate_t *slate)
         std::isnan(slate->b_gyro_drift[0]) ||
         std::isnan(slate->b_gyro_drift[1]) ||
         std::isnan(slate->b_gyro_drift[2]) ||
-        std::isnan(slate->P_attitude_log_frobenius))
+        std::isnan(slate->P_log_frobenius))
     {
         LOG_ERROR("[ekf] NaN detected in propagate!");
         LOG_ERROR(
@@ -428,7 +427,7 @@ void attitude_filter_propagate(slate_t *slate)
             slate->b_gyro_drift[1], slate->b_gyro_drift[2]);
         float mrp_norm_error = length(slate->p_eci_to_body);
         LOG_ERROR("[ekf] MRP norm = %.6f, P_log_frob = %.6f", mrp_norm_error,
-                  slate->P_attitude_log_frobenius);
+                  slate->P_log_frobenius);
         LOG_ERROR("[ekf] Reinitializing filter...");
         attitude_filter_init(slate);
         return;
@@ -440,8 +439,8 @@ void attitude_filter_propagate(slate_t *slate)
     // LOG_DEBUG("[ekf] b_gyro_drift = [%.6f, %.6f, %.6f]",
     // slate->b_gyro_drift[0],
     //           slate->b_gyro_drift[1], slate->b_gyro_drift[2]);
-    // LOG_DEBUG("[ekf] P_attitude_log_frobenius = %.6f",
-    //           slate->P_attitude_log_frobenius);
+    // LOG_DEBUG("[ekf] P_log_frobenius = %.6f",
+    //           slate->P_log_frobenius);
 }
 
 /**
@@ -499,7 +498,7 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
     float HPH_T_plus_R_inv[3 * 3];
     compute_H(H, x, B_I);
     mat_transpose(H, H_T, 3, 6);
-    mat_mul(slate->P_attitude, H_T, PH_T, 6, 6, 3);
+    mat_mul(slate->P, H_T, PH_T, 6, 6, 3);
     mat_mul(H, PH_T, HPH_T, 3, 6, 3);
     mat_add(HPH_T, R, HPH_T_plus_R, 3, 3);
     mat_inverse(HPH_T_plus_R, HPH_T_plus_R_inv, 3);
@@ -543,7 +542,7 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
 
     // Compute (I - K*H)*P*(I - K*H)'
     mat_transpose(I_minus_KH, I_minus_KH_T, 6, 6);
-    mat_mul(I_minus_KH, slate->P_attitude, I_minus_KH_P, 6, 6, 6);
+    mat_mul(I_minus_KH, slate->P, I_minus_KH_P, 6, 6, 6);
     mat_mul(I_minus_KH_P, I_minus_KH_T, I_minus_KH_P_I_minus_KH_T, 6, 6, 6);
 
     // Compute K*R*K'
@@ -557,11 +556,11 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
     // Write updated covariance back to slate
     for (int i = 0; i < 36; i++)
     {
-        slate->P_attitude[i] = P_new[i];
+        slate->P[i] = P_new[i];
     }
 
     // Update log frobenius norm
-    slate->P_attitude_log_frobenius = mat_log_frobenius(slate->P_attitude, 6);
+    slate->P_log_frobenius = mat_log_frobenius(slate->P, 6);
 
     // Check for NaN in state or covariance and reinitialize if detected
     if (std::isnan(slate->p_eci_to_body[0]) ||
@@ -574,7 +573,7 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
         std::isnan(slate->b_gyro_drift[0]) ||
         std::isnan(slate->b_gyro_drift[1]) ||
         std::isnan(slate->b_gyro_drift[2]) ||
-        std::isnan(slate->P_attitude_log_frobenius))
+        std::isnan(slate->P_log_frobenius))
     {
         LOG_ERROR("[ekf] NaN detected in update (sensor '%c')! Reinitializing "
                   "filter...",
@@ -591,8 +590,8 @@ void attitude_filter_update(slate_t *slate, char sensor_type)
     // LOG_DEBUG("[ekf] b_gyro_drift = [%.6f, %.6f, %.6f]",
     // slate->b_gyro_drift[0],
     //           slate->b_gyro_drift[1], slate->b_gyro_drift[2]);
-    // LOG_DEBUG("[ekf] P_attitude_log_frobenius = %.6f",
-    //           slate->P_attitude_log_frobenius);
+    // LOG_DEBUG("[ekf] P_log_frobenius = %.6f",
+    //           slate->P_log_frobenius);
 }
 
 #ifdef TEST
@@ -696,7 +695,7 @@ void ekf_propagator_test(slate_t *slate)
             // log state health metrics every 1000 steps
             float mrp_norm = length(slate->p_eci_to_body);
             printf("[ekf] MRP norm = %.6f, P_log_frob = %.6f\n", mrp_norm,
-                   slate->P_attitude_log_frobenius);
+                   slate->P_log_frobenius);
         }
 
         // Update EKF with vector measurements
@@ -812,7 +811,7 @@ void ekf_convergence_test(slate_t *slate)
     LOG_INFO("Final gyro bias [x,y,z]: %.6f, %.6f, %.6f",
              slate->b_gyro_drift[0], slate->b_gyro_drift[1],
              slate->b_gyro_drift[2]);
-    LOG_INFO("Final P log frobenius: %.6f", slate->P_attitude_log_frobenius);
+    LOG_INFO("Final P log frobenius: %.6f", slate->P_log_frobenius);
     LOG_INFO("Test %s", passed ? "PASSED" : "FAILED");
     printf("><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=\n\n");
 }
@@ -906,7 +905,7 @@ void ekf_convergence_logging_test(slate_t *slate)
     printf(
         "\n><=><=><=> EKF Convergence Logging Test (1M steps) ><=><=><=><=\n");
     printf("Logging format: "
-           "step,time,P_attitude_log_frobenius,mrp_error,quat_error,p_x,p_y,p_"
+           "step,time,P_log_frobenius,mrp_error,quat_error,p_x,p_y,p_"
            "z,q_w,q_x,"
            "q_y,q_z,b_x,b_y,b_z\n");
     printf("DATA_START\n");
@@ -963,8 +962,8 @@ void ekf_convergence_logging_test(slate_t *slate)
 
             printf("%d,%.3f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%"
                    ".6f,%.6f,%.6f\n",
-                   i, time_sec, slate->P_attitude_log_frobenius, mrp_error,
-                   quat_error, slate->p_eci_to_body.x, slate->p_eci_to_body.y,
+                   i, time_sec, slate->P_log_frobenius, mrp_error, quat_error,
+                   slate->p_eci_to_body.x, slate->p_eci_to_body.y,
                    slate->p_eci_to_body.z, slate->q_eci_to_body.w,
                    slate->q_eci_to_body.x, slate->q_eci_to_body.y,
                    slate->q_eci_to_body.z, slate->b_gyro_drift.x,
@@ -981,7 +980,7 @@ void ekf_convergence_logging_test(slate_t *slate)
              slate->p_eci_to_body.y, slate->p_eci_to_body.z);
     LOG_INFO("Final gyro bias [x,y,z]: %.6f, %.6f, %.6f", slate->b_gyro_drift.x,
              slate->b_gyro_drift.y, slate->b_gyro_drift.z);
-    LOG_INFO("Final P log frobenius: %.6f", slate->P_attitude_log_frobenius);
+    LOG_INFO("Final P log frobenius: %.6f", slate->P_log_frobenius);
     LOG_INFO("MRP error: %.6f", length(slate->p_eci_to_body - p_expected));
     LOG_INFO("Quaternion error: %.6f",
              length(slate->q_eci_to_body - q_expected));
@@ -1069,15 +1068,14 @@ void ekf_stationary_bias_test(slate_t *slate)
             float mrp_norm = length(slate->p_eci_to_body);
             // Check attitude-bias coupling in covariance (P[3] = cov(p_x, b_x),
             // P[9] = cov(p_y, b_x), etc.)
-            float max_coupling = fmaxf(
-                fmaxf(fabsf(slate->P_attitude[3]), fabsf(slate->P_attitude[9])),
-                fabsf(slate->P_attitude[15]));
+            float max_coupling =
+                fmaxf(fmaxf(fabsf(slate->P[3]), fabsf(slate->P[9])),
+                      fabsf(slate->P[15]));
             printf("Step %d: bias_error=%.6f, quat_error=%.6f, mrp_norm=%.6f, "
                    "P_diag=[%.2e,%.2e,%.2e,%.2e,%.2e,%.2e], coupling=%.2e\n",
-                   i, bias_error, quat_error, mrp_norm, slate->P_attitude[0],
-                   slate->P_attitude[7], slate->P_attitude[14],
-                   slate->P_attitude[21], slate->P_attitude[28],
-                   slate->P_attitude[35], max_coupling);
+                   i, bias_error, quat_error, mrp_norm, slate->P[0],
+                   slate->P[7], slate->P[14], slate->P[21], slate->P[28],
+                   slate->P[35], max_coupling);
         }
     }
 
@@ -1235,11 +1233,10 @@ void ekf_rotation_with_bias_test(slate_t *slate)
 
     printf("\nEstimated MRP: [%.6f, %.6f, %.6f]\n", slate->p_eci_to_body.x,
            slate->p_eci_to_body.y, slate->p_eci_to_body.z);
-    printf("P log frobenius: %.6f\n", slate->P_attitude_log_frobenius);
+    printf("P log frobenius: %.6f\n", slate->P_log_frobenius);
     printf("Attitude uncertainty (1-sigma): [%.3f, %.3f, %.3f] deg\n",
-           sqrtf(slate->P_attitude[0]) * RAD_TO_DEG,
-           sqrtf(slate->P_attitude[7]) * RAD_TO_DEG,
-           sqrtf(slate->P_attitude[14]) * RAD_TO_DEG);
+           sqrtf(slate->P[0]) * RAD_TO_DEG, sqrtf(slate->P[7]) * RAD_TO_DEG,
+           sqrtf(slate->P[14]) * RAD_TO_DEG);
 
     // Pass/fail criteria
     float bias_tolerance = 0.005f; // 0.005 rad/s = 0.286 deg/s
