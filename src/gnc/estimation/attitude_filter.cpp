@@ -276,8 +276,7 @@ void attitude_filter_init(slate_t *slate)
     {
         if (i % 7 == 0 and i < 18)
         {
-            slate->P[i] =
-                1.0f; // initial variance of 1.0 on diagonal for MRP
+            slate->P[i] = 1.0f; // initial variance of 1.0 on diagonal for MRP
         }
         else if (i % 7 == 0 and i >= 18)
         {
@@ -963,8 +962,8 @@ void ekf_convergence_logging_test(slate_t *slate)
 
             printf("%d,%.3f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%"
                    ".6f,%.6f,%.6f\n",
-                   i, time_sec, slate->P_log_frobenius, mrp_error,
-                   quat_error, slate->p_eci_to_body.x, slate->p_eci_to_body.y,
+                   i, time_sec, slate->P_log_frobenius, mrp_error, quat_error,
+                   slate->p_eci_to_body.x, slate->p_eci_to_body.y,
                    slate->p_eci_to_body.z, slate->q_eci_to_body.w,
                    slate->q_eci_to_body.x, slate->q_eci_to_body.y,
                    slate->q_eci_to_body.z, slate->b_gyro_drift.x,
@@ -1069,14 +1068,13 @@ void ekf_stationary_bias_test(slate_t *slate)
             float mrp_norm = length(slate->p_eci_to_body);
             // Check attitude-bias coupling in covariance (P[3] = cov(p_x, b_x),
             // P[9] = cov(p_y, b_x), etc.)
-            float max_coupling = fmaxf(
-                fmaxf(fabsf(slate->P[3]), fabsf(slate->P[9])),
-                fabsf(slate->P[15]));
+            float max_coupling =
+                fmaxf(fmaxf(fabsf(slate->P[3]), fabsf(slate->P[9])),
+                      fabsf(slate->P[15]));
             printf("Step %d: bias_error=%.6f, quat_error=%.6f, mrp_norm=%.6f, "
                    "P_diag=[%.2e,%.2e,%.2e,%.2e,%.2e,%.2e], coupling=%.2e\n",
                    i, bias_error, quat_error, mrp_norm, slate->P[0],
-                   slate->P[7], slate->P[14],
-                   slate->P[21], slate->P[28],
+                   slate->P[7], slate->P[14], slate->P[21], slate->P[28],
                    slate->P[35], max_coupling);
         }
     }
@@ -1237,8 +1235,7 @@ void ekf_rotation_with_bias_test(slate_t *slate)
            slate->p_eci_to_body.y, slate->p_eci_to_body.z);
     printf("P log frobenius: %.6f\n", slate->P_log_frobenius);
     printf("Attitude uncertainty (1-sigma): [%.3f, %.3f, %.3f] deg\n",
-           sqrtf(slate->P[0]) * RAD_TO_DEG,
-           sqrtf(slate->P[7]) * RAD_TO_DEG,
+           sqrtf(slate->P[0]) * RAD_TO_DEG, sqrtf(slate->P[7]) * RAD_TO_DEG,
            sqrtf(slate->P[14]) * RAD_TO_DEG);
 
     // Pass/fail criteria

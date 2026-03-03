@@ -138,11 +138,11 @@ typedef struct samwise_adcs_slate
                             // initialized
     int af_init_count; // number of times attitude filter has been initialized
     absolute_time_t af_last_propagate_time; // time of last propagate call
-    float P[6 * 6];                // attitude covariance matrix (6x6)
-                             // used in attitude filter, so no need for
-                             // principal axes
+    float P[6 * 6];                         // attitude covariance matrix (6x6)
+                    // used in attitude filter, so no need for
+                    // principal axes
     float P_log_frobenius; // log frobenius norm of attitude
-                                    // covariance
+                           // covariance
     quaternion
         q_eci_to_body; // scalar-last x,y,z,w in body frame. no inertia tensor
     float3 p_eci_to_body; // modified Rodrigues parameter from ECI to body frame
