@@ -10,7 +10,6 @@
 #include "params.h"
 
 #include "drivers/gps/gps.h"
-#include "gnc/estimation/orbit_filter.h"
 #include "gnc/utils/mjd.h"
 #include "pico/time.h"
 
@@ -90,12 +89,6 @@ void gps_task_dispatch(slate_t *slate)
                   "MJD = %.5f",
                   slate->gps_lat, slate->gps_lon, slate->gps_alt,
                   slate->gps_time, day, month, year, slate->MJD);
-
-        // Update orbit filter with new GPS measurement
-        if (slate->of_is_initialized)
-        {
-            orbit_filter_update(slate);
-        }
 
         slate->gps_data_valid = true;
     }

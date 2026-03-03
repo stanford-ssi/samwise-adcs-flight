@@ -138,10 +138,10 @@ typedef struct samwise_adcs_slate
                             // initialized
     int af_init_count; // number of times attitude filter has been initialized
     absolute_time_t af_last_propagate_time; // time of last propagate call
-    float P_attitude[6 * 6];                // attitude covariance matrix (6x6)
+    float P[6 * 6];                // attitude covariance matrix (6x6)
                              // used in attitude filter, so no need for
                              // principal axes
-    float P_attitude_log_frobenius; // log frobenius norm of attitude
+    float P_log_frobenius; // log frobenius norm of attitude
                                     // covariance
     quaternion
         q_eci_to_body; // scalar-last x,y,z,w in body frame. no inertia tensor
@@ -164,13 +164,6 @@ typedef struct samwise_adcs_slate
     float3 r_ecef;
     float3 r_eci;
     float3 v_eci;
-
-    // Orbit filter
-    bool of_is_initialized; // true if orbit filter has been initialized
-    int of_init_count;      // number of times orbit filter has been initialized
-    absolute_time_t of_last_propagate_time; // time of last propagate call
-    float P_orbit[6 * 6];                   // orbit covariance matrix (6x6)
-    float P_orbit_log_frobenius; // log frobenius norm of orbit covariance
 
 // ========================================================================
 //         TESTING  / EXPERIMENTAL FIELDS
