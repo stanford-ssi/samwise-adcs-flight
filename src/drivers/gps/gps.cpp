@@ -65,7 +65,7 @@ void gps_uart_irq_handler(void)
             }
             else
             {
-                buffer_index++;
+                buffer_index = buffer_index + 1;
             }
         }
         else
