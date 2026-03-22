@@ -124,40 +124,46 @@ void magnetometer_task_dispatch(slate_t *slate)
             break;
 
         case MAG_WAITING_FOR_SETTLE:
-            // Check if settle time has elapsed
-            if (absolute_time_diff_us(mag_torquer_off_time,
-                                      get_absolute_time()) >=
-                MAGNETOMETER_FIELD_SETTLE_TIME_MS * 1000) // Convert ms to us
-            {
-                mag_state = MAG_READING;
-            }
+        if (absolute_time_diff_us(mag_torquer_off_time,
+                                    get_absolute_time()) >=
+            MAGNETOMETER_FIELD_SETTLE_TIME_MS * 1000)
+        {
+            // Fall through to read immediately
+            mag_state = MAG_READING;
+        }
+        else
+        {
             break;
-
+        }
+        // no break — fall through
+        
         case MAG_READING:
         {
-            // Read magnetometer
             rm3100_error_t result =
                 rm3100_get_reading(&slate->b_body, &slate->b_body_raw);
             slate->magnetometer_data_valid = (result == RM3100_OK);
             slate->b_body_read_time = get_absolute_time();
             slate->bdot_data_has_updated = true;
-
-            LOG_DEBUG("[sensor] b_body = [%.3f, %.3f, %.3f]", slate->b_body.x,
-                      slate->b_body.y, slate->b_body.z);
-
-            // Update attitude filter with magnetometer measurement
+        
+            if (result != RM3100_OK)
+            {
+                LOG_ERROR("[sensor] Error reading magnetometer");
+            }
+        
             if (result == RM3100_OK && slate->af_is_initialized)
             {
+                LOG_DEBUG("[sensor] b_body = [%.3f, %.3f, %.3f]",
+                          slate->b_body.x, slate->b_body.y, slate->b_body.z);
                 attitude_filter_update(slate, 'M');
             }
-
+        
+            // Fall through to restart torquers immediately
             mag_state = MAG_RESTARTING_TORQUERS;
-            break;
         }
-
+        // no break — fall through
+        
         case MAG_RESTARTING_TORQUERS:
         {
-            // Restart magnetorquers with last requested moment
             bool mag_result = do_magnetorquer_pwm(slate->magtorq_duty_cycle);
             if (!mag_result)
             {
