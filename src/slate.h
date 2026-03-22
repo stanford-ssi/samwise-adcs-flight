@@ -101,7 +101,10 @@ typedef struct samwise_adcs_slate
 
     // Magnetorquer drivers
     bool magnetorquers_running; // true if magnetorquers are currently active
-    float3 magnetorquer_moment; // magnetic moment [-1.0 to 1.0] in body frame
+    float3 magtorq_requested;   // [unit vector] dipole moment direction in body
+                                // frame
+    float3 magtorq_moment;      // [Am^2] magnetic moment in body frame
+    float3 magtorq_duty_cycle;  // [-1.0 to 1.0] duty cycles in body frame
 
     // Reaction wheels
     bool

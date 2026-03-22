@@ -68,7 +68,7 @@ void bdot_task_dispatch(slate_t *slate)
     LOG_DEBUG("[bdot] Requesting moments: x=%1.3f, y=%1.3f, z=%1.3f", moments.x,
               moments.y, moments.z);
 
-    slate->magnetorquer_moment = moments;
+    slate->magtorq_requested = moments;
 
     // Bookmark flags and return
     slate->bdot_data_has_updated = false;
