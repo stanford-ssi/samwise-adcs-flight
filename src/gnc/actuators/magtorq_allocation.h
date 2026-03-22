@@ -6,11 +6,11 @@
  * given the requested control moment
  */
 
-#pragma once 
+#pragma once
 
-#include "slate.h"
 #include "linalg.h"
 #include "macros.h"
+#include "slate.h"
 using namespace linalg::aliases;
 
 void allocate_magnetorquers(slate_t *slate);
