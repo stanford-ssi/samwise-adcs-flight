@@ -38,7 +38,7 @@ void telemetry_task_init(slate_t *slate)
 {
     LOG_INFO("[telem] Initializing picubed UART...");
 
-    picubed_uart_init();
+    picubed_uart_init(slate);
 
     LOG_INFO("[telem] Picubed UART successfully initialized!");
 }
