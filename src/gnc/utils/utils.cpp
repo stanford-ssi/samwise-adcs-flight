@@ -8,7 +8,6 @@
  */
 
 #include "utils.h"
-#include "constants.h"
 #include "pico/time.h"
 #include <cmath>
 
@@ -204,6 +203,7 @@ float3x3 mrp_to_dcm(float3 mrp)
 }
 
 #ifdef TEST
+#include "constants.h"
 void test_quaternions()
 {
     printf("\n><=><=><=><=><= Testing quaternion utilities... "

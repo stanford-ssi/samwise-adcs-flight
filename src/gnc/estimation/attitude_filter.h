@@ -24,6 +24,7 @@ void attitude_filter_propagate(slate_t *slate);
 void attitude_filter_update(slate_t *slate, char sensor_type);
 
 #ifdef TEST
+void ekf_propagator_test(slate_t *slate);
 void ekf_time_test(slate_t *slate);
 void ekf_convergence_test(slate_t *slate);
 void ekf_mrp_wrapping_test(slate_t *slate);

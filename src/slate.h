@@ -15,6 +15,7 @@
 #include "constants.h"
 #include "linalg.h"
 #include "macros.h"
+#include "params.h"
 #include "pico/types.h"
 #include "scheduler/state_machine_types.h"
 
@@ -61,6 +62,8 @@ typedef struct samwise_adcs_slate
     float gps_lon;                 // º (E+ W-)
     float gps_alt;                 // km
     float gps_time;                // utc = gps_time - 18 leap seconds
+    float gps_speed;               // knots (from RMC sentence)
+    float gps_course;              // degrees true (from RMC sentence)
 
     // Sun sensors
     bool sun_sensor_alive[NUM_SUN_SENSORS]; // first 8 from RP2350B ADCs, last
@@ -74,16 +77,17 @@ typedef struct samwise_adcs_slate
                                                  // sensors
 
     // Sun vector
-    bool sun_vector_valid;       // true if sun vector is valid
-    float3 sun_vector_body;      // (unit vector) in body frame
-    float3 sun_vector_principal; // (unit vector) in principal axes frame
+    bool sun_vector_valid;  // true if sun vector is valid
+    float3 sun_vector_body; // (unit vector) in body frame
 
     // IMU
-    float imu_alive;
-    float imu_data_valid;
+    bool imu_alive;
+    bool imu_data_valid;
     float3 w_body_raw; // [rad/s] in body frame, raw reading
     float3 w_body;     // [rad/s] in body frame, low-pass filtered
     float w_mag;       // [rad/s] overall magnitude in body frame
+    float3 a_body; // [km/s^2] specific force in body frame (non-gravitational
+                   // acceleration)
 
     // Power monitor
     float adcs_power;         // [W] ADCS board power consumption
@@ -138,7 +142,8 @@ typedef struct samwise_adcs_slate
     int af_init_count; // number of times attitude filter has been initialized
     absolute_time_t af_last_propagate_time; // time of last propagate call
     float P[6 * 6];                         // attitude covariance matrix (6x6)
-                    // used in attitude filter, so no need for principal axes
+                    // used in attitude filter, so no need for
+                    // principal axes
     float P_log_frobenius; // log frobenius norm of attitude
                            // covariance
     quaternion
@@ -147,15 +152,21 @@ typedef struct samwise_adcs_slate
     float3 b_gyro_drift;  // gyro drift
     float3 tau_body;      // [Nm] total torque in body frame
 
-    // Attitude control
-    float3 tau_control_principal; // [Nm] total torque in principal axes frame
-    float3 tau_rw_principal; // [Nm] torque from reaction wheels in principal
-                             // axes frame
-    float3 tau_mt_principal; // [Nm] torque from magnetorquers in principal
+    // Guidance
+    quaternion
+        q_desired;    // desired attitude quaternion in eci to body axes frame
+    float3 w_desired; // [rad/s] desired angular velocity in body axes frame
 
-    // Position
+    // Attitude control
+    float3 tau_control_body; // [Nm] total torque in body frame
+    float3 tau_rw_body;      // [Nm] torque from reaction wheels in bodyframe
+    float3 tau_mt_body;      // [Nm] torque from magnetorquers in body frame
+    float3 error_i;          // accumulated integral error for PID controller
+
+    // Orbit state
     float3 r_ecef;
     float3 r_eci;
+    float3 v_eci;
 
 // ========================================================================
 //         TESTING  / EXPERIMENTAL FIELDS

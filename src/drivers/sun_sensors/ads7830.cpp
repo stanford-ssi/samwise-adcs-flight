@@ -12,7 +12,7 @@
 
 #include "ads7830.h"
 
-#include "constants.h"
+#include "params.h"
 #include "pins.h"
 
 #include "hardware/gpio.h"

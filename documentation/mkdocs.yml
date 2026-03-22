@@ -1,65 +1,50 @@
-site_name: SAMWISE ADCS Flight Docs
+site_name: SAMWISE ADCS Flight Code Documentation
 site_description: Documentation for SAMWISE ADCS Flight Software
 site_author: Lundeen Cahilly and ADCS Team
 theme:
   name: terminal
-  # name: shadcn
+  # name: mkdocs
   favicon: docs/img/favicon.ico
 repo_url: https://github.com/stanford-ssi/samwise-adcs-flight
 
 
-
 nav:
   - "Home": "index.md"
-  - "Docs Usage": "mkdocs-usage.md"
-  - "Core":
-    - "Slate (Global State)": "core/slate.md"
-    - "Constants": "core/constants.md"
-    - "Pin Configuration": "core/pins.md"
-    - "Initialization": "core/init.md"
-    - "Scheduler": "core/scheduler.md"
-    - "Macros": "core/macros.md"
-    - "Telemetry Packet": "core/telemetry_packet.md"
-  - "Drivers":
-    - "Magnetometer": "drivers/magnetometer.md"
-    - "GPS": "drivers/gps.md"
-    - "Sun Sensors": "drivers/sun_sensors.md"
-    - "IMU": "drivers/imu.md"
-    - "Watchdog": "drivers/watchdog.md"
-    - "PiCubed UART": "drivers/picubed.md"
-    - "Power Monitor": "drivers/power_monitor.md"
-    - "MRAM": "drivers/mram.md"
-    - "Neopixel": "drivers/neopixel.md"
-    - "Magnetorquers": "drivers/magnetorquers.md"
+  - "Docs Usage": "docs_usage.md"
+  - "Onboarding":
+      - "Getting Started": "onboarding/getting-started.md"
+      - "How to Use Git": "onboarding/git-best-practices.md"
+  - "Architecture":
+    - "State Machine": "architecture/state_machine.md"
+    - "Scheduler": "architecture/scheduler.md"
+    - "Slate": "architecture/slate.md"
+    - "Tasks": "architecture/tasks.md"
+    - "Hardware": "architecture/hardware.md"
+  - "States": 
+    - "Init": "states/init.md"
+    - "Safe": "states/safe.md"
+    - "Detumble": "states/detumble.md"
+    - "Test": "states/test.md"
+  - "Tasks": 
+      - "Telemetry": "tasks/telemetry.md"
+      - "Watchdog": "tasks/watchdog.md"
+      - "Sensors": "tasks/sensors.md"
+      - "Actuators": "tasks/actuators.md"
+      - "Bdot": "tasks/bdot.md"
+      - "Test": "tasks/test.md"
+  - "Estimation": 
+    - "Attitude Filter (MEKF)": "estimation/attitude_filter.md"
+    - "Sun Vector Estimation": "estimation/sun_vector_estimation.md"
   - "Control":
     - "B-dot Detumbling": "control/bdot.md"
     - "Desaturation": "control/desaturation.md"
+    - "Magnetorquer Allocation": "control/magnetorquer_allocation.md"
     - "Reaction Wheel Allocation": "control/reaction_wheel_allocation.md"
-  - "Navigation":
-    - "Attitude Filter (EKF)": "navigation/attitude_filter.md"
-    - "Attitude Dynamics": "navigation/attitude_dynamics.md"
-    - "Frame Transforms": "navigation/frame_transforms.md"
-  - "Models":
-    - "Magnetic Field Model": "models/b_field.md"
-    - "Sun Vector Calculation": "models/sun_vector.md"
-    - "Sun Sensor to Vector": "models/sun_sensor_to_vector.md"
-  - "Math":
-    - "Linear Algebra": "math/linalg.md"
-    - "Matrix Utils": "math/matrix_utils.md"
-    - "GNC Utils": "math/utils.md"
-  - "Tasks":
-    - "Sensors Task": "tasks/sensors_task.md"
-    - "B-dot Task": "tasks/bdot_task.md"
-    - "Actuators Task": "tasks/actuators_task.md"
-    - "Telemetry Task": "tasks/telemetry_task.md"
-    - "Watchdog Task": "tasks/watchdog_task.md"
-    - "Test Task": "tasks/test_task.md"
-  - "States":
-    - "Init State": "states/init_state.md"
-    - "Detumble State": "states/detumble_state.md"
-    - "Slewing State": "states/slewing_state.md"
-    - "Cool Down State": "states/cool_down_state.md"
-    - "Test State": "states/test_state.md"
-  - "Onboarding":
-    - "Getting Started": "onboarding/getting-started.md"
-    - "How to Use Git": "onboarding/git-best-practices.md"
+  - "World Models": 
+    - "Magnetic Field": "world/magnetic_field.md"
+    - "Sun Model": "world/sun_model.md"
+  - "Utilities": 
+    - "Linear Algebra": "utils/linalg.md"
+    - "Matrix Utilities": "utils/matrix_utils.md"
+    - "Coordinate Transforms": "utils/coordinate_transforms.md"
+    - "Time Transforms": "utils/time_transforms.md"

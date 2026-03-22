@@ -54,7 +54,7 @@ void watchdog_pet(slate_t *slate)
         absolute_time_diff_us(slate->watchdog_pin_high_time, now) >=
             watchdog_pin_high_us)
     {
-        LOG_INFO("[watchdog] wdt LOW");
+        LOG_DEBUG("[watchdog] wdt LOW");
         gpio_put(SAMWISE_ADCS_WATCHDOG_FEED, 0);
         slate->watchdog_pin_high = false;
         slate->watchdog_pin_high_time = nil_time;
@@ -65,7 +65,7 @@ void watchdog_pet(slate_t *slate)
         absolute_time_diff_us(slate->watchdog_last_pet_time, now) >=
             watchdog_feed_interval_us)
     {
-        LOG_INFO("[watchdog] wdt HIGH");
+        LOG_DEBUG("[watchdog] wdt HIGH");
         gpio_put(SAMWISE_ADCS_WATCHDOG_FEED, 1);
         slate->watchdog_pin_high = true;
         slate->watchdog_pin_high_time = now;

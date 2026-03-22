@@ -17,6 +17,8 @@ LOG_COLORS = {
     'imu': 'magenta',
     'power': 'blue',
     'ekf': 'bright_red',
+    'orbit': 'bright_cyan',
+    'world': 'bright_yellow',
     'state': 'bright_blue',
     'test': 'bright_green',
     'error': 'red bold',
@@ -44,10 +46,16 @@ def colorize_log(line):
             color = LOG_COLORS['imu']
         elif 'power' in line.lower() or 'voltage' in line.lower() or 'current' in line.lower():
             color = LOG_COLORS['power']
+        elif 'a_body' in line:  # Acceleration data
+            color = LOG_COLORS['imu']
         else:
             color = LOG_COLORS['default']
     elif '[ekf]' in line:
         color = LOG_COLORS['ekf']
+    elif '[orbit]' in line:
+        color = LOG_COLORS['orbit']
+    elif '[world]' in line:
+        color = LOG_COLORS['world']
     elif '[state]' in line:
         color = LOG_COLORS['state']
     elif '[test]' in line:

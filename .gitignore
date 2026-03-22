@@ -6,6 +6,7 @@ build
 *.png
 *.json
 documentation/site
+tags
 
 # Scripts - Python virtual environments
 scripts/**/venv/
@@ -23,3 +24,6 @@ scripts/**/*.pyd
 
 # Scripts - Output directories
 scripts/calibration/magnetometer/output/
+
+# Sphinx
+*.idx

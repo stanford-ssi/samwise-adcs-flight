@@ -1,5 +1,5 @@
 /**
- * @author Niklas Vainio
+ * @author Niklas Vainio, Lundeen Cahilly
  * @date 2025-06-02
  *
  * This file contains general GNC utils (unit conversions, common frame

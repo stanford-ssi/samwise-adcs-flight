@@ -7,8 +7,8 @@
  */
 
 #include "power_monitor_task.h"
-#include "constants.h"
 #include "macros.h"
+#include "params.h"
 
 #include "drivers/power_monitor/power_monitor.h"
 
@@ -50,9 +50,8 @@ void power_monitor_task_dispatch(slate_t *slate)
     }
 
     bool result = adm_get_power(slate);
-    LOG_DEBUG("[sensor] P = %.3fW, V = %.3fV, "
-              "I = %.3fA]",
-              slate->adcs_power, slate->adcs_voltage, slate->adcs_current);
+    LOG_DEBUG("[sensor] P = %.3fW, V = %.3fV, I = %.3fA", slate->adcs_power,
+              slate->adcs_voltage, slate->adcs_current);
 }
 
 sched_task_t power_monitor_task = {.name = "power_monitor",
