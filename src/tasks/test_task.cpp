@@ -10,7 +10,6 @@
 #include "test_task.h"
 #include "macros.h"
 #include "pico/stdlib.h"
-#include "gnc/actuators/magtorq_allocation.h"
 
 /**
  * @brief Initialize test task. Currently does nothing.
@@ -30,7 +29,6 @@ void test_task_init(slate_t *slate)
 void test_task_dispatch(slate_t *slate)
 {
     LOG_INFO("[test] TEST TASK IS DISPATCHING");
-    test_magtorq_allocation(slate);
 }
 
 sched_task_t test_task = {.name = "test",

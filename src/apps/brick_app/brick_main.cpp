@@ -4,8 +4,8 @@
  * This is the brick file, where I announce that I am a brick!
  */
 
-#include "pico/stdlib.h"
 #include "macros.h"
+#include "pico/stdlib.h"
 
 int main()
 {

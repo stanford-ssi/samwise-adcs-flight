@@ -85,9 +85,8 @@ constexpr uint32_t MAGNETOMETER_FIELD_SETTLE_TIME_MS = 20; // [ms]
 // ========================================================================
 //          POWER
 // =========================================================================
-// Emergency power saving thresholds
-constexpr float BATTERY_VOLTAGE_SAFE = 7.0f; // [V]
-
+constexpr float V_BATT_MAX = 8.2f;       // [V] maximum battery voltage
+constexpr float V_BATT_LOW_POWER = 7.0f; // [V] low power saving mode threshold
 constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 
 // ========================================================================
@@ -181,6 +180,19 @@ constexpr float REACTION_WHEEL_SATURATION_UPPER_LIMIT = 0.9;
 
 // Reaction wheel lower proportional limit:
 constexpr float REACTION_WHEEL_SATURATION_LOWER_LIMIT = 0.1;
+
+// ========================================================================
+//          MAGNETORQUERS
+// ========================================================================
+// TODO: get latest measurements from avionics
+// https://colab.research.google.com/drive/1A7jBLSCj_VwKgwm2eZ4pXlFp_MV3QbE_#scrollTo=hYrvdx5w2mFa
+constexpr float3 R_MAGTORQ = float3{15.5f, 15.5f, 30.5f}; // [ohms] resistance
+                                                          // of each axis
+constexpr float3 MU_MAGTORQ = float3{0.046f, 0.046f, 0.018f}; // [Am^2] max
+                                                              // dipole moments
+                                                              // for each axis
+constexpr float MAGTORQ_MAX_POWER =
+    10.0f; // maximum power consumption we allow [W]
 
 // ========================================================================
 //          CONTROL GAINS

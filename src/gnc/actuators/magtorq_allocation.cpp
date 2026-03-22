@@ -8,6 +8,7 @@
 
 #include "magtorq_allocation.h"
 #include "constants.h"
+#include "params.h"
 
 static float magnetorquer_power(slate_t *slate, float3 duty_cycles)
 {
@@ -38,14 +39,17 @@ void allocate_magnetorquers(slate_t *slate)
 
     // Uniform scale to keep direction: if any axis exceeds [-1, 1],
     // scale the entire vector down by the worst offender
-    float max_abs = fmaxf(fmaxf(fabsf(duty_cycle.x), fabsf(duty_cycle.y)), fabsf(duty_cycle.z));
-    if (max_abs > 1.0f) {
+    float max_abs = fmaxf(fmaxf(fabsf(duty_cycle.x), fabsf(duty_cycle.y)),
+                          fabsf(duty_cycle.z));
+    if (max_abs > 1.0f)
+    {
         duty_cycle = duty_cycle / max_abs;
     }
 
     // Scale uniformly if power budget is exceeded
     float power = magnetorquer_power(slate, duty_cycle);
-    if (power > MAGTORQ_MAX_POWER) {
+    if (power > MAGTORQ_MAX_POWER)
+    {
         float scale = sqrtf(MAGTORQ_MAX_POWER / power);
         duty_cycle = duty_cycle * scale;
     }
@@ -53,13 +57,13 @@ void allocate_magnetorquers(slate_t *slate)
     float3 mu_allocated = duty_cycle * MU_MAGTORQ;
 
     LOG_DEBUG("[magtorq_allocation] Requested moment: (%f, %f, %f) Am^2",
-            mu_requested.x, mu_requested.y, mu_requested.z);
+              mu_requested.x, mu_requested.y, mu_requested.z);
     LOG_DEBUG("[magtorq_allocation] Allocated moment: (%f, %f, %f) Am^2",
-            mu_allocated.x, mu_allocated.y, mu_allocated.z);
-    LOG_DEBUG("[magtorq_allocation] Duty cycle: (%f, %f, %f)",
-            duty_cycle.x, duty_cycle.y, duty_cycle.z);
+              mu_allocated.x, mu_allocated.y, mu_allocated.z);
+    LOG_DEBUG("[magtorq_allocation] Duty cycle: (%f, %f, %f)", duty_cycle.x,
+              duty_cycle.y, duty_cycle.z);
     LOG_DEBUG("[magtorq_allocation] Power consumption: %f W",
-            magnetorquer_power(slate, duty_cycle));
+              magnetorquer_power(slate, duty_cycle));
 
     slate->magtorq_duty_cycle = duty_cycle;
     slate->magtorq_moment = mu_allocated;
@@ -67,23 +71,26 @@ void allocate_magnetorquers(slate_t *slate)
 
 #ifdef TEST
 
-static float direction_alignment(float3 a, float3 b) {
-    if (length(a) < 1e-6f && length(b) < 1e-6f) return 1.0f;
+static float direction_alignment(float3 a, float3 b)
+{
+    if (length(a) < 1e-6f && length(b) < 1e-6f)
+        return 1.0f;
     return dot(normalize(a), normalize(b));
 }
 
-static bool check_duty_bounds(float3 duty) {
+static bool check_duty_bounds(float3 duty)
+{
     float tol = 1e-6f;
-    return fabsf(duty.x) <= 1.0f + tol
-        && fabsf(duty.y) <= 1.0f + tol
-        && fabsf(duty.z) <= 1.0f + tol;
+    return fabsf(duty.x) <= 1.0f + tol && fabsf(duty.y) <= 1.0f + tol &&
+           fabsf(duty.z) <= 1.0f + tol;
 }
 
 /**
  * @brief Test magnetorquer allocation: direction preservation, duty cycle
  * bounds, and power limits across a range of requested moments
  */
-void test_magtorq_allocation(slate_t *slate) {
+void test_magtorq_allocation(slate_t *slate)
+{
     slate->power_monitor_alive = false;
     int pass = 0;
     int fail = 0;
@@ -108,7 +115,8 @@ void test_magtorq_allocation(slate_t *slate) {
     };
     int n = sizeof(test_cases) / sizeof(test_cases[0]);
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++)
+    {
         slate->magtorq_requested = test_cases[i];
         allocate_magnetorquers(slate);
 
@@ -133,7 +141,10 @@ void test_magtorq_allocation(slate_t *slate) {
         bool moment_ok = moment_err < 1e-6f;
 
         bool all_ok = dir_ok && duty_ok && power_ok && moment_ok;
-        if (all_ok) pass++; else fail++;
+        if (all_ok)
+            pass++;
+        else
+            fail++;
 
         LOG_INFO("Test %d: %s", i + 1, all_ok ? "PASS" : "FAIL");
         LOG_INFO("  Requested:  (%f, %f, %f) Am^2", req.x, req.y, req.z);
@@ -145,6 +156,7 @@ void test_magtorq_allocation(slate_t *slate) {
         LOG_INFO("  Consistency:%s", moment_ok ? "OK" : "FAIL");
     }
 
-    LOG_INFO("[test_magtorq_allocation] Results: %d/%d passed", pass, pass + fail);
+    LOG_INFO("[test_magtorq_allocation] Results: %d/%d passed", pass,
+             pass + fail);
 }
 #endif
