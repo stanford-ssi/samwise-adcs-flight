@@ -5,7 +5,7 @@
  * ADM1176 power monitor driver
  */
 
-#include "slate.h"
+#include "apps/adcs_app/slate.h"
 #include <stdbool.h>
 #include <stdint.h>
 

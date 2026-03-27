@@ -10,8 +10,8 @@
 #include "imu.h"
 
 #include "macros.h"
-#include "params.h"
-#include "pins.h"
+#include "apps/adcs_app/params.h"
+#include "apps/adcs_app/pins.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -20,6 +20,7 @@
 #include "drivers/external/bmi2_defs.h"
 #include "linalg.h"
 #include "pico/stdlib.h"
+#include "pico/types.h"
 
 using namespace linalg::aliases;
 

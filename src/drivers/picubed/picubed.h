@@ -7,7 +7,7 @@
 #pragma once
 
 #include "adcs_packet.h"
-#include "slate.h"
+#include "apps/adcs_app/slate.h"
 
 void picubed_uart_init();
 

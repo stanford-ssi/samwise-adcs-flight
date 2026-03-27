@@ -6,8 +6,8 @@
  *
  * This driver was entirely made possibly by the tireless work of Pete Mahowland
  */
-
-#include "slate.h"
+#include "linalg.h"
+using namespace linalg::aliases;
 
 #pragma once
 

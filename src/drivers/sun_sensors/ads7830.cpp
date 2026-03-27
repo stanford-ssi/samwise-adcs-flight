@@ -12,8 +12,8 @@
 
 #include "ads7830.h"
 
-#include "params.h"
-#include "pins.h"
+#include "apps/adcs_app/params.h"
+#include "apps/adcs_app/pins.h"
 
 #include "hardware/gpio.h"
 #include "hardware/spi.h"

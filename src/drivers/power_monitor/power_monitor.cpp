@@ -9,8 +9,8 @@
 #include "hardware/i2c.h"
 #include "macros.h"
 #include "pico/stdlib.h"
-#include "pins.h"
-#include "slate.h"
+#include "apps/adcs_app/pins.h"
+#include "apps/adcs_app/slate.h"
 #include <stdint.h>
 
 // ADM1176 I2C configuration
