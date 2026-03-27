@@ -10,7 +10,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Initialise pico_sdk from installed location
 # (note this can come from environment, CMake cache etc)
 
-# == DO NEVER EDIT THE NEXT LINES for Raspberry Pi Pico VS Code Extension to work ==
 if(WIN32)
     set(USERHOME $ENV{USERPROFILE})
 else()
@@ -20,18 +19,20 @@ set(sdkVersion 2.2.0)
 set(toolchainVersion 13_2_Rel1)
 set(picotoolVersion 2.0.0)
 include(${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
-
 # ====================================================================================
+set(PICO_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/pico-sdk)
+
 set(PICO_BOARD adcs CACHE STRING "Board type")
-set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/boards)
-set(PICO_BOARD_CMAKE_DIRS  ${CMAKE_CURRENT_LIST_DIR}/board)
+set(PICO_BOARD_CMAKE_DIRS  ${CMAKE_CURRENT_LIST_DIR}/boards)
 
-# Pull in Raspberry Pi Pico SDK (must be before project)
 include(${CMAKE_CURRENT_LIST_DIR}/pico-sdk/pico_sdk_init.cmake)
-
+include(${CMAKE_CURRENT_LIST_DIR}/pico-sdk/pico_sdk_version.cmake)
 if (PICO_SDK_VERSION_STRING VERSION_LESS "1.4.0")
   message(FATAL_ERROR "Raspberry Pi Pico SDK version 1.4.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
 endif()
+
+include(${CMAKE_CURRENT_LIST_DIR}/pico-sdk/cmake/pico_pre_load_platform.cmake)
+
 
 set(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_LIST_DIR}/FreeRTOS-Kernel)
 set(FREERTOS_PORT GCC_RP2350_ARM_NTZ)   # <-- add this

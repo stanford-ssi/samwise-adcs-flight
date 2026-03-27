@@ -13,8 +13,6 @@
 
 // pico_cmake_set PICO_PLATFORM=rp2350
 
-pico_board_cmake_set(PICO_PLATFORM, rp2350)
-
 #ifndef _BOARDS_PICO2_H
 #define _BOARDS_PICO2_H
 
