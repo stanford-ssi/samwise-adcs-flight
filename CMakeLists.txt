@@ -29,13 +29,13 @@ set(PICO_BOARD_HEADER_DIRS  ${CMAKE_CURRENT_LIST_DIR}/boards)
 
 include(${PICO_SDK_PATH}/pico_sdk_init.cmake)
 
-# if (PICO_SDK_VERSION_STRING VERSION_LESS "1.4.0")
-#   message(FATAL_ERROR "Raspberry Pi Pico SDK version 1.4.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
-# endif()
+if (PICO_SDK_VERSION_STRING VERSION_LESS "1.4.0")
+  message(FATAL_ERROR "Raspberry Pi Pico SDK version 1.4.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
+endif()
 
 set(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_LIST_DIR}/FreeRTOS-Kernel)
 set(FREERTOS_PORT GCC_RP2350_ARM_NTZ)   # <-- add this
-include(${CMAKE_CURRENT_LIST_DIR}/FreeRTOS-Kernel/FreeRTOS_Kernel_import.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/FreeRTOS_Kernel_import.cmake)
 
 project(samwise-adcs C CXX ASM)
 
