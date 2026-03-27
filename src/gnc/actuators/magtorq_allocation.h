@@ -10,7 +10,7 @@
 
 #include "linalg.h"
 #include "macros.h"
-#include "slate.h"
+#include "apps/adcs_app/slate.h"
 using namespace linalg::aliases;
 
 void allocate_magnetorquers(slate_t *slate);

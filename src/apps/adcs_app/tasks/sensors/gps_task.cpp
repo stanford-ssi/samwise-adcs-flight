@@ -7,7 +7,7 @@
 
 #include "gps_task.h"
 #include "macros.h"
-#include "params.h"
+#include "apps/adcs_app/params.h"
 
 #include "drivers/gps/gps.h"
 #include "gnc/utils/mjd.h"

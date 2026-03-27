@@ -8,7 +8,7 @@
 
 #include "imu_task.h"
 #include "macros.h"
-#include "params.h"
+#include "apps/adcs_app/params.h"
 
 #include "drivers/imu/imu.h"
 #include "gnc/estimation/attitude_filter.h"
