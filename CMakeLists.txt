@@ -258,6 +258,7 @@ target_link_libraries(samwise-adcs-freertos-blink
 )
 
 target_include_directories(samwise-adcs-freertos-blink PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+target_include_directories(samwise-adcs-freertos-blink PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
 
 pico_add_extra_outputs(samwise-adcs-freertos-blink)
 
