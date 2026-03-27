@@ -5,6 +5,8 @@
 #include "apps/motor_app/timer_util.h"
 #include "drivers/software_uart/software_uart.h"
 
+extern motor_slate_t motor_slate;
+
 bool control_timer_callback(struct repeating_timer *t)
 {
     float kp = 0.3f;
