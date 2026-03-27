@@ -21,7 +21,6 @@
  */
 void actuators_task_init(slate_t *slate)
 {
-    /*
     LOG_INFO("[actuators] Initializing actuators...");
 
     // Initialize magnetorquer PWM
@@ -32,7 +31,7 @@ void actuators_task_init(slate_t *slate)
     LOG_INFO("[actuators] Reaction wheel control ready");
 
     // Initialize actuator request values to safe defaults
-    // slate->magtorq_requested = float3(0.0f, 0.0f, 0.0f);
+    slate->magtorq_requested = float3(0.0f, 0.0f, 0.0f);
 
     for (int i = 0; i < NUM_REACTION_WHEELS; i++)
     {
@@ -40,7 +39,6 @@ void actuators_task_init(slate_t *slate)
     }
 
     LOG_INFO("[actuators] Actuator initialization complete!");
-    */
 }
 
 /**
@@ -51,9 +49,8 @@ void actuators_task_init(slate_t *slate)
  */
 void actuators_task_dispatch(slate_t *slate)
 {
-    /*
     // Drive magnetorquers based on slate requests
-    // bool mag_result = do_magnetorquer_pwm(slate->magtorq_duty_cycle);
+    bool mag_result = do_magnetorquer_pwm(slate->magtorq_duty_cycle);
     slate->magnetorquers_running = mag_result;
 
     if (!mag_result)
@@ -78,7 +75,6 @@ void actuators_task_dispatch(slate_t *slate)
         slate->w_reaction_wheels_requested[i] =
             slate->w_reaction_wheels_requested[i];
     }
-    */
 }
 
 sched_task_t actuators_task = {.name = "actuators",

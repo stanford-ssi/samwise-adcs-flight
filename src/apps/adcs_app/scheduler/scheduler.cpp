@@ -123,8 +123,7 @@ void sched_dispatch(slate_t *slate)
     sched_state_t *next_state = current_state_info->get_next_state(slate);
 // send to emergency state if voltage is too low.
 #ifdef FLIGHT
-    if (slate->power_monitor_alive &&
-        slate->adcs_voltage < BATTERY_VOLTAGE_SAFE)
+    if (slate->power_monitor_alive && slate->adcs_voltage < V_BATT_LOW_POWER)
     {
         next_state = &safe_state;
     }

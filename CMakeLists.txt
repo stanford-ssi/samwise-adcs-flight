@@ -39,12 +39,14 @@ pico_sdk_init()
 # Apps
 file(GLOB adcs_main CONFIGURE_DEPENDS "src/apps/adcs_app/*.cpp")
 file(GLOB motor_main CONFIGURE_DEPENDS "src/apps/motor_app/*.cpp")
+file(GLOB brick_main CONFIGURE_DEPENDS "src/apps/brick_app/*.cpp")
 
 # Core
 file(GLOB top CONFIGURE_DEPENDS "src/*.cpp")
 
 # GNC Algorithms
 file(GLOB gnc CONFIGURE_DEPENDS "src/gnc/*.cpp")
+file(GLOB gnc_actuators CONFIGURE_DEPENDS "src/gnc/actuators/*.cpp")
 file(GLOB gnc_estimation CONFIGURE_DEPENDS "src/gnc/estimation/*.cpp")
 file(GLOB gnc_control CONFIGURE_DEPENDS "src/gnc/control/*.cpp")
 file(GLOB gnc_dynamics CONFIGURE_DEPENDS "src/gnc/dynamics/*.cpp")
@@ -93,6 +95,7 @@ add_executable(samwise-adcs
 
     # GNC Algorithms
     ${gnc}
+    ${gnc_actuators}
     ${gnc_estimation}
     ${gnc_control}
     ${gnc_dynamics}
@@ -207,6 +210,27 @@ target_include_directories(samwise-adcs-motor PRIVATE
 target_include_directories(samwise-adcs-motor PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
 pico_add_extra_outputs(samwise-adcs-motor)
+
+# ////////////////////////////
+# Third target (Brick Board)
+# ////////////////////////////
+add_executable(samwise-adcs-brick
+    src/apps/brick_app/brick_main.cpp
+)
+
+pico_set_program_name(samwise-adcs-brick "samwise_adcs_brick")
+pico_set_program_version(samwise-adcs-brick "0.1")
+
+pico_enable_stdio_uart(samwise-adcs-brick 0)
+pico_enable_stdio_usb(samwise-adcs-brick 1)
+
+target_link_libraries(samwise-adcs-brick
+  pico_stdlib
+)
+
+target_include_directories(samwise-adcs-brick PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+
+pico_add_extra_outputs(samwise-adcs-brick)
 
 # ///////////////////////////////////
 # HITL TARGETS
