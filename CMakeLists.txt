@@ -6,30 +6,36 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/boards)
 
 # Initialise pico_sdk from installed location
 # (note this can come from environment, CMake cache etc)
 
-# == DO NEVER EDIT THE NEXT LINES for Raspberry Pi Pico VS Code Extension to work ==
 if(WIN32)
     set(USERHOME $ENV{USERPROFILE})
 else()
     set(USERHOME $ENV{HOME})
 endif()
-set(sdkVersion 2.0.0)
+set(sdkVersion 2.2.0)
 set(toolchainVersion 13_2_Rel1)
 set(picotoolVersion 2.0.0)
+
+set(PICO_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/pico-sdk)
 include(${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 # ====================================================================================
+
 set(PICO_BOARD adcs CACHE STRING "Board type")
+set(PICO_BOARD_CMAKE_DIRS  ${CMAKE_CURRENT_LIST_DIR}/boards)
+set(PICO_BOARD_HEADER_DIRS  ${CMAKE_CURRENT_LIST_DIR}/boards)
 
-# Pull in Raspberry Pi Pico SDK (must be before project)
-include(${CMAKE_CURRENT_LIST_DIR}/pico-sdk/pico_sdk_init.cmake)
+include(${PICO_SDK_PATH}/pico_sdk_init.cmake)
 
-if (PICO_SDK_VERSION_STRING VERSION_LESS "1.4.0")
-  message(FATAL_ERROR "Raspberry Pi Pico SDK version 1.4.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
-endif()
+# if (PICO_SDK_VERSION_STRING VERSION_LESS "1.4.0")
+#   message(FATAL_ERROR "Raspberry Pi Pico SDK version 1.4.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
+# endif()
+
+set(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_LIST_DIR}/FreeRTOS-Kernel)
+set(FREERTOS_PORT GCC_RP2350_ARM_NTZ)   # <-- add this
+include(${CMAKE_CURRENT_LIST_DIR}/FreeRTOS-Kernel/FreeRTOS_Kernel_import.cmake)
 
 project(samwise-adcs C CXX ASM)
 
@@ -232,6 +238,30 @@ target_include_directories(samwise-adcs-brick PRIVATE ${CMAKE_CURRENT_LIST_DIR}/
 
 pico_add_extra_outputs(samwise-adcs-brick)
 
+# ////////////////////////////
+# FREERTOS TARGET (BASIC BLINK)
+# ////////////////////////////
+add_executable(samwise-adcs-freertos-blink
+    src/apps/freertos_app/main.cpp
+    ${FREERTOS_KERNEL_PATH}/timers.c   # <-- add this
+)
+
+pico_set_program_name(samwise-adcs-freertos-blink "samwise_adcs_freertos-blink")
+pico_set_program_version(samwise-adcs-freertos-blink "0.1")
+
+pico_enable_stdio_uart(samwise-adcs-freertos-blink 0)
+pico_enable_stdio_usb(samwise-adcs-freertos-blink 1)
+
+target_link_libraries(samwise-adcs-freertos-blink
+  pico_stdlib
+  FreeRTOS-Kernel
+)
+
+target_include_directories(samwise-adcs-freertos-blink PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+target_include_directories(samwise-adcs-freertos-blink PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
+
+pico_add_extra_outputs(samwise-adcs-freertos-blink)
+
 # ///////////////////////////////////
 # HITL TARGETS
 # ///////////////////////////////////
@@ -306,4 +336,7 @@ pico_enable_stdio_usb(hitl-b 1)
 
 pico_add_extra_outputs(hitl-a)
 pico_add_extra_outputs(hitl-b)
+
+set(FREERTOS_CONFIG_FILE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include CACHE STRING "")
+set(FREERTOS_USE_TIMERS ON CACHE BOOL "")
 
