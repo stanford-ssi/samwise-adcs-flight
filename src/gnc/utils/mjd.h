@@ -8,6 +8,6 @@
 
 #pragma once
 
-#include "slate.h"
+#include "apps/adcs_app/slate.h"
 
 void compute_MJD(slate_t *slate);

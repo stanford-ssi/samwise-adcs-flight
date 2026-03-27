@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "slate.h"
+#include "apps/adcs_app/slate.h"
 
 bool watchdog_init(slate_t *slate);
 

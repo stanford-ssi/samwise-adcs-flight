@@ -10,7 +10,7 @@
 #pragma once
 
 #include "macros.h"
-#include "slate.h"
+#include "apps/adcs_app/slate.h"
 
 bool compute_B(slate_t *slate);
 

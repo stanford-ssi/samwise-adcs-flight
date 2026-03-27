@@ -8,7 +8,7 @@
 
 #include "apps/adcs_app/init.h"
 #include "macros.h"
-#include "pins.h"
+#include "apps/adcs_app/pins.h"
 
 #include "drivers/neopixel/neopixel.h"
 #include "gnc/estimation/attitude_filter.h"

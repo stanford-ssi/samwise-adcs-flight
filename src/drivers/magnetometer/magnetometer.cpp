@@ -12,8 +12,8 @@
 
 #include "macros.h"
 #include "magnetometer.h"
-#include "params.h"
-#include "pins.h"
+#include "apps/adcs_app/params.h"
+#include "apps/adcs_app/pins.h"
 
 #include "linalg.h"
 using namespace linalg::aliases;

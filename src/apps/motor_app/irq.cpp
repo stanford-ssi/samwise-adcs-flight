@@ -6,6 +6,8 @@
 #include "apps/motor_app/pins.h"
 #include "drivers/software_uart/software_uart.h"
 
+extern motor_slate_t motor_slate;
+
 void gpio_irq(uint gpio, uint32_t events)
 {
     int motor_id = 0;

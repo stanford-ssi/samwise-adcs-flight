@@ -8,8 +8,8 @@
 
 #include "apps/adcs_app/init.h"
 #include "macros.h"
-#include "scheduler/scheduler.h"
-#include "slate.h"
+#include "apps/adcs_app/scheduler/scheduler.h"
+#include "apps/adcs_app/slate.h"
 
 // Make sure top gpio bank enabled
 static_assert(PICO_RP2350A == 0,

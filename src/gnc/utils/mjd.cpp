@@ -9,7 +9,7 @@
 #include "mjd.h"
 #include "macros.h"
 #include "pico/printf.h"
-#include "slate.h"
+#include "apps/adcs_app/slate.h"
 
 // MJD calculation constants
 static const float MJD_EPOCH_OFFSET =

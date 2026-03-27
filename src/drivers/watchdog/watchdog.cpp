@@ -8,7 +8,7 @@
 #include "watchdog.h"
 #include "hardware/gpio.h"
 #include "macros.h"
-#include "pins.h"
+#include "apps/adcs_app/pins.h"
 
 constexpr uint32_t watchdog_pin_high_us = 200000;       // 200 ms
 constexpr uint32_t watchdog_feed_interval_us = 2000000; // 2 seconds

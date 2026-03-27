@@ -11,8 +11,8 @@
 
 #include "rp2350b_adc.h"
 
-#include "params.h"
-#include "pins.h"
+#include "apps/adcs_app/params.h"
+#include "apps/adcs_app/pins.h"
 
 #include "hardware/adc.h"
 #include "hardware/gpio.h"

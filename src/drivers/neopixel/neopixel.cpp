@@ -10,7 +10,7 @@
 #include "hardware/gpio.h"
 #include "macros.h"
 #include "pico/stdlib.h"
-#include "pins.h"
+#include "apps/adcs_app/pins.h"
 #include <stdint.h>
 
 // Neopixel configuration

@@ -47,4 +47,4 @@ typedef struct
 
 } motor_slate_t;
 
-extern motor_slate_t motor_slate;
+// extern motor_slate_t motor_slate;

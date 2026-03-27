@@ -7,7 +7,7 @@
 #include "gnc/control/bdot.h"
 #include "linalg.h"
 #include "macros.h"
-#include "params.h"
+#include "apps/adcs_app/params.h"
 #include "pico/stdlib.h"
 #include <cmath>
 

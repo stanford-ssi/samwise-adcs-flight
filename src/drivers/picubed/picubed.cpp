@@ -11,7 +11,7 @@
 
 #include "macros.h"
 #include "picubed.h"
-#include "pins.h"
+#include "apps/adcs_app/pins.h"
 
 // Uart parameters
 #define PICUBED_UART_BAUD (115200)

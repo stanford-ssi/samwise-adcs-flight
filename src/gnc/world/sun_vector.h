@@ -7,7 +7,7 @@
 
 #include "constants.h"
 #include "linalg.h"
-#include "slate.h"
+#include "apps/adcs_app/slate.h"
 
 void compute_sun_vector_eci(slate_t *slate);
 

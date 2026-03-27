@@ -6,8 +6,7 @@
 #pragma once
 
 #include "linalg.h"
-#include "params.h"
-#include "slate.h"
+#include "apps/adcs_app/slate.h"
 
 using namespace linalg::aliases;
 

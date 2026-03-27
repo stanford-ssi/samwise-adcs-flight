@@ -74,15 +74,15 @@ file(GLOB drivers_software_uart CONFIGURE_DEPENDS "src/drivers/software_uart/*.c
 file(GLOB drivers_telemetry CONFIGURE_DEPENDS "src/drivers/telemetry/*.cpp")
 
 # System Components
-file(GLOB scheduler CONFIGURE_DEPENDS "src/scheduler/*.cpp")
-file(GLOB states CONFIGURE_DEPENDS "src/states/*.cpp")
+file(GLOB scheduler CONFIGURE_DEPENDS "src/apps/adcs_app/scheduler/*.cpp")
+file(GLOB states CONFIGURE_DEPENDS "src/apps/adcs_app/states/*.cpp")
 
 # Tasks
-file(GLOB tasks CONFIGURE_DEPENDS "src/tasks/*.cpp")
-file(GLOB tasks_control CONFIGURE_DEPENDS "src/tasks/control/*.cpp")
-file(GLOB tasks_navigation CONFIGURE_DEPENDS "src/tasks/navigation/*.cpp")
-file(GLOB tasks_sensors CONFIGURE_DEPENDS "src/tasks/sensors/*.cpp")
-file(GLOB tasks_system CONFIGURE_DEPENDS "src/tasks/system/*.cpp")
+file(GLOB tasks CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/*.cpp")
+file(GLOB tasks_control CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/control/*.cpp")
+file(GLOB tasks_navigation CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/navigation/*.cpp")
+file(GLOB tasks_sensors CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/sensors/*.cpp")
+file(GLOB tasks_system CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/system/*.cpp")
 
 # Tools
 file(GLOB tools CONFIGURE_DEPENDS "src/tools/*.cpp")

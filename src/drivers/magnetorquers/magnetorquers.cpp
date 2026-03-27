@@ -15,8 +15,7 @@
 #include <stdlib.h>
 
 #include "macros.h"
-#include "pins.h"
-#include "slate.h"
+#include "apps/adcs_app/pins.h"
 
 // PWM Configuration Constants
 #define PWM_WRAP_VALUE (128)

@@ -14,6 +14,8 @@
 #include "drivers/software_uart/software_uart.h"
 #include "drivers/watchdog_motor/watchdog.h"
 
+extern motor_slate_t motor_slate;
+
 static bool init_gpio_pins(motor_slate_t *motor_slate)
 {
     i2c_init(SAMWISE_POWER_MONITOR_I2C, 100 * 1000);

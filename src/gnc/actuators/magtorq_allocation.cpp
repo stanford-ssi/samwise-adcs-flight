@@ -8,7 +8,7 @@
 
 #include "magtorq_allocation.h"
 #include "constants.h"
-#include "params.h"
+#include "apps/adcs_app/params.h"
 
 static float magnetorquer_power(slate_t *slate, float3 duty_cycles)
 {
