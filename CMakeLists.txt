@@ -18,21 +18,20 @@ endif()
 set(sdkVersion 2.2.0)
 set(toolchainVersion 13_2_Rel1)
 set(picotoolVersion 2.0.0)
+
+set(PICO_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/pico-sdk)
 include(${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 # ====================================================================================
-set(PICO_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/pico-sdk)
 
 set(PICO_BOARD adcs CACHE STRING "Board type")
 set(PICO_BOARD_CMAKE_DIRS  ${CMAKE_CURRENT_LIST_DIR}/boards)
+set(PICO_BOARD_HEADER_DIRS  ${CMAKE_CURRENT_LIST_DIR}/boards)
 
-include(${CMAKE_CURRENT_LIST_DIR}/pico-sdk/pico_sdk_init.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/pico-sdk/pico_sdk_version.cmake)
+include(${PICO_SDK_PATH}/pico_sdk_init.cmake)
+
 if (PICO_SDK_VERSION_STRING VERSION_LESS "1.4.0")
   message(FATAL_ERROR "Raspberry Pi Pico SDK version 1.4.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
 endif()
-
-include(${CMAKE_CURRENT_LIST_DIR}/pico-sdk/cmake/pico_pre_load_platform.cmake)
-
 
 set(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_LIST_DIR}/FreeRTOS-Kernel)
 set(FREERTOS_PORT GCC_RP2350_ARM_NTZ)   # <-- add this
