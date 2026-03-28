@@ -219,6 +219,8 @@ target_include_directories(samwise-adcs-motor PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts or any other standard includes, if required
 )
 
+target_include_directories(samwise-adcs-motor PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
+
 target_include_directories(samwise-adcs-motor PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
 pico_add_extra_outputs(samwise-adcs-motor)
