@@ -45,6 +45,7 @@ pico_sdk_init()
 # Apps
 file(GLOB adcs_main CONFIGURE_DEPENDS "src/apps/adcs_app/*.cpp")
 file(GLOB motor_main CONFIGURE_DEPENDS "src/apps/motor_app/*.cpp")
+file(GLOB motor_main_c CONFIGURE_DEPENDS "src/apps/motor_app/*.c")
 file(GLOB brick_main CONFIGURE_DEPENDS "src/apps/brick_app/*.cpp")
 
 # Core
@@ -174,6 +175,7 @@ pico_add_extra_outputs(samwise-adcs)
 add_executable(samwise-adcs-motor
     # Core
     ${motor_main}
+    ${motor_main_c}
     ${top}
 
     # Drivers
@@ -185,6 +187,9 @@ add_executable(samwise-adcs-motor
     ${drivers_external}
     ${drivers_motor}
     ${drivers_software_uart} 
+
+    # FreeRTOS
+    ${FREERTOS_KERNEL_PATH}/timers.c
 )
 
 pico_set_program_name(samwise-adcs-motor "samwise_adcs_motor")
@@ -205,6 +210,7 @@ target_link_libraries(samwise-adcs-motor
   pico_platform
   pico_stdlib 
   hardware_pio
+  FreeRTOS-Kernel
 )
 
 # Add the standard include files to the build
@@ -243,7 +249,7 @@ pico_add_extra_outputs(samwise-adcs-brick)
 # ////////////////////////////
 add_executable(samwise-adcs-freertos-blink
     src/apps/freertos_app/main.cpp
-    ${FREERTOS_KERNEL_PATH}/timers.c   # <-- add this
+    ${FREERTOS_KERNEL_PATH}/timers.c
 )
 
 pico_set_program_name(samwise-adcs-freertos-blink "samwise_adcs_freertos-blink")

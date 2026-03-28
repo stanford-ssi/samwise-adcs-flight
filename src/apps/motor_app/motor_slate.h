@@ -10,6 +10,8 @@
  */
 
 #pragma once
+#include "FreeRTOS.h"
+#include "task.h"
 
 #include "linalg.h"
 #include "pico/types.h"
@@ -19,6 +21,8 @@
 #include "drivers/software_uart/software_uart.h"
 #include "drivers/telemetry/uart_package.h"
 #include "drivers/watchdog_motor/watchdog.h"
+
+#include "apps/motor_app/state_machine.h"
 
 using namespace linalg::aliases;
 using namespace linalg;
@@ -37,11 +41,12 @@ typedef struct
     motor_state_t motor_state[4];
     volatile motor_state_t motor_measured[4];
 
-    struct repeating_timer control_timer;
-    struct repeating_timer telem_timer;
-
     adcs_to_motor_package_t rx_package;
     motor_to_adcs_package_t tx_package;
+
+    StateId_t current_state;
+    TaskHandle_t state_machine_handler;
+    EventGroupHandle_t events;
 
     int rx_count;
 
