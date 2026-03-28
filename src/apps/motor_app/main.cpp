@@ -10,7 +10,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "event_groups.h"
-#include "include/rtos_setup.h"
+#include "rtos_setup.h"
 
 #include "hardware/gpio.h"
 
