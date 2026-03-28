@@ -1,5 +1,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 
 #include "drivers/motor/motor.h"
 #include "apps/motor_app/motor_slate.h"
@@ -17,16 +18,19 @@ void telemetry_task(void *) {
         xEventGroupWaitBits(motor_slate.events, 
             TASK_BIT(TASK_TELEMETRY), pdFALSE, pdTRUE, portMAX_DELAY);
  
+        StateMsg_t msg = MSG_IDLE;
         switch (motor_slate.current_state) {
             case STATE_ENABLED:
                 LOG_INFO("In enabled state");
                 if (count % 5 == 0)
-                    xTaskNotifyGive(motor_slate.state_machine_handler);
+                    xQueueSend(motor_slate.state_queue_handle,
+                            &msg, 0);
                 break;
             case STATE_SAFE:
                 LOG_INFO("In safe state");
                 if (count % 5 == 0)
-                    xTaskNotifyGive(motor_slate.state_machine_handler);
+                    xQueueSend(motor_slate.state_queue_handle,
+                            &msg, 0);
                 break;
         };
         LOG_INFO("Sending telemetry package. Size: %d",

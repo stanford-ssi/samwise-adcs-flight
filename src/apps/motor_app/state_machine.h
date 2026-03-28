@@ -20,8 +20,9 @@ typedef enum {
 
 typedef enum {
     MSG_OFF = 0,
-    MSG_ON
-} OrchestratorMsg_t;
+    MSG_ON,
+    MSG_IDLE
+} StateMsg_t;
 
 #define TASK_BIT(id) (1 << (id))
 

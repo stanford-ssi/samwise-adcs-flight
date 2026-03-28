@@ -46,8 +46,6 @@ static StackType_t control_stack[256];
 static StaticTask_t state_machine_tcb;
 static StackType_t state_machine_stack[256];
 
-
-
 int main() {
 
     stdio_init_all();

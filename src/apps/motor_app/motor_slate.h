@@ -12,6 +12,7 @@
 #pragma once
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 
 #include "linalg.h"
 #include "pico/types.h"
@@ -47,6 +48,7 @@ typedef struct
     StateId_t current_state;
     TaskHandle_t state_machine_handler;
     EventGroupHandle_t events;
+    QueueHandle_t state_queue_handle;
 
     int rx_count;
 

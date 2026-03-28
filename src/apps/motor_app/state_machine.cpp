@@ -1,5 +1,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 #include "event_groups.h"
 
 #include "apps/motor_app/state_machine.h"
@@ -11,8 +12,17 @@ static StaticEventGroup_t event_group;
 
 static StateConfig_t state_configs[NUM_STATES];
 
+#define SENSOR_QUEUE_DEPTH 4
+static StaticQueue_t state_queue;
+uint8_t state_queue_buffer[SENSOR_QUEUE_DEPTH * sizeof(StateMsg_t)];
+
 void init_state_machine() {
     motor_slate.events = xEventGroupCreateStatic(&event_group);
+
+    motor_slate.state_queue_handle = xQueueCreateStatic(SENSOR_QUEUE_DEPTH,
+            sizeof(StateMsg_t),
+            state_queue_buffer,
+            &state_queue);
 
     state_configs[STATE_ENABLED].enabled_bits = TASK_BIT(TASK_WATCHDOG) 
         | TASK_BIT(TASK_POWER)
@@ -43,8 +53,10 @@ void state_machine_task(void *) {
     enter_state(STATE_SAFE);
 
     for(;;) {
-        uint32_t msg;
-        xTaskNotifyWait(0, UINT32_MAX, &msg, portMAX_DELAY);
+        StateMsg_t msg;
+        // xTaskNotifyWait(0, UINT32_MAX, &msg, portMAX_DELAY);
+        xQueueReceive(motor_slate.state_queue_handle,
+                &msg, portMAX_DELAY);
 
         switch (motor_slate.current_state) {
             case STATE_SAFE:
