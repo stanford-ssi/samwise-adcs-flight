@@ -21,6 +21,7 @@
 #define configTICK_CORE                     0
 
 /* --- Basic FreeRTOS config --- */
+#define configUSE_TASK_NOTIFICATIONS        1
 #define configUSE_PREEMPTION                1
 #define configUSE_IDLE_HOOK                 0
 #define configUSE_TICK_HOOK                 0
@@ -52,6 +53,7 @@
 #define INCLUDE_vTaskDelete                 1
 #define INCLUDE_vTaskSuspend                1
 #define INCLUDE_xTaskGetSchedulerState      1
+#define INCLUDE_xTaskDelayUntil             1
 
 /* Interrupt priority config for CM33 */
 #define configPRIO_BITS                     4
