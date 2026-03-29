@@ -54,11 +54,12 @@ void telemetry_task(void *) {
 
 void power_monitor_task(void *) {
 
-    TickType_t xLastWakeTime = xTaskGetTickCount();
 
     while (true) {
         xEventGroupWaitBits(motor_slate.events, 
                 TASK_BIT(TASK_POWER), pdFALSE, pdTRUE, portMAX_DELAY);
+
+        TickType_t xLastWakeTime = xTaskGetTickCount();
         xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1000)); 
 
         // Read voltage and current

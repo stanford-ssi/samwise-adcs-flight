@@ -51,7 +51,6 @@ int main() {
     stdio_init_all();
     sleep_ms(1000);
 
-    // TODO: INIT SHOULD ALL BE IN A SEPARATE STATE IN THE STATE MACHINE
     // Initialize
     init(&motor_slate);
 
