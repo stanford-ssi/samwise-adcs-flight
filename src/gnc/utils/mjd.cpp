@@ -9,7 +9,10 @@
 #include "mjd.h"
 #include "macros.h"
 #include "pico/printf.h"
-#include "apps/adcs_app/slate.h"
+
+#include "linalg.h"
+
+using namespace linalg::aliases;
 
 // MJD calculation constants
 static const float MJD_EPOCH_OFFSET =
@@ -18,17 +21,17 @@ static const float DAYS_PER_MONTH_COEFFICIENT =
     30.6001f; // Coefficient for month-to-day conversion
 
 // Runs in sensors task after GPS data is read
-void compute_MJD(slate_t *slate)
+float compute_MJD(float3 UTC_date, float gps_time)
 {
-    int Y = slate->UTC_date[0];     // YEAR at index 0
-    int M = slate->UTC_date[1];     // MONTH at index 1
-    int D_int = slate->UTC_date[2]; // DAY at index 2
+    int Y = UTC_date[0];     // YEAR at index 0
+    int M = UTC_date[1];     // MONTH at index 1
+    int D_int = UTC_date[2]; // DAY at index 2
 
     // GPS time format is HHMMSS (e.g., 210230 = 21:02:30)
-    int hh = static_cast<int>(slate->gps_time / 10000);
+    int hh = static_cast<int>(gps_time / 10000);
     int mm =
-        static_cast<int>((static_cast<int>(slate->gps_time) % 10000) / 100);
-    float ss = fmodf(slate->gps_time, 100);
+        static_cast<int>((static_cast<int>(gps_time) % 10000) / 100);
+    float ss = fmodf(gps_time, 100);
 
     float D = D_int + (hh + mm / 60.0f + ss / 3600.0f) / 24.0f;
 
@@ -46,6 +49,7 @@ void compute_MJD(slate_t *slate)
 
     float B = floorf(y / 400.0f) - floorf(y / 100.0f) + floorf(y / 4.0f);
 
-    slate->MJD = 365.0f * y - MJD_EPOCH_OFFSET + floorf(B) +
+    float MJD = 365.0f * y - MJD_EPOCH_OFFSET + floorf(B) +
                  floorf(DAYS_PER_MONTH_COEFFICIENT * (m + 1)) + D;
+    return MJD;
 }
