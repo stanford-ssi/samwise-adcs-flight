@@ -7,13 +7,17 @@
 
 #include "drivers/imu/imu.h"
 #include "drivers/magnetometer/magnetometer.h"
+#include "drivers/watchdog_motor/watchdog.h"
 
 #include "apps/adcs_new/params.h"
 #include "apps/adcs_new/states/states.h"
+#include "apps/adcs_new/tasks/tasks.h"
 
 typedef struct samwise_slate_rewrite {
-    IMU_data_t IMU_data;
-    magnetometer_data_t MAG_data;
+    imu_data_t imu_data;
+    magnetometer_data_t magnetometer_data;
+    watchdog_t watchdog;
     StateMachine_t state_machine;
+    TaskHandle_t task_handles[NTASKS];
 } slate_t;
 

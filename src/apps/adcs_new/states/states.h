@@ -1,6 +1,7 @@
 #pragma once
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 #include "event_groups.h"
 
 typedef enum {
@@ -22,6 +23,8 @@ typedef struct {
 #define SENSOR_QUEUE_DEPTH 4
 
 typedef struct {
+    // Keep track of the current state!
+    StateId_t current_state;
     StateConfig_t state_configs[NUM_STATES];
 
     StaticQueue_t state_queue;
@@ -30,6 +33,12 @@ typedef struct {
     EventGroupHandle_t events;
     StaticEventGroup_t event_group;
 
+    TaskHandle_t state_machine_handler;
+
+    QueueHandle_t state_queue_handle;
+
 } StateMachine_t;
 
 void init_state_machine();
+
+void enter_state(StateId_t state);

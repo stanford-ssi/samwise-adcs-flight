@@ -18,6 +18,7 @@
 
 #include "drivers/external/bmi270_legacy.h"
 #include "drivers/external/bmi2_defs.h"
+
 #include "linalg.h"
 #include "pico/stdlib.h"
 #include "pico/types.h"

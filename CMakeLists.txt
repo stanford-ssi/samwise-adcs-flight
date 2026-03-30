@@ -198,7 +198,7 @@ add_executable(samwise-adcs-rewrite
     ${drivers_neopixel}
     ${drivers_sun_sensors}
     ${drivers_picubed}
-    ${drivers_watchdog}
+    ${drivers_watchdog_motor}
     ${drivers_external}
     
     # System Components

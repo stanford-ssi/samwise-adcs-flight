@@ -19,7 +19,7 @@ typedef struct IMU_data {
     float w_mag;       // [rad/s] overall magnitude in body frame
     float3 a_body; // [km/s^2] specific force in body frame (non-gravitational
                    // acceleration)
-} IMU_data_t;
+} imu_data_t;
 
 /*!
  * @brief  Structure to store the interface related configurations
