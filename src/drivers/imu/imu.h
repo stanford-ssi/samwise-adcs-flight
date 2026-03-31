@@ -11,6 +11,16 @@ using namespace linalg::aliases;
 
 #pragma once
 
+typedef struct IMU_data {
+    bool imu_alive;
+    bool imu_data_valid;
+    float3 w_body_raw; // [rad/s] in body frame, raw reading
+    float3 w_body;     // [rad/s] in body frame, low-pass filtered
+    float w_mag;       // [rad/s] overall magnitude in body frame
+    float3 a_body; // [km/s^2] specific force in body frame (non-gravitational
+                   // acceleration)
+} imu_data_t;
+
 /*!
  * @brief  Structure to store the interface related configurations
  */

@@ -45,8 +45,8 @@ pico_sdk_init()
 # Apps
 file(GLOB adcs_main CONFIGURE_DEPENDS "src/apps/adcs_app/*.cpp")
 file(GLOB motor_main CONFIGURE_DEPENDS "src/apps/motor_app/*.cpp")
-file(GLOB motor_main_c CONFIGURE_DEPENDS "src/apps/motor_app/*.c")
 file(GLOB brick_main CONFIGURE_DEPENDS "src/apps/brick_app/*.cpp")
+file(GLOB adcs_new CONFIGURE_DEPENDS "src/apps/adcs_new/*.cpp")
 
 # Core
 file(GLOB top CONFIGURE_DEPENDS "src/*.cpp")
@@ -90,6 +90,10 @@ file(GLOB tasks_control CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/control/*.cpp
 file(GLOB tasks_navigation CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/navigation/*.cpp")
 file(GLOB tasks_sensors CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/sensors/*.cpp")
 file(GLOB tasks_system CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/system/*.cpp")
+
+# Rewrite
+file(GLOB new_tasks CONFIGURE_DEPENDS "src/apps/adcs_new/tasks/*.cpp")
+file(GLOB new_states CONFIGURE_DEPENDS "src/apps/adcs_new/states/*.cpp")
 
 # Tools
 file(GLOB tools CONFIGURE_DEPENDS "src/tools/*.cpp")
@@ -169,13 +173,84 @@ target_include_directories(samwise-adcs PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
 pico_add_extra_outputs(samwise-adcs)
 
+# ////////////////////////////////////
+# ADCS REWRITE
+# ////////////////////////////////////
+
+# First target (main adcs board)
+add_executable(samwise-adcs-rewrite
+    # Core
+    ${adcs_new}
+    ${top}
+
+    # GNC Algorithms
+    ${gnc}
+    ${gnc_utils}
+    ${gnc_estimation}
+
+    # Drivers
+    ${drivers}
+    ${drivers_power_monitor}
+    ${drivers_gps}
+    ${drivers_imu}
+    ${drivers_magnetometer}
+    ${drivers_magnetorquers}
+    ${drivers_mram}
+    ${drivers_neopixel}
+    ${drivers_sun_sensors}
+    ${drivers_picubed}
+    ${drivers_watchdog_motor}
+    ${drivers_external}
+    
+    # System Components
+    ${new_states}
+    # Tasks
+    ${new_tasks}
+    
+    # Tools
+    ${tools}
+
+    # FreeRTOS
+    ${FREERTOS_KERNEL_PATH}/timers.c
+)
+
+pico_set_program_name(samwise-adcs-rewrite "samwise_adcs_rewrite")
+pico_set_program_version(samwise-adcs-rewrite "0.1")
+
+# Modify the below lines to enable/disable output over UART/USB
+pico_enable_stdio_uart(samwise-adcs-rewrite 0)
+pico_enable_stdio_usb(samwise-adcs-rewrite 1)
+
+# Add the standard library to the build
+target_link_libraries(samwise-adcs-rewrite
+  hardware_i2c
+  hardware_spi
+  hardware_uart
+  hardware_flash
+  hardware_pwm
+  hardware_adc
+  pico_stdlib 
+  pico_platform
+  hardware_pio
+  FreeRTOS-Kernel
+)
+
+# Add the standard include files to the build
+target_include_directories(samwise-adcs-rewrite PRIVATE
+  ${CMAKE_CURRENT_LIST_DIR}
+  ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts or any other standard includes, if required
+)
+
+target_include_directories(samwise-adcs-rewrite PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+
+pico_add_extra_outputs(samwise-adcs-rewrite)
+
 # ////////////////////////////////
 # Second target (ADCS Motor Board)
 # ////////////////////////////////
 add_executable(samwise-adcs-motor
     # Core
     ${motor_main}
-    ${motor_main_c}
     ${top}
 
     # Drivers
@@ -218,8 +293,6 @@ target_include_directories(samwise-adcs-motor PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts or any other standard includes, if required
 )
-
-target_include_directories(samwise-adcs-motor PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
 
 target_include_directories(samwise-adcs-motor PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 

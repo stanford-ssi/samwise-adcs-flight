@@ -11,6 +11,13 @@
 #include "macros.h"
 using namespace linalg::aliases;
 
+// ADS7830 ADC Configuration (ADCS board v1.8)
+// Reads Y/Z photodiode sensors via I2C1
+constexpr float VREF_ADS7830 = 2.5f; // Internal reference voltage
+constexpr uint16_t BIT_RESOLUTION_ADS7830 = 8;
+constexpr uint16_t MAX_VALUE_ADS7830 =
+    (1 << BIT_RESOLUTION_ADS7830); // 8-bit ADC max value
+
 bool ads7830_init(void);
 
 bool ads7830_get_voltage(uint8_t channel, float *voltage, float vref);

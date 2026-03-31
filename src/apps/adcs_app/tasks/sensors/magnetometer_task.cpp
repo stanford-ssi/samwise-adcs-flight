@@ -75,13 +75,11 @@ void magnetometer_task_init(slate_t *slate)
  */
 void magnetometer_task_dispatch(slate_t *slate)
 {
-    if (!slate->magnetometer_alive)
-    {
+    if (!slate->magnetometer_alive) {
         return;
     }
 
-    switch (mag_state)
-    {
+    switch (mag_state) {
         case MAG_IDLE:
             // Check if 100ms has elapsed since last read cycle started
             if (absolute_time_diff_us(last_mag_read_start,

@@ -81,7 +81,7 @@ void gps_task_dispatch(slate_t *slate)
         slate->UTC_date[2] = static_cast<float>(day);   // Day
 
         // Compute MJD from GPS time/date
-        compute_MJD(slate);
+        slate->MJD = compute_MJD(slate->UTC_date, slate->gps_time);
 
         LOG_DEBUG("[sensor] Lat = %.6f, Lon = %.6f, Alt = %.3f, "
                   "Time = %.3f, "

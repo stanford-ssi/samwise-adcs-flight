@@ -19,6 +19,8 @@
 #include "pico/types.h"
 #include "scheduler/state_machine_types.h"
 
+#include "drivers/sun_sensors/sun_sensors.h"
+
 using namespace linalg::aliases;
 using namespace linalg;
 

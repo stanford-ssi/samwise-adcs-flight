@@ -10,6 +10,17 @@
 #include "linalg.h"
 using namespace linalg::aliases;
 
+typedef struct magnetometer_data {
+    // Magnetometer
+    bool magnetometer_alive;
+    bool magnetometer_data_valid;     // Flag for magnetometer data validity
+    absolute_time_t b_body_read_time; // Time of read [millisecond]
+    float3 b_body;     // calibrated magnetic field unit vector in body frame
+                       // [unitless]
+    float3 b_body_raw; // uncalibrated magnetic field in body frame [microtesla]
+    absolute_time_t last_mag_read_start;
+} magnetometer_data_t;
+
 // Error codes
 typedef enum
 {

@@ -5,7 +5,7 @@
 
 typedef struct
 {
-    uint pin;
+    uint32_t pin;
     absolute_time_t last_transition;
     bool set;
     uint64_t us_low;
