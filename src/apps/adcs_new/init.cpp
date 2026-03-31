@@ -6,6 +6,9 @@
 #include "drivers/imu/imu.h"
 #include "drivers/magnetometer/magnetometer.h"
 #include "drivers/watchdog_motor/watchdog.h"
+#include "drivers/sun_sensors/sun_sensors.h"
+#include "drivers/sun_sensors/rp2350b_adc.h"
+#include "drivers/sun_sensors/ads7830.h"
 
 extern slate_t slate;
 
@@ -146,6 +149,20 @@ void init_main() {
     // ==============================================================
     // GPS INIT 
     // ==============================================================
+    LOG_INFO("[sensor] Initializing GPS...");
+
+    bool gps_result = gps_init();
+    slate.gps_data.gps_alive = gps_result;
+
+    if (!gps_result)
+    {
+        LOG_ERROR("[sensor] Error initializing GPS - deactivating!");
+    }
+    slate.gps_data.gps_data_valid = false;
+
+    LOG_INFO("[sensor] GPS Initialization Complete! GPS alive: %s",
+             slate.gps_data.gps_alive ? "true" : "false");
+
     slate.task_handles[TASK_GPS] = xTaskCreateStatic(
         vTaskGPS,   // function
         "gps task",      // name
@@ -158,6 +175,45 @@ void init_main() {
     // ==============================================================
     // SUN SENSOR INIT 
     // ==============================================================
+    LOG_INFO("[sensor] Initializing sun sensors rp2350b adc...");
+    bool rp2350b_adc_result = rp2350b_adc_init();
+    if (!rp2350b_adc_result)
+    {
+        LOG_ERROR("[sensor] Error initializing rp2350b_adc - deactivating!");
+    }
+
+    LOG_INFO("[sensor] Initializing sun sensors ads7830...");
+    bool ads7830_result = ads7830_init();
+    if (!ads7830_result)
+    {
+        LOG_ERROR("[sensor] Error initializing ads7830 - deactivating!");
+    }
+
+    // Write alive status for each sun sensor
+    for (uint8_t i = 0; i < NUM_SUN_SENSORS; i++)
+    {
+        if (i < NUM_SUN_SENSORS / 2)
+        {
+            // First 8 sensors are from rp2350b adc
+            slate.sun_sensor.sun_sensor_alive[i] = rp2350b_adc_result;
+        }
+        else
+        {
+            // Last 8 sensors are from ads7830
+            slate.sun_sensor.sun_sensor_alive[i] = ads7830_result;
+        }
+        slate.sun_sensor.data_valid[i] = false;
+    }
+
+    slate.sun_sensor.sun_vector_valid = false;
+
+    LOG_INFO("[sensor] Sun sensors alive status:");
+    for (uint8_t i = 0; i < NUM_SUN_SENSORS; i++)
+    {
+        LOG_INFO("  Sensor %2d: %s", i,
+                 slate.sun_sensor.sun_sensor_alive[i] ? "true" : "false");
+    }
+
     slate.task_handles[TASK_SUN_SENSOR] = xTaskCreateStatic(
         vTaskSunSensor,   // function
         "sun sensor task",      // name

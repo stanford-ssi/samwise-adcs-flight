@@ -27,7 +27,7 @@ void init_state_machine() {
     slate.state_machine.state_configs[STATE_SAFE].enabled_bits
         = TASK_BIT(TASK_WATCHDOG) 
         | TASK_BIT(TASK_IMU)
-        // | TASK_BIT(TASK_GPS)
+        | TASK_BIT(TASK_GPS)
         | TASK_BIT(TASK_MAGNETOMETER);
 }
 

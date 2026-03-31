@@ -153,7 +153,7 @@ void sun_sensor_task_dispatch(slate_t *slate)
     //             slate->sun_sensor_intensities[15]);
 
     // --- Compute sun vector in body frame --- //
-    sun_sensors_to_vector(slate);
+    // slate->sun_vector_valid = sun_sensors_to_vector(&slate->sun_vector_body);
 
     if (slate->sun_vector_valid)
     {

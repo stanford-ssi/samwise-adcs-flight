@@ -186,6 +186,7 @@ add_executable(samwise-adcs-rewrite
     # GNC Algorithms
     ${gnc}
     ${gnc_utils}
+    ${gnc_estimation}
 
     # Drivers
     ${drivers}

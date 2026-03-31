@@ -70,11 +70,6 @@ constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 // ========================================================================
 //          MEASUREMENT THRESHOLDS
 // ========================================================================
-static constexpr uint16_t SUN_SENSOR_ACTIVE_THRESHOLD =
-    500; // TODO: determine what makes sense for our system in LEO (0.5 * max
-         // intensity think?) given the Earth's reflected light. this will limit
-         // our effective FOV for each sensor
-
 constexpr uint32_t GPS_DATA_EXPIRATION_MS =
     15000; // At 7.6 km/s, gives us 114 km max error
 
@@ -113,53 +108,6 @@ constexpr float MAGNETOMETER_VARIANCE =
 // ========================================================================
 //          SUN SENSORS
 // ========================================================================
-constexpr uint32_t NUM_SUN_SENSORS = 16; // 8 pyramid, 8 yz (+-)
-constexpr uint32_t NUM_SUN_SENSOR_OPPOSITE_PAIRS = 8;
-
-// Define all sun sensor normal vectors (NUM_SUN_SENSORS x 3 matrix)
-constexpr float3 SUN_SENSOR_NORMALS[NUM_SUN_SENSORS] = {
-    {SQRT_2_INV, 0, SQRT_2_INV},
-    {SQRT_2_INV, SQRT_2_INV, 0},
-    {SQRT_2_INV, 0, -SQRT_2_INV},
-    {SQRT_2_INV, -SQRT_2_INV, 0},
-    {-SQRT_2_INV, 0, SQRT_2_INV},
-    {-SQRT_2_INV, -SQRT_2_INV, 0},
-    {-SQRT_2_INV, 0, -SQRT_2_INV},
-    {-SQRT_2_INV, SQRT_2_INV, 0},
-    {0, -1, 0},
-    {0, -1, 0},
-    {0, 1, 0},
-    {0, 1, 0},
-    {0, 0, 1},
-    {0, 0, 1},
-    {0, 0, -1},
-    {0, 0, -1},
-};
-
-constexpr int SUN_SENSOR_OPPOSITE_PAIRS[NUM_SUN_SENSOR_OPPOSITE_PAIRS][2] = {
-    {0, 6},   {1, 5},  {2, 4}, {3, 7}, // pyramid opposites
-    {8, 10},  {9, 11},                 // Y+ vs Y- pairs
-    {12, 14}, {13, 15}                 // Z+ vs Z- pairs
-};
-
-// RP2350B ADC Configuration (ADCS board v1.8)
-// Reads sun pyramid sensors (GPIO 40-47)
-constexpr float VREF_RP2350B_ADC = 3.3f;
-constexpr uint16_t BIT_RESOLUTION_RP2350B_ADC = 12;
-constexpr uint16_t MAX_VALUE_RP2350B_ADC =
-    (1 << BIT_RESOLUTION_RP2350B_ADC); // 4095 for 12-bit ADC
-
-// ADS7830 ADC Configuration (ADCS board v1.8)
-// Reads Y/Z photodiode sensors via I2C1
-constexpr float VREF_ADS7830 = 2.5f; // Internal reference voltage
-constexpr uint16_t BIT_RESOLUTION_ADS7830 = 8;
-constexpr uint16_t MAX_VALUE_ADS7830 =
-    (1 << BIT_RESOLUTION_ADS7830); // 8-bit ADC max value
-
-// Scales sun sensor readings from different ADCs to match
-constexpr uint16_t SUN_SENSOR_SATURATION_VALUE = static_cast<uint16_t>(
-    VREF_ADS7830 / VREF_RP2350B_ADC * MAX_VALUE_RP2350B_ADC);
-
 // ========================================================================
 //          REACTION WHEELS
 // ========================================================================
