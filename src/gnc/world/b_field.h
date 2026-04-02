@@ -11,11 +11,23 @@
 
 #include "macros.h"
 #include "apps/adcs_app/slate.h"
+#include "drivers/gps/gps.h"
 
-bool compute_B(slate_t *slate);
+typedef struct b_field {
+    float3 b_eci;
+    float3 b_ecef;
+    
+    float3 b_rpt;
+    float3 b_enu;
+} b_field_t;
+
+bool compute_B(const gps_data_processed_t &gps_data, b_field_t &b_field);
 
 #ifdef TEST
-void test_b_field_reference_points(slate_t *slate);
-void test_b_field_mapping(slate_t *slate);
-void test_b_field_ecef_conversion(slate_t *slate);
+void test_b_field_reference_points(gps_data_processed_t &gps_data, 
+        b_field_t &b_field);
+void test_b_field_mapping(gps_data_processed_t &gps_data, 
+        b_field_t &b_field);
+void test_b_field_ecef_conversion(gps_data_processed_t &gps_data, 
+        b_field_t &b_field);
 #endif
