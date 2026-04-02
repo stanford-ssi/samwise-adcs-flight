@@ -16,15 +16,15 @@
  * information
  * @return void
  */
-void compute_sun_vector_eci(slate_t *slate)
-{
-    int Y = slate->UTC_date[0];     // YEAR at index 0
-    int M = slate->UTC_date[1];     // MONTH at index 1
-    int D_int = slate->UTC_date[2]; // DAY at index 2
+void compute_sun_vector_eci(const gps_data_processed_t &gps_data, 
+        sun_vector_t &sun_vector) {
+    int Y = gps_data.UTC_date[0];     // YEAR at index 0
+    int M = gps_data.UTC_date[1];     // MONTH at index 1
+    int D_int = gps_data.UTC_date[2]; // DAY at index 2
 
-    int hh = static_cast<int>(slate->UTC_time / 10000);
-    int mm = static_cast<int>(fmodf(slate->UTC_time, 10000) / 100);
-    float ss = fmodf(slate->UTC_time, 100);
+    int hh = static_cast<int>(gps_data.UTC_time / 10000);
+    int mm = static_cast<int>(fmodf(gps_data.UTC_time, 10000) / 100);
+    float ss = fmodf(gps_data.UTC_time, 100);
 
     float D = D_int + (hh + mm / 60.0f + ss / 3600.0f) / 24.0f;
 
@@ -71,25 +71,25 @@ void compute_sun_vector_eci(slate_t *slate)
     float rY = cos(epsilon_rad) * sin(lambda_rad);
     float rZ = sin(epsilon_rad) * sin(lambda_rad);
 
-    slate->sun_vector_eci = {rX, rY, rZ};
+    sun_vector.sun_vector_eci = {rX, rY, rZ};
 }
 
 #ifdef TEST
-void test_sun_vector_eci(slate_t *slate)
+void test_sun_vector_eci(gps_data_processed_t &gps_data, sun_vector_t &sun_vector)
 {
     // Initialize
-    slate->UTC_date = {2025, 7, 1};
-    slate->UTC_time = 161300.0f;
-    slate->sun_vector_eci = {0.0f, 0.0f, 0.0f};
+    gps_data.UTC_date = {2025, 7, 1};
+    gps_data.UTC_time = 161300.0f;
+    sun_vector.sun_vector_eci = {0.0f, 0.0f, 0.0f};
 
-    compute_sun_vector_eci(slate);
+    compute_sun_vector_eci(gps_data, sun_vector);
 
-    printf("x=", slate->sun_vector_eci[0]);
-    printf("y=", slate->sun_vector_eci[1]);
-    printf("z=", slate->sun_vector_eci[2]);
+    printf("x=", sun_vector.sun_vector_eci[0]);
+    printf("y=", sun_vector.sun_vector_eci[1]);
+    printf("z=", sun_vector.sun_vector_eci[2]);
 }
 
-void test_sun_vector_year(slate_t *slate)
+void test_sun_vector_year(gps_data_processed_t &gps_data, sun_vector_t &sun_vector)
 {
     printf("[sun vector test] Calculate sun vector over 1 year\n");
     // Test parameters
@@ -117,16 +117,16 @@ void test_sun_vector_year(slate_t *slate)
     for (int i = 0; i < total_samples; i++)
     {
         // Set current date and time
-        slate->UTC_date[0] = year;
-        slate->UTC_date[1] = month;
-        slate->UTC_date[2] = day;
-        slate->UTC_time = time_seconds;
-        slate->sun_vector_eci[0] = 0.0f;
-        slate->sun_vector_eci[1] = 0.0f;
-        slate->sun_vector_eci[2] = 0.0f;
+        gps_data.UTC_date[0] = year;
+        gps_data.UTC_date[1] = month;
+        gps_data.UTC_date[2] = day;
+        gps_data.UTC_time = time_seconds;
+        sun_vector.sun_vector_eci[0] = 0.0f;
+        sun_vector.sun_vector_eci[1] = 0.0f;
+        sun_vector.sun_vector_eci[2] = 0.0f;
 
         // Compute sun vector
-        compute_sun_vector_eci(slate);
+        compute_sun_vector_eci(gps_data, sun_vector);
 
         // Convert time_seconds to hours, minutes, seconds
         int hours = (int)(time_seconds / 3600.0f);
@@ -137,8 +137,8 @@ void test_sun_vector_year(slate_t *slate)
         // Using ISO format: YYYY-MM-DD HH:MM:SS
         printf("%04d-%02d-%02d %02d:%02d:%02d,%.6f,%.6f,%.6f\n", (int)year,
                (int)month, (int)day, hours, minutes, seconds,
-               slate->sun_vector_eci[0], slate->sun_vector_eci[1],
-               slate->sun_vector_eci[2]);
+               sun_vector.sun_vector_eci[0], sun_vector.sun_vector_eci[1],
+               sun_vector.sun_vector_eci[2]);
 
         // Increment time
         time_seconds += delta_hours * 3600.0f;
