@@ -5,6 +5,8 @@
 using namespace linalg;
 using namespace linalg::aliases;
 
+#include "pico/time.h"
+
 #include "macros.h"
 
 #include "apps/adcs_new/tasks/tasks.h"
@@ -18,7 +20,8 @@ using namespace linalg::aliases;
 #include "gnc/estimation/sun_sensor_to_vector.h"
 #include "gnc/utils/mjd.h"
 #include "gnc/utils/utils.h"
-#include "pico/time.h"
+#include "gnc/world/b_field.h"
+#include "gnc/world/sun_vector.h"
 
 extern slate_t slate;
 
@@ -81,6 +84,12 @@ void vTaskGPS(void *) {
                       day, month, year, slate.gps_data.MJD);
 
             slate.gps_data.gps_data_valid = true;
+
+            // ======================================================
+            // UPDATE REFERENCE VECTORS
+            // ======================================================
+            compute_B(slate.gps_data, slate.b_field);
+            compute_sun_vector_eci(slate.gps_data, slate.sun_vector);
         }
 
         // GPS data stays valid within a time frame, but becomes "stale" outside of
