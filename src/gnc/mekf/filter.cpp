@@ -162,7 +162,7 @@ void SensorFusion::apply_residual(const float3 &obs_body, Vec6 &error_estimate) 
  * Takes as input the bias-corrected angular velocity and returns
  * the discrete dynamics matrix F.
  */
-void AttitudeFilter::get_dynamics_matrix(const float3 &w_raw, float dt) {
+void AttitudeFilter::compute_dynamics_matrix(const float3 &w_raw, float dt) {
     float3 w = w_raw - bias_estimate_;
     omega_ = w;
     dynamics_mat_ =  {{
@@ -189,4 +189,23 @@ void AttitudeFilter::propagate_covariance() {
     mat_mul_square(p_step1.data[0], dynamics_transpose.data[0], p_step2.data[0], 6);
 
     mat_add(p_step2.data[0], q_dynamics_.data[0], covariance_mat_.data[0], 6, 6);
+}
+
+void AttitudeFilter::reset_error() {
+    float3 dq_vec = {error_estimate_.data[0],
+        error_estimate_.data[1], 
+        error_estimate_.data[2]};
+
+    float3 db = {error_estimate_.data[3],
+        error_estimate_.data[4],
+        error_estimate_.data[5]};
+
+    quaternion dq = rotation_quat(normalize(dq_vec), length(dq_vec)); 
+
+    quat_ = qmul(quat_, dq);
+
+    bias_estimate_ += db;  
+
+    error_estimate_ = {{0, 0, 0, 0, 0, 0}};
+
 }

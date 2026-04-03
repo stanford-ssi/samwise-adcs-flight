@@ -4,6 +4,8 @@
  * MEKF Filter
  */
 
+#pragma once
+
 #include "linalg.h"
 using namespace linalg;
 using namespace linalg::aliases;
@@ -61,8 +63,10 @@ class AttitudeFilter {
         Vec6 error_estimate_;
         // IMU bias estimate
         float3 bias_estimate_;
-    void get_dynamics_matrix(const float3 &w_raw, float dt);    
+    void compute_dynamics_matrix(const float3 &w_raw, float dt);    
+    void progagate_attitude();
     void propagate_covariance();
+    void reset_error();
 };
 
 
