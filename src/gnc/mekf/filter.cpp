@@ -191,6 +191,7 @@ AttitudeFilter::AttitudeFilter(float3x3 inertia_tensor,
     inertia_inverse_ = inverse(inertia_tensor_);
     var_q_ = var_q;
     var_b_ = var_b;
+    bias_estimate_ = {0, 0, 0};
     float q11 = var_q * dt + (var_b * dt * dt * dt) /3.0f;
     float q12 = -0.5f * var_b * dt * dt;
     float q22 = var_b * dt;

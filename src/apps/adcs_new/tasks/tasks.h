@@ -5,7 +5,8 @@
 typedef enum {
     TASK_STATE_MACHINE = 0,
     TASK_WATCHDOG,
-    TASK_SENSOR_FUSION,
+    TASK_MAGNETOMETER_FUSION,
+    TASK_SUN_VECTOR_FUSION,
     TASK_PROPAGATE,
     TASK_RESET_ESTIMATE,
     TASK_GPS,
@@ -42,7 +43,9 @@ typedef enum {
 // ==================================================================
 // SENSOR FUSION TASKS
 // ==================================================================
-void vTaskSensorFusion(void *);
+void vTaskMagnetometerFusion(void *);
+
+void vTaskSunVectorFusion(void *);
 
 void vTaskPropagate(void *);
 
