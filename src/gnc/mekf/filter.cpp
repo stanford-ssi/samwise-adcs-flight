@@ -175,6 +175,41 @@ void AttitudeFilter::compute_dynamics_matrix(const float3 &w_raw, float dt) {
         }};
 }
 
+/*
+ * Unperterbed attitude dynamics model
+ * dw/dt = J^-1 * (Jw x w)
+ */
+float3 AttitudeFilter::dynamics_model(const float3 &omega) {
+    return mul(inertia_inverse_, cross(mul(inertia_tensor_, omega), omega));
+}
+
+/*
+ * Runge Kutta Munthe Kaas attitude progagator
+ * Note that the derivative of omega is discarded
+ * because this propagator doesn't use it. 
+ */
+void AttitudeFilter::progagate_attitude(float dt) {
+
+    float3 l1 = omega_;
+    float3 k1 = dynamics_model(l1);
+
+    float3 l2 = l1 + 0.5f * dt * k1;
+    float3 k2 = dynamics_model(l2);
+
+    float3 l3 = l1 + 0.5f * dt * k2;
+    float3 k3 = dynamics_model(l3);
+
+    float3 l4 = l1 + dt * k3;
+    // float3 k4 = dynamics_model(l4);
+
+    float3 phi = (dt / 6.0f) * (l1 + 2 * l2 + 2 * l3 + l4);
+    // float3 dw = (dt / 6.0f) * (k1 + 2 * k2 + 2 * k3 + k4);
+
+    quaternion q_step = rotation_quat(normalize(phi), length(phi));
+
+    quat_ = qmul(quat_, q_step);
+}
+
 // Stack size: 36 + 36 + 36 = 108
 void AttitudeFilter::propagate_covariance() {
     Mat6x6 dynamics_transpose;
@@ -200,12 +235,11 @@ void AttitudeFilter::reset_error() {
         error_estimate_.data[4],
         error_estimate_.data[5]};
 
-    quaternion dq = rotation_quat(normalize(dq_vec), length(dq_vec)); 
+    quaternion q_error = rotation_quat(normalize(dq_vec), length(dq_vec)); 
 
-    quat_ = qmul(quat_, dq);
+    quat_ = qmul(quat_, q_error);
 
     bias_estimate_ += db;  
 
     error_estimate_ = {{0, 0, 0, 0, 0, 0}};
-
 }
