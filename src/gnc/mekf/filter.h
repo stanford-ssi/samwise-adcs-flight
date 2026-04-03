@@ -8,38 +8,42 @@
 using namespace linalg;
 using namespace linalg::aliases;
 
-// Sensitivity Matrix is a 3 row, 6 col matrix
-typedef mat<float, 3, 6> float3x6; 
-
-// Covariance Matrix F is a 6 row by 6 col matrix
-// Also gain matrix K
-typedef mat<float, 6, 6> float6x6;
-
-class AttitudeFilter {
-    float6x6 dynamics_mat;
-    float6x6 covariance_mat;
-    SensorFilter mag_sensor;
-    SensorFilter sun_sensor;
-    public:
-        // Body frame to inertial frame attitude
-        quaternion quat;
-        // Error corrected angular velocity
-        float3 omega;
-        // Error estimate composed of Δq and Δb
-        float6 error_estimate;
-        // IMU bias estimate
-        float3 bias_estimate;
-    
-    void update_covariance
+struct Mat3x6 {
+    float data[3][6];
 };
 
-class SensorFilter {
-    float var; // variance
-    float3x6 sensitivity_mat;
-    float6x6 gain_mat;
+struct Mat6x6 { 
+    float data[6][6];
+};
+
+
+class SensorFusion {
+    float _var; // variance
+    Mat3x6 sensitivity_mat_; // 3x6 matrix
+    Mat6x6 gain_mat_; // 6x6 matrix
     float3 ref_body;
-    void compute_sensitivity(&self, const quaternion &q, const float3 ref_eci);
-    void compute_gain(&self, const AttitudeFilter &a);
-}
+    void compute_sensitivity(const quaternion &q, const float3 &ref_eci);
+    // void compute_gain(const AttitudeFilter &a);
+};
+
+class AttitudeFilter {
+    Mat6x6 q_dynamics_;
+    Mat6x6 dynamics_mat_;
+    Mat6x6 covariance_mat_;
+    SensorFusion mag_sensor_;
+    SensorFusion sun_sensor_;
+    public:
+        // Body frame to inertial frame attitude
+        quaternion quat_;
+        // Error corrected angular velocity
+        float3 omega_;
+        // Error estimate composed of Δq and Δb
+        float error_estimate_[6];
+        // IMU bias estimate
+        float3 bias_estimate_;
+    void get_dynamics_matrix(const float3 &w_raw, float dt);    
+    void propagate_covariance();
+};
+
 
 
