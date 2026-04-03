@@ -20,14 +20,34 @@ constexpr Mat6x6 I6 = {{
     {0, 0, 0, 0, 0, 1}
 }};
 
+/*
+ * Sensor Fusion constructor class. Only needs a variance.
+ *
+ * Observed values and reference values are passed into it at runtime.
+ */
+SensorFusion::SensorFusion(float var) {
+    var_ = var;
+    q_sensor_ = {{
+        {var, 0, 0},
+        {0, var, 0},
+        {0, 0, var}
+    }};
+}
+
+/*
+ * Set the reference vector in eci
+ */
+void SensorFusion::set_reference(const float3 &ref_eci) {
+    ref_eci_ = ref_eci;
+}
+
 /* 
  * Takes as input the expected reference vector v, and returns
  * the sensitivity matrix H given that expected reference vector.
  */
-void SensorFusion::compute_sensitivity(const quaternion &q_body,
-        const float3 &ref_eci) 
+void SensorFusion::compute_sensitivity(const quaternion &q_body) 
 {
-    ref_body_ = qrot(qconj(q_body), ref_eci);
+    ref_body_ = qrot(qconj(q_body), ref_eci_);
     float3 v = ref_body_;
     sensitivity_mat_ =  {{
         {0, -v[2], v[1], 0, 0, 0},
@@ -155,6 +175,33 @@ void SensorFusion::apply_residual(const float3 &obs_body, Vec6 &error_estimate) 
             error_update.data,
             error_estimate.data,
             6, 1);
+}
+
+/*
+ * # Discrete Process Noise (monster equation and only approximate)
+ * Qk = np.block([[(var_w*dt + (var_u * dt**3)/3)*np.identity(3), 
+ *              -0.5*(var_u * dt**2)*np.identity(3)],
+ *              [-0.5*(var_u * dt**2)*np.identity(3), var_u * dt * np.identity(3)]])
+ */
+AttitudeFilter::AttitudeFilter(float3x3 inertia_tensor, 
+        float var_q, 
+        float var_b,
+        float dt) {
+    inertia_tensor_ = inertia_tensor_;
+    inertia_inverse_ = inverse(inertia_tensor_);
+    var_q_ = var_q;
+    var_b_ = var_b;
+    float q11 = var_q * dt + (var_b * dt * dt * dt) /3.0f;
+    float q12 = -0.5f * var_b * dt * dt;
+    float q22 = var_b * dt;
+    q_dynamics_ = {{
+        {q11, 0, 0, q12, 0, 0},
+        {0, q11, 0, 0, q12, 0},
+        {0, 0, q11, 0, 0, q12},
+        {q12, 0, 0, q22, 0, 0},
+        {0, q12, 0, 0, q22, 0},
+        {0, 0, q12, 0, 0, q22}
+    }};
 }
 
 

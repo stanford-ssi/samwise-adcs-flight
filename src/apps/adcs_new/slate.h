@@ -35,9 +35,10 @@ typedef struct samwise_slate_rewrite {
     b_field_t b_field;
 
     // MEKF
-    SensorFusion magnetometer_fusion;
-    SensorFusion sun_vector_fusion;
-    AttitudeFilter attitude_filter;
+    SensorFusion magnetometer_fusion = SensorFusion(0.01);
+    SensorFusion sun_vector_fusion = SensorFusion(0.01);
+    AttitudeFilter attitude_filter = AttitudeFilter(I_BODY,
+            0.001f, 0.01f, 0.05f);
 
     // UTIL
     StateMachine_t state_machine;
