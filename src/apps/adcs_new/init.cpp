@@ -12,7 +12,6 @@
 
 extern slate_t slate;
 
-
 static StaticTask_t watchdog_tcb;
 static StackType_t  watchdog_stack[256];
 
@@ -31,6 +30,17 @@ static StackType_t imu_stack[256];
 static StaticTask_t sun_sensor_tcb;
 static StackType_t sun_sensor_stack[256];
 
+static StaticTask_t sun_sensor_fusion_tcb;
+static StackType_t sun_sensor_fusion_stack[256];
+
+static StaticTask_t magnetometer_fusion_tcb;
+static StackType_t magnetometer_fusion_stack[256];
+
+static StaticTask_t attitude_propagate_tcb;
+static StackType_t attitude_propagate_stack[256];
+
+static StaticTask_t reset_estimate_tcb;
+static StackType_t reset_estimate_stack[256];
 
 static void init_i2c_buses() {
     // Initialize I2c pins and buses
@@ -130,9 +140,6 @@ void init_main() {
 
     slate.magnetometer_data.magnetometer_data_valid = false;
 
-    // Initialize state machine
-    // slate.magnetometer_data.last_mag_read_start = get_absolute_time();
-
     LOG_INFO(
         "[sensor] Magnetometer Initialization Complete! Magnetometer alive: %s",
         slate.magnetometer_data.magnetometer_alive ? "true" : "false");
@@ -223,4 +230,40 @@ void init_main() {
         sun_sensor_stack,  // stack buffer
         &sun_sensor_tcb    // TCB buffer
     );
+
+    // ==============================================================
+    // INIT SENSOR FUSION 
+    // ==============================================================
+
+    slate.task_handles[TASK_SUN_VECTOR_FUSION] = xTaskCreateStatic(
+        vTaskSunVectorFusion,   // function
+        "sun sensor fusion task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        sun_sensor_fusion_stack,  // stack buffer
+        &sun_sensor_fusion_tcb    // TCB buffer
+    );
+
+    slate.task_handles[TASK_MAGNETOMETER_FUSION] = xTaskCreateStatic(
+        vTaskMagnetometerFusion,   // function
+        "magnetometer fusion task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        magnetometer_fusion_stack,  // stack buffer
+        &magnetometer_fusion_tcb    // TCB buffer
+    );
+
+    slate.task_handles[TASK_PROPAGATE] = xTaskCreateStatic(
+        vTaskPropagate,   // function
+        "attitude propagation task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        attitude_propagate_stack,  // stack buffer
+        &attitude_propagate_tcb    // TCB buffer
+    );
+
+
 }

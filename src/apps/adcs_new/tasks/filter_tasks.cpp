@@ -70,8 +70,23 @@ void vTaskSunVectorFusion(void *) {
 #endif
 }
 
-void vTaskPropagate(void *);
+void vTaskPropagate(void *) {
+    for(;;) {
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_PROPAGATE));
+        TASK_LOOP_MS(20); // 50 Hz
+        slate.attitude_filter.compute_dynamics_matrix(
+                slate.imu_data.w_body, 0.02f); 
+        slate.attitude_filter.propagate_covariance();
+        slate.attitude_filter.progagate_attitude(0.02f);
+    }
+}
 
-void vTaskResetEstimate(void *);
+void vTaskResetEstimate(void *) { 
+    for(;;) {
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_RESET_ESTIMATE));
+        TASK_LOOP_MS(200); // 50 Hz
+        slate.attitude_filter.reset_error();
+    }
+}
 
 

@@ -7,6 +7,7 @@
 typedef enum {
     STATE_SAFE = 0,
     STATE_ENABLED,
+    STATE_FUSION,
     NUM_STATES
 } StateId_t;
 
