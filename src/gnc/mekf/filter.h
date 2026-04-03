@@ -8,6 +8,23 @@
 using namespace linalg;
 using namespace linalg::aliases;
 
+struct Vec6 {
+    float data[6];
+};
+
+struct Vec3 {
+    float data[3];
+};
+
+struct Mat3x3 {
+    float data[3][3];   
+};
+
+
+struct Mat6x3 {
+    float data[6][3];
+};
+
 struct Mat3x6 {
     float data[3][6];
 };
@@ -20,10 +37,13 @@ struct Mat6x6 {
 class SensorFusion {
     float _var; // variance
     Mat3x6 sensitivity_mat_; // 3x6 matrix
-    Mat6x6 gain_mat_; // 6x6 matrix
-    float3 ref_body;
+    Mat6x3 gain_mat_; // 6x6 matrix
+    Mat3x3 q_sensor_;
+    float3 ref_body_;
     void compute_sensitivity(const quaternion &q, const float3 &ref_eci);
-    // void compute_gain(const AttitudeFilter &a);
+    void compute_gain(const Mat6x6 &covariance_mat);
+    void propagate_covariance_sensor(Mat6x6 &covariance_mat);
+    void apply_residual(const float3 &obs_body, Vec6 &error_estimate);
 };
 
 class AttitudeFilter {
@@ -38,7 +58,7 @@ class AttitudeFilter {
         // Error corrected angular velocity
         float3 omega_;
         // Error estimate composed of Δq and Δb
-        float error_estimate_[6];
+        Vec6 error_estimate_;
         // IMU bias estimate
         float3 bias_estimate_;
     void get_dynamics_matrix(const float3 &w_raw, float dt);    

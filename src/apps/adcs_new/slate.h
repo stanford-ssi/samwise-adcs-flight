@@ -11,6 +11,7 @@
 #include "drivers/watchdog_motor/watchdog.h"
 #include "drivers/sun_sensors/sun_sensors.h"
 
+#include "gnc/mekf/filter.h"
 #include "gnc/world/sun_vector.h"
 #include "gnc/world/b_field.h"
 
@@ -32,6 +33,11 @@ typedef struct samwise_slate_rewrite {
     // DATA
     sun_vector_t sun_vector;
     b_field_t b_field;
+
+    // MEKF
+    SensorFusion magnetometer_fusion;
+    SensorFusion sun_vector_fusion;
+    AttitudeFilter attitude_filter;
 
     // UTIL
     StateMachine_t state_machine;
