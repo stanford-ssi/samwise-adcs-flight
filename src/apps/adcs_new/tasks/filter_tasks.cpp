@@ -33,7 +33,6 @@ void vTaskMagnetometerFusion(void *) {
 
 void vTaskSunVectorFusion(void *) {
 #ifdef GRAVITY_SENSOR
-    LOG_DEBUG("[fusion] Running gravity sensor mode");
     float3 reference = {0, 0, 1};
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION));
@@ -85,6 +84,11 @@ void vTaskResetEstimate(void *) {
     for(;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_RESET_ESTIMATE));
         TASK_LOOP_MS(200); // 50 Hz
+        LOG_DEBUG("[progagator] error reset bias: [%f, %f, %f]",
+                slate.attitude_filter.bias_estimate_.x,
+                slate.attitude_filter.bias_estimate_.y,
+                slate.attitude_filter.bias_estimate_.z
+                );
         slate.attitude_filter.reset_error();
     }
 }

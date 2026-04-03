@@ -29,7 +29,7 @@ extern slate_t slate;
 void vTaskGPS(void *) {
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_GPS));
-        TASK_LOOP_MS(10);
+        TASK_LOOP_MS(200);
 
         LOG_DEBUG("[sensor] GPS world task dispatching...");
         if (!slate.gps_data.gps_alive)
@@ -90,6 +90,15 @@ void vTaskGPS(void *) {
             // ======================================================
             compute_B(slate.gps_data, slate.b_field);
             compute_sun_vector_eci(slate.gps_data, slate.sun_vector);
+            // ======================================================
+            // SWITCH TO FUSION STATE
+            // ======================================================
+            if (slate.state_machine.current_state != STATE_FUSION) {
+                StateMsg_t msg = MSG_GPS_VALID;
+                xQueueSend(slate.state_machine.state_queue_handle,
+                        &msg, 0);
+            }
+
         }
 
         // GPS data stays valid within a time frame, but becomes "stale" outside of

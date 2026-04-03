@@ -14,7 +14,7 @@ typedef enum {
 typedef enum {
     MSG_OFF = 0,
     MSG_ON,
-    MSG_IDLE
+    MSG_GPS_VALID
 } StateMsg_t;
 
 typedef struct {

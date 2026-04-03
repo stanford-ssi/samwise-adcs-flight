@@ -46,6 +46,11 @@ void enter_state(StateId_t new_state) {
         case STATE_ENABLED:
             break;
         case STATE_FUSION:
+            for (int i = 0; i < 5; i++) {
+                LOG_INFO("////////////////////////");
+                LOG_INFO("SWITCHING TO FUSION MODE");
+            }
+            LOG_INFO("////////////////////////");
             break;
     };
 

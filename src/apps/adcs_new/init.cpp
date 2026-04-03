@@ -19,7 +19,7 @@ static StaticTask_t state_machine_tcb;
 static StackType_t state_machine_stack[256];
 
 static StaticTask_t gps_tcb;
-static StackType_t  gps_stack[256];
+static StackType_t  gps_stack[512];
 
 static StaticTask_t magnetometer_tcb;
 static StackType_t  magnetometer_stack[256];
@@ -173,7 +173,7 @@ void init_main() {
     slate.task_handles[TASK_GPS] = xTaskCreateStatic(
         vTaskGPS,   // function
         "gps task",      // name
-        256,          // stack depth
+        512,          // stack depth
         nullptr,      // params
         2,            // priority
         gps_stack,  // stack buffer
@@ -265,5 +265,14 @@ void init_main() {
         &attitude_propagate_tcb    // TCB buffer
     );
 
+    slate.task_handles[TASK_RESET_ESTIMATE] = xTaskCreateStatic(
+        vTaskResetEstimate,   // function
+        "reset estimate task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        reset_estimate_stack,  // stack buffer
+        &reset_estimate_tcb    // TCB buffer
+    );
 
 }

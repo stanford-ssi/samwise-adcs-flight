@@ -28,13 +28,20 @@ void vTaskStateMachine(void *) {
                 &msg, 
                 portMAX_DELAY);
 
-        switch (slate.state_machine.current_state) {
-            case STATE_SAFE:
-                enter_state(STATE_ENABLED);
+        switch (msg) {
+            case MSG_GPS_VALID:
+                enter_state(STATE_FUSION);
                 break;
-            case STATE_ENABLED:
-                enter_state(STATE_SAFE);
+            case MSG_ON:
+                switch (slate.state_machine.current_state) {
+                    case STATE_SAFE:
+                        enter_state(STATE_ENABLED);
+                        break;
+                    case STATE_ENABLED:
+                        enter_state(STATE_SAFE);
+                        break;
+                };
                 break;
-        };
+        }
     }
 }
