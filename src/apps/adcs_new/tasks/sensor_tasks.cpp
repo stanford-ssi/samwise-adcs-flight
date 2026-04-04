@@ -25,7 +25,7 @@ using namespace linalg::aliases;
 
 extern slate_t slate;
 
-#define GPS_SPOOFING
+#define GPS_SPOOFING 1
 
 // This pretty much needs to be written anew
 void vTaskGPS(void *) {
@@ -33,7 +33,8 @@ void vTaskGPS(void *) {
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_GPS));
         TASK_LOOP_MS(200);
-#ifdef GPS_SPOOFING
+        LOG_INFO("GPS TASK");
+#if GPS_SPOOFING
         slate.gps_data.gps_lat = 37.424732f;
         slate.gps_data.gps_lon = -122.180336f;
         slate.gps_data.gps_alt = 0.060f;
@@ -54,9 +55,7 @@ void vTaskGPS(void *) {
             xQueueSend(slate.state_machine.state_queue_handle,
                     &msg, 0);
         }
-#endif
-
-#ifndef GPS_SPOOFING
+#else
         if (!slate.gps_data.gps_alive)
         {
             LOG_DEBUG("[sensor] Skipping GPS due to invalid initialization!");
@@ -167,7 +166,7 @@ void vTaskIMU(void *) {
             // Update magnitude
             slate.imu_data.w_mag = length(slate.imu_data.w_body);
 
-            LOG_INFO("[IMU/GYRO] w_body = [%.5f, %.5f, %.5f]", 
+            LOG_DEBUG("[IMU/GYRO] w_body = [%.5f, %.5f, %.5f]", 
                     slate.imu_data.w_body[0],
                     slate.imu_data.w_body[1],
                     slate.imu_data.w_body[2]);

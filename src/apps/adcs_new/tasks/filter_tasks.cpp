@@ -26,11 +26,12 @@ void vTaskMagnetometerFusion(void *) {
         uint32_t dt = absolute_time_diff_us(t_prev, t_now);
         t_prev = t_now;
         slate.magnetometer_fusion.set_reference(normalize(slate.b_field.b_enu));
-        LOG_INFO("[MAGNETOMETER FUSION] expected = [%f, %f, %f]",
+        LOG_INFO("[MAGNETOMETER FUSION] enu b_field = [%f, %f, %f]",
                 slate.b_field.b_enu.x,
                 slate.b_field.b_enu.y,
                 slate.b_field.b_enu.z
                 );
+        float3 raw_obs = normalize(slate.magnetometer_data.b_body_raw);
         slate.magnetometer_fusion.compute_sensitivity(
                 slate.attitude_filter.quat_);
         slate.magnetometer_fusion.compute_gain(
@@ -38,7 +39,7 @@ void vTaskMagnetometerFusion(void *) {
         slate.magnetometer_fusion.propagate_covariance_sensor(
                 slate.attitude_filter.covariance_mat_);
         slate.magnetometer_fusion.apply_residual(
-                normalize(slate.magnetometer_data.b_body), 
+                raw_obs,
                 slate.attitude_filter.error_estimate_);
         slate.attitude_filter.reset_error();
         LOG_INFO("[MAGNETOMETER FUSION] expected = [%f, %f, %f]",
@@ -47,9 +48,9 @@ void vTaskMagnetometerFusion(void *) {
                 slate.magnetometer_fusion.ref_body_.z
                 );
         LOG_INFO("[MAGNETOMETER FUSION] observation = [%f, %f, %f]",
-                slate.magnetometer_data.b_body.x,
-                slate.magnetometer_data.b_body.y,
-                slate.magnetometer_data.b_body.z
+                raw_obs.x,
+                raw_obs.y,
+                raw_obs.z
                );
     }
 }
@@ -137,11 +138,17 @@ void vTaskResetEstimate(void *) {
     for(;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_RESET_ESTIMATE));
         TASK_LOOP_MS(200); // 50 Hz
-        LOG_INFO("[error reset] error reset bias: [%f, %f, %f]",
+        LOG_INFO("[error reset] bias estimate: [%f, %f, %f]",
                 slate.attitude_filter.bias_estimate_.x,
                 slate.attitude_filter.bias_estimate_.y,
                 slate.attitude_filter.bias_estimate_.z
                 );
+        LOG_INFO("[error reset] w_body: [%f, %f, %f]",
+                slate.imu_data.w_body.x,
+                slate.imu_data.w_body.y,
+                slate.imu_data.w_body.z
+                );
+ 
         slate.attitude_filter.reset_error();
     }
 }

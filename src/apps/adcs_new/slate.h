@@ -38,7 +38,7 @@ typedef struct samwise_slate_rewrite {
     SensorFusion magnetometer_fusion = SensorFusion(0.01);
     SensorFusion sun_vector_fusion = SensorFusion(0.01);
     AttitudeFilter attitude_filter = AttitudeFilter(I_BODY,
-            0.00001f, IMU_GYRO_VARIANCE, 0.05f);
+            0.001f, IMU_GYRO_VARIANCE, 0.05f);
 
     // UTIL
     StateMachine_t state_machine;
