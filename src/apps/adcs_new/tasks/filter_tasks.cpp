@@ -18,6 +18,10 @@ void vTaskMagnetometerFusion(void *) {
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION));
         TASK_LOOP_MS(100); // 10 Hz
+        LOG_DEBUG("[MAGNETOMETER FUSION] ref = [%f, %f, %f]",
+                slate.b_field.b_eci.x,
+                slate.b_field.b_eci.y,
+                slate.b_field.b_eci.z);
         slate.magnetometer_fusion.set_reference(slate.b_field.b_eci);
         slate.magnetometer_fusion.compute_sensitivity(
                 slate.attitude_filter.quat_);
@@ -37,6 +41,10 @@ void vTaskSunVectorFusion(void *) {
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION));
         TASK_LOOP_MS(50); // 20 Hz
+        LOG_DEBUG("[GRAVITY FUSION] ref = [%f, %f, %f]",
+                reference.x,
+                reference.y,
+                reference.z);
         slate.magnetometer_fusion.set_reference(reference);
         slate.magnetometer_fusion.compute_sensitivity(
                 slate.attitude_filter.quat_);

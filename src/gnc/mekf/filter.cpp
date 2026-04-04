@@ -3,6 +3,8 @@
  *
  * MEKF Filter
  */
+
+#include "macros.h"
 #include "linalg.h"
 using namespace linalg;
 using namespace linalg::aliases;
@@ -22,7 +24,6 @@ constexpr Mat6x6 I6 = {{
 
 /*
  * Sensor Fusion constructor class. Only needs a variance.
- *
  * Observed values and reference values are passed into it at runtime.
  */
 SensorFusion::SensorFusion(float var) {
@@ -48,6 +49,10 @@ void SensorFusion::set_reference(const float3 &ref_eci) {
 void SensorFusion::compute_sensitivity(const quaternion &q_body) 
 {
     ref_body_ = qrot(qconj(q_body), ref_eci_);
+    LOG_DEBUG("[sensor_fusion] ref_body = [%f, %f, %f]",
+            ref_body_.x,
+            ref_body_.y,
+            ref_body_.z);
     float3 v = ref_body_;
     sensitivity_mat_ =  {{
         {0, -v[2], v[1], 0, 0, 0},
@@ -100,7 +105,7 @@ void SensorFusion::compute_gain(const Mat6x6 &covariance_mat) {
             3);
 
     // P (6x6) @ H.T (6x3) -> (6x3)
-    mat_mul(sensitivity_mat_.data[0],
+    mat_mul(covariance_mat.data[0],
             h_transpose.data[0],
             p_mul_ht.data[0],
             6, 6, 3); 
@@ -125,8 +130,8 @@ void SensorFusion::propagate_covariance_sensor(Mat6x6 &covariance_mat) {
             6, 3, 6);
 
     // I6 - K @ H 
-    mat_sub(k_mul_h.data[0],
-            I6.data[0],
+    mat_sub(I6.data[0],
+            k_mul_h.data[0],
             sum.data[0],
             6, 6);
     
@@ -162,7 +167,7 @@ void SensorFusion::apply_residual(const float3 &obs_body, Vec6 &error_estimate) 
     mat_sub(&error.x,
             h_mul_dx.data,
             measurement_residual.data,
-            6, 1);
+            3, 1);
 
     // K (6x3) @ ( e - H @ dx) (3x1)
     mat_mul(gain_mat_.data[0],
@@ -187,16 +192,17 @@ AttitudeFilter::AttitudeFilter(float3x3 inertia_tensor,
         float var_q, 
         float var_b,
         float dt) {
-    inertia_tensor_ = inertia_tensor_;
+    inertia_tensor_ = inertia_tensor;
     inertia_inverse_ = inverse(inertia_tensor_);
     var_q_ = var_q;
     var_b_ = var_b;
     bias_estimate_ = {0, 0, 0};
+    quat_ = {0, 0, 0, 1};
     float q11 = var_q * dt + (var_b * dt * dt * dt) /3.0f;
     float q12 = -0.5f * var_b * dt * dt;
     float q22 = var_b * dt;
     q_dynamics_ = {{
-        {q11, 0, 0, q12, 0, 0},
+        {q11, 0.0f, 0, q12, 0, 0},
         {0, q11, 0, 0, q12, 0},
         {0, 0, q11, 0, 0, q12},
         {q12, 0, 0, q22, 0, 0},
@@ -253,7 +259,9 @@ void AttitudeFilter::progagate_attitude(float dt) {
     float3 phi = (dt / 6.0f) * (l1 + 2 * l2 + 2 * l3 + l4);
     // float3 dw = (dt / 6.0f) * (k1 + 2 * k2 + 2 * k3 + k4);
 
-    quaternion q_step = rotation_quat(normalize(phi), length(phi));
+    float angle = length(phi);
+    float3 axis = (angle > 1e-8f) ? phi / angle : float3{1,0,0};
+    quaternion q_step = rotation_quat(axis, angle);
 
     quat_ = qmul(quat_, q_step);
 }
@@ -275,17 +283,24 @@ void AttitudeFilter::propagate_covariance() {
 }
 
 void AttitudeFilter::reset_error() {
-    float3 dq_vec = {error_estimate_.data[0],
+    float3 dq_vec = {
+        error_estimate_.data[0],
         error_estimate_.data[1], 
-        error_estimate_.data[2]};
+        error_estimate_.data[2]
+    };
 
-    float3 db = {error_estimate_.data[3],
+    float3 db = {
+        error_estimate_.data[3],
         error_estimate_.data[4],
-        error_estimate_.data[5]};
+        error_estimate_.data[5]
+    };
 
-    quaternion q_error = rotation_quat(normalize(dq_vec), length(dq_vec)); 
+    float angle = length(dq_vec);
+    float3 axis = (angle > 1e-8f) ? dq_vec / angle : float3{1,0,0};
+    quaternion q_error = rotation_quat(axis, angle); 
 
     quat_ = qmul(quat_, q_error);
+    quat_ = normalize(quat_);
 
     bias_estimate_ += db;  
 
