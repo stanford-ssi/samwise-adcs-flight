@@ -152,12 +152,12 @@ bool compute_B(const gps_data_processed_t &gps_data, b_field_t &b_field)
     b_field.b_ecef = normalize(b_ecef_raw);
     b_field.b_eci = normalize(b_eci_raw);
 
-#ifdef TEST
+// #ifdef TEST
     // Define these fields only in test builds
     float3 b_rpt_raw = {b_r, b_phi, b_theta};
     b_field.b_rpt = normalize(b_rpt_raw);
     b_field.b_enu = normalize(b_enu_raw);
-#endif
+// #endif
 
     return true;
 }

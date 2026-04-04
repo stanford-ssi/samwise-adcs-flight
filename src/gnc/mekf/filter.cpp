@@ -266,6 +266,7 @@ void AttitudeFilter::progagate_attitude(float dt) {
     quaternion q_step = rotation_quat(axis, angle);
 
     quat_ = qmul(quat_, q_step);
+    quat_ = normalize(quat_);
 }
 
 // Stack size: 36 + 36 + 36 = 108

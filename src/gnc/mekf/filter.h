@@ -41,9 +41,9 @@ class SensorFusion {
     Mat3x6 sensitivity_mat_; // H - 3x6 matrix
     Mat6x3 gain_mat_; // K - 6x6 matrix
     Mat3x3 q_sensor_;
-    float3 ref_body_;
     float3 ref_eci_;
     public:
+    float3 ref_body_;
     SensorFusion(float var);
     void set_reference(const float3 &ref_eci);
     void compute_sensitivity(const quaternion &q);

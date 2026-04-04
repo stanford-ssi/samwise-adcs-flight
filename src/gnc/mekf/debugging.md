@@ -9,3 +9,9 @@ expect it to - it just slowly adds to the attitude as we would expect
 it to for a small bias estimate. It appears to stay normalized pretty
 well.
 
+
+# 1:08 pm
+The attitude handler returns sensible values for short term attitude
+determinations, but in the long term not so much. I wonder if this
+is due to accelerometer drift in addition to gyro drift. Accel drift
+is 2 orders of magnitude less, but idk.

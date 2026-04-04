@@ -11,6 +11,7 @@ using namespace linalg::aliases;
 #include "apps/adcs_new/slate.h"
 
 #include "gnc/mekf/filter.h"
+#include "gnc/utils/transforms.h"
 
 #define GRAVITY_SENSOR
 
@@ -24,17 +25,12 @@ void vTaskMagnetometerFusion(void *) {
         absolute_time_t t_now = get_absolute_time();
         uint32_t dt = absolute_time_diff_us(t_prev, t_now);
         t_prev = t_now;
-        LOG_DEBUG("[MAGNETOMETER FUSION] dt = [%d] ref = [%f, %f, %f]",
-                dt,
-                slate.b_field.b_eci.x,
-                slate.b_field.b_eci.y,
-                slate.b_field.b_eci.z);
-       LOG_DEBUG("[MAGNETOMETER FUSION] observation = [%f, %f, %f]",
-                slate.magnetometer_data.b_body.x,
-                slate.magnetometer_data.b_body.y,
-                slate.magnetometer_data.b_body.z
-               );
-        slate.magnetometer_fusion.set_reference(slate.b_field.b_eci);
+        slate.magnetometer_fusion.set_reference(normalize(slate.b_field.b_enu));
+        LOG_INFO("[MAGNETOMETER FUSION] expected = [%f, %f, %f]",
+                slate.b_field.b_enu.x,
+                slate.b_field.b_enu.y,
+                slate.b_field.b_enu.z
+                );
         slate.magnetometer_fusion.compute_sensitivity(
                 slate.attitude_filter.quat_);
         slate.magnetometer_fusion.compute_gain(
@@ -42,13 +38,23 @@ void vTaskMagnetometerFusion(void *) {
         slate.magnetometer_fusion.propagate_covariance_sensor(
                 slate.attitude_filter.covariance_mat_);
         slate.magnetometer_fusion.apply_residual(
-                slate.magnetometer_data.b_body, 
+                normalize(slate.magnetometer_data.b_body), 
                 slate.attitude_filter.error_estimate_);
+        slate.attitude_filter.reset_error();
+        LOG_INFO("[MAGNETOMETER FUSION] expected = [%f, %f, %f]",
+                slate.magnetometer_fusion.ref_body_.x,
+                slate.magnetometer_fusion.ref_body_.y,
+                slate.magnetometer_fusion.ref_body_.z
+                );
+        LOG_INFO("[MAGNETOMETER FUSION] observation = [%f, %f, %f]",
+                slate.magnetometer_data.b_body.x,
+                slate.magnetometer_data.b_body.y,
+                slate.magnetometer_data.b_body.z
+               );
     }
 }
 
 void vTaskSunVectorFusion(void *) {
-    stdio_flush();
 #ifdef GRAVITY_SENSOR
     float3 reference = {0, 0, 1};
     for (;;) {
@@ -56,25 +62,34 @@ void vTaskSunVectorFusion(void *) {
         TASK_LOOP_MS(50); // 20 Hz
         if (!slate.imu_data.imu_accel_valid)
             continue;
+        // float3 lla = {slate.gps_data.gps_lat, 
+        //     slate.gps_data.gps_lon, 
+        //     slate.gps_data.gps_alt};
+        // float3 ref_ecef = enu_to_ecef(reference, lla);
+        // float3 ref_eci = ecef_to_eci(ref_ecef, slate.gps_data.MJD);
+        // ref_eci = normalize(ref_eci);
         float3 a_obs = normalize(slate.imu_data.a_body);
-        LOG_DEBUG("[GRAVITY FUSION] reference = [%f, %f, %f]",
-                reference.x,
-                reference.y,
-                reference.z);
-        LOG_DEBUG("[GRAVITY FUSION] observation = [%f, %f, %f]",
-                a_obs.x,
-                a_obs.y,
-                a_obs.z);
-        slate.magnetometer_fusion.set_reference(reference);
-        slate.magnetometer_fusion.compute_sensitivity(
+        slate.sun_vector_fusion.set_reference(reference);
+        slate.sun_vector_fusion.compute_sensitivity(
                 slate.attitude_filter.quat_);
-        slate.magnetometer_fusion.compute_gain(
+        slate.sun_vector_fusion.compute_gain(
                 slate.attitude_filter.covariance_mat_);
-        slate.magnetometer_fusion.propagate_covariance_sensor(
+        slate.sun_vector_fusion.propagate_covariance_sensor(
                 slate.attitude_filter.covariance_mat_);
-        slate.magnetometer_fusion.apply_residual(
+        slate.sun_vector_fusion.apply_residual(
                 a_obs,
                 slate.attitude_filter.error_estimate_);
+        slate.attitude_filter.reset_error();
+        LOG_INFO("[GRAVITY FUSION] expected = [%f, %f, %f]",
+                slate.sun_vector_fusion.ref_body_.x,
+                slate.sun_vector_fusion.ref_body_.y,
+                slate.sun_vector_fusion.ref_body_.z
+                );
+        LOG_INFO("[GRAVITY FUSION] observation = [%f, %f, %f]",
+                a_obs.x,
+                a_obs.y,
+                a_obs.z
+               );
  
     }
 #endif
@@ -82,14 +97,14 @@ void vTaskSunVectorFusion(void *) {
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION));
         TASK_LOOP_MS(50); // 20 Hz
-        slate.magnetometer_fusion.set_reference(slate.sun_vector.sun_vector_eci);
-        slate.magnetometer_fusion.compute_sensitivity(
+        slate.sun_vector_fusion.set_reference(slate.sun_vector.sun_vector_eci);
+        slate.sun_vector_fusion.compute_sensitivity(
                 slate.attitude_filter.quat_);
-        slate.magnetometer_fusion.compute_gain(
+        slate.sun_vector_fusion.compute_gain(
                 slate.attitude_filter.covariance_mat_);
-        slate.magnetometer_fusion.propagate_covariance_sensor(
+        slate.sun_vector_fusion.propagate_covariance_sensor(
                 slate.attitude_filter.covariance_mat_);
-        slate.magnetometer_fusion.apply_residual(
+        slate.sun_vector_fusion.apply_residual(
                 slate.sun_sensor.sun_vector_body, 
                 slate.attitude_filter.error_estimate_);
  
