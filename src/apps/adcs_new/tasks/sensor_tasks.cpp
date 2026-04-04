@@ -25,13 +25,37 @@ using namespace linalg::aliases;
 
 extern slate_t slate;
 
+#define GPS_SPOOFING
+
 // This pretty much needs to be written anew
 void vTaskGPS(void *) {
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_GPS));
         TASK_LOOP_MS(200);
+#ifdef GPS_SPOOFING
+        slate.gps_data.gps_lat = 37.424732f;
+        slate.gps_data.gps_lon = -122.180336f;
+        slate.gps_data.gps_alt = 0.060f;
+        slate.gps_data.gps_time = 4744.00f;
+        slate.gps_data.MJD = 52512.03125f;
+        slate.gps_data.gps_data_valid = true;
+        // ======================================================
+        // UPDATE REFERENCE VECTORS
+        // ======================================================
+        compute_B(slate.gps_data, slate.b_field);
+        compute_sun_vector_eci(slate.gps_data, slate.sun_vector);
 
-        LOG_DEBUG("[sensor] GPS world task dispatching...");
+        // ======================================================
+        // SWITCH TO FUSION STATE
+        // ======================================================
+        if (slate.state_machine.current_state != STATE_FUSION) {
+            StateMsg_t msg = MSG_GPS_VALID;
+            xQueueSend(slate.state_machine.state_queue_handle,
+                    &msg, 0);
+        }
+#endif
+
+#ifndef GPS_SPOOFING
         if (!slate.gps_data.gps_alive)
         {
             LOG_DEBUG("[sensor] Skipping GPS due to invalid initialization!");
@@ -108,6 +132,7 @@ void vTaskGPS(void *) {
                   GPS_DATA_EXPIRATION_MS * 1000))    {
             slate.gps_data.gps_data_valid = false;
         }
+#endif
     } // end for(;;)
 } // end vTaskGPS
 

@@ -1,3 +1,5 @@
+#include "pico/time.h"
+
 #include "macros.h"
 
 #include "linalg.h"
@@ -15,10 +17,15 @@ using namespace linalg::aliases;
 extern slate_t slate;
 
 void vTaskMagnetometerFusion(void *) {
+    absolute_time_t t_prev = get_absolute_time();
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION));
         TASK_LOOP_MS(100); // 10 Hz
-        LOG_DEBUG("[MAGNETOMETER FUSION] ref = [%f, %f, %f]",
+        absolute_time_t t_now = get_absolute_time();
+        uint32_t dt = absolute_time_diff_us(t_prev, t_now);
+        t_prev = t_now;
+        LOG_DEBUG("[MAGNETOMETER FUSION] dt = [%d] ref = [%f, %f, %f]",
+                dt,
                 slate.b_field.b_eci.x,
                 slate.b_field.b_eci.y,
                 slate.b_field.b_eci.z);
