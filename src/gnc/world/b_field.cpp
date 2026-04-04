@@ -42,11 +42,11 @@ float sqrt_lut_get(int index)
  * @param slate Pointer to the slate structure containing GPS coordinates
  * @return true if computation was successful, false if there was an error
  */
-bool compute_B(slate_t *slate)
+bool compute_B(const gps_data_processed_t &gps_data, b_field_t &b_field)
 {
-    const float lat = slate->gps_lat; // latitude (-90 to 90)
-    const float lon = slate->gps_lon; // longitude (-180 to 180)
-    const float alt = slate->gps_alt; // altitude (km)
+    const float lat = gps_data.gps_lat; // latitude (-90 to 90)
+    const float lon = gps_data.gps_lon; // longitude (-180 to 180)
+    const float alt = gps_data.gps_alt; // altitude (km)
 
     // Input validation to prevent NaN
     if (alt < B_FIELD_LOW_ALTITUDE_THRESH || alt > B_FIELD_HIGH_ALTITUDE_THRESH)
@@ -147,17 +147,17 @@ bool compute_B(slate_t *slate)
     float3 b_ecef_raw = enu_to_ecef(
         b_enu_raw, float3(lat, lon, alt)); // Passive transform to ECEF frame
     float3 b_eci_raw = ecef_to_eci(
-        b_ecef_raw, slate->MJD); // Passive transformation to ECI frame
+        b_ecef_raw, gps_data.MJD); // Passive transformation to ECI frame
 
-    slate->b_ecef = normalize(b_ecef_raw);
-    slate->b_eci = normalize(b_eci_raw);
+    b_field.b_ecef = normalize(b_ecef_raw);
+    b_field.b_eci = normalize(b_eci_raw);
 
-#ifdef TEST
+// #ifdef TEST
     // Define these fields only in test builds
     float3 b_rpt_raw = {b_r, b_phi, b_theta};
-    slate->b_rpt = normalize(b_rpt_raw);
-    slate->b_enu = normalize(b_enu_raw);
-#endif
+    b_field.b_rpt = normalize(b_rpt_raw);
+    b_field.b_enu = normalize(b_enu_raw);
+// #endif
 
     return true;
 }
@@ -238,8 +238,8 @@ void compute_legendre_polynomials(int nmax, float theta,
 }
 
 #ifdef TEST
-void test_b_field_reference_points(slate_t *slate)
-{
+void test_b_field_reference_points(gps_data_processed_t &gps_data, 
+        b_field_t &b_field) {
     LOG_INFO("Testing B field reference points...");
 
     const float DOT_PRODUCT_THRESHOLD = 0.99f; // Directional accuracy threshold
@@ -268,11 +268,11 @@ void test_b_field_reference_points(slate_t *slate)
 
     for (int i = 0; i < num_tests; i++)
     {
-        slate->gps_lat = test_points[i].lat;
-        slate->gps_lon = test_points[i].lon;
-        slate->gps_alt = test_points[i].alt;
+        gps_data.gps_lat = test_points[i].lat;
+        gps_data.gps_lon = test_points[i].lon;
+        gps_data.gps_alt = test_points[i].alt;
 
-        compute_B(slate);
+        compute_B(gps_data, b_field);
 
         // Normalize expected vector for direction comparison
         float3 expected_B = {test_points[i].expected_b_r,
@@ -284,15 +284,15 @@ void test_b_field_reference_points(slate_t *slate)
         expected_B = expected_B / expected_magnitude;
 
         // Compute dot product for directional comparison
-        float dot_product = slate->b_rpt[0] * expected_B[0] +
-                            slate->b_rpt[1] * expected_B[1] +
-                            slate->b_rpt[2] * expected_B[2];
+        float dot_product = b_field.b_rpt[0] * expected_B[0] +
+                            b_field.b_rpt[1] * expected_B[1] +
+                            b_field.b_rpt[2] * expected_B[2];
 
         bool test_passed = dot_product >= DOT_PRODUCT_THRESHOLD;
 
         LOG_INFO("%s: %s", test_points[i].name, test_passed ? "PASS" : "FAIL");
         LOG_INFO("  Computed: b_r=%.10f, b_phi=%.10f, b_theta=%.10f",
-                 slate->b_rpt[0], slate->b_rpt[1], slate->b_rpt[2]);
+                 b_field.b_rpt[0], b_field.b_rpt[1], b_field.b_rpt[2]);
         LOG_INFO("  Expected: b_r=%.10f, b_phi=%.10f, b_theta=%.10f",
                  expected_B[0], expected_B[1], expected_B[2]);
         LOG_INFO("  Dot product: %.10f (threshold: %.10f)", dot_product,
@@ -305,8 +305,8 @@ void test_b_field_reference_points(slate_t *slate)
     LOG_INFO("B field reference tests: %d/%d passed", passed, num_tests);
 }
 
-void test_b_field_mapping(slate_t *slate)
-{
+void test_b_field_mapping(gps_data_processed_t &gps_data, 
+        b_field_t &b_field) {
     LOG_INFO("Generating B field mapping data...");
 
     const float ALTITUDE = 400.0f; // km
@@ -319,17 +319,17 @@ void test_b_field_mapping(slate_t *slate)
     {
         for (float lon = -179.9f; lon <= 179.9f; lon += LON_STEP)
         {
-            slate->gps_lat = lat;
-            slate->gps_lon = lon;
+            gps_data.gps_lat = lat;
+            gps_data.gps_lon = lon;
 
-            compute_B(slate);
+            compute_B(gps_data, b_field);
 
-            float magnitude = sqrtf(slate->b_rpt[0] * slate->b_rpt[0] +
-                                    slate->b_rpt[1] * slate->b_rpt[1] +
-                                    slate->b_rpt[2] * slate->b_rpt[2]);
+            float magnitude = sqrtf(b_field.b_rpt[0] * b_field.b_rpt[0] +
+                                    b_field.b_rpt[1] * b_field.b_rpt[1] +
+                                    b_field.b_rpt[2] * b_field.b_rpt[2]);
 
             printf("%.10f,%.10f,%.10f,%.10f,%.10f,%.10f,%.10f\n", ALTITUDE, lat,
-                   lon, slate->b_rpt[0], slate->b_rpt[1], slate->b_rpt[2],
+                   lon, b_field.b_rpt[0], b_field.b_rpt[1], b_field.b_rpt[2],
                    magnitude);
         }
     }
@@ -337,33 +337,33 @@ void test_b_field_mapping(slate_t *slate)
     LOG_INFO("B field mapping complete");
 }
 
-void test_b_field_ecef_conversion(slate_t *slate)
-{
+void test_b_field_ecef_conversion(gps_data_processed_t &gps_data, 
+        b_field_t &b_field) {
     LOG_INFO("Testing B field ECEF conversion...");
 
     // Test point: North Pole at satellite mean altitude
-    slate->gps_lat = 89.9f;
-    slate->gps_lon = 0.0f;
-    slate->gps_alt = 400.0f;
+    gps_data.gps_lat = 89.9f;
+    gps_data.gps_lon = 0.0f;
+    gps_data.gps_alt = 400.0f;
 
-    compute_B(slate);
+    compute_B(gps_data, b_field);
 
     const float MAGNITUDE_TOLERANCE =
         1e-6f; // Normalized vectors should have magnitude 1
     const float DOT_PRODUCT_THRESHOLD = 0.99f; // Directional accuracy threshold
 
     // Check that both RTP and ECEF fields are populated and normalized
-    float rtp_magnitude = sqrtf(slate->b_rpt[0] * slate->b_rpt[0] +
-                                slate->b_rpt[1] * slate->b_rpt[1] +
-                                slate->b_rpt[2] * slate->b_rpt[2]);
+    float rtp_magnitude = sqrtf(b_field.b_rpt[0] * b_field.b_rpt[0] +
+                                b_field.b_rpt[1] * b_field.b_rpt[1] +
+                                b_field.b_rpt[2] * b_field.b_rpt[2]);
 
-    float ecef_magnitude = sqrtf(slate->b_ecef[0] * slate->b_ecef[0] +
-                                 slate->b_ecef[1] * slate->b_ecef[1] +
-                                 slate->b_ecef[2] * slate->b_ecef[2]);
+    float ecef_magnitude = sqrtf(b_field.b_ecef[0] * b_field.b_ecef[0] +
+                                 b_field.b_ecef[1] * b_field.b_ecef[1] +
+                                 b_field.b_ecef[2] * b_field.b_ecef[2]);
 
-    float enu_magnitude = sqrtf(slate->b_enu[0] * slate->b_enu[0] +
-                                slate->b_enu[1] * slate->b_enu[1] +
-                                slate->b_enu[2] * slate->b_enu[2]);
+    float enu_magnitude = sqrtf(b_field.b_enu[0] * b_field.b_enu[0] +
+                                b_field.b_enu[1] * b_field.b_enu[1] +
+                                b_field.b_enu[2] * b_field.b_enu[2]);
 
     // Check normalization (magnitudes should be 1.0)
     bool rtp_normalized = fabsf(rtp_magnitude - 1.0f) < MAGNITUDE_TOLERANCE;
@@ -372,9 +372,9 @@ void test_b_field_ecef_conversion(slate_t *slate)
 
     // Test frame transforms preserve direction (dot product should be close to
     // 1)
-    float rtp_enu_dot = slate->b_rpt[0] * slate->b_enu[2] + // b_r -> Up
-                        slate->b_rpt[1] * slate->b_enu[0] + // b_phi -> East
-                        slate->b_rpt[2] * slate->b_enu[1];  // b_theta -> North
+    float rtp_enu_dot = b_field.b_rpt[0] * b_field.b_enu[2] + // b_r -> Up
+                        b_field.b_rpt[1] * b_field.b_enu[0] + // b_phi -> East
+                        b_field.b_rpt[2] * b_field.b_enu[1];  // b_theta -> North
 
     bool direction_preserved = rtp_enu_dot >= DOT_PRODUCT_THRESHOLD;
 
@@ -391,11 +391,11 @@ void test_b_field_ecef_conversion(slate_t *slate)
              rtp_enu_dot, DOT_PRODUCT_THRESHOLD);
     LOG_INFO("ECEF conversion test: %s", all_tests_passed ? "PASS" : "FAIL");
 
-    LOG_INFO("b_rpt:  [%.10f, %.10f, %.10f]", slate->b_rpt[0], slate->b_rpt[1],
-             slate->b_rpt[2]);
-    LOG_INFO("b_enu:  [%.10f, %.10f, %.10f]", slate->b_enu[0], slate->b_enu[1],
-             slate->b_enu[2]);
-    LOG_INFO("b_ecef: [%.10f, %.10f, %.10f]", slate->b_ecef[0],
-             slate->b_ecef[1], slate->b_ecef[2]);
+    LOG_INFO("b_rpt:  [%.10f, %.10f, %.10f]", b_field.b_rpt[0], b_field.b_rpt[1],
+             b_field.b_rpt[2]);
+    LOG_INFO("b_enu:  [%.10f, %.10f, %.10f]", b_field.b_enu[0], b_field.b_enu[1],
+             b_field.b_enu[2]);
+    LOG_INFO("b_ecef: [%.10f, %.10f, %.10f]", b_field.b_ecef[0],
+             b_field.b_ecef[1], b_field.b_ecef[2]);
 }
 #endif

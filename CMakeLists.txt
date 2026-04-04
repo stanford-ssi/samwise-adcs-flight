@@ -60,6 +60,7 @@ file(GLOB gnc_dynamics CONFIGURE_DEPENDS "src/gnc/dynamics/*.cpp")
 file(GLOB gnc_models CONFIGURE_DEPENDS "src/gnc/models/*.cpp")
 file(GLOB gnc_world CONFIGURE_DEPENDS "src/gnc/world/*.cpp")
 file(GLOB gnc_utils CONFIGURE_DEPENDS "src/gnc/utils/*.cpp")
+file(GLOB gnc_mekf CONFIGURE_DEPENDS "src/gnc/mekf/*.cpp")
 
 # Drivers
 file(GLOB drivers CONFIGURE_DEPENDS "src/drivers/*.cpp")
@@ -186,6 +187,8 @@ add_executable(samwise-adcs-rewrite
     # GNC Algorithms
     ${gnc}
     ${gnc_utils}
+    ${gnc_world}
+    ${gnc_mekf}
     ${gnc_estimation}
 
     # Drivers

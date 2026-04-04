@@ -4,8 +4,10 @@
 
 typedef enum {
     TASK_STATE_MACHINE = 0,
+    TASK_INIT,
     TASK_WATCHDOG,
-    TASK_SENSOR_FUSION,
+    TASK_MAGNETOMETER_FUSION,
+    TASK_SUN_VECTOR_FUSION,
     TASK_PROPAGATE,
     TASK_RESET_ESTIMATE,
     TASK_GPS,
@@ -23,7 +25,7 @@ typedef enum {
 #define TASK_BIT(id) (1 << (id))
 
 #define TASK_LOOP_MS(ms) TickType_t xLastWakeTime = xTaskGetTickCount(); \
-        xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1000))
+        xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(ms))
 
 #define WAIT_UNTIL_EVENTBIT(bit) \
     xEventGroupWaitBits(slate.state_machine.events, \
@@ -42,7 +44,9 @@ typedef enum {
 // ==================================================================
 // SENSOR FUSION TASKS
 // ==================================================================
-void vTaskSensorFusion(void *);
+void vTaskMagnetometerFusion(void *);
+
+void vTaskSunVectorFusion(void *);
 
 void vTaskPropagate(void *);
 
@@ -84,3 +88,5 @@ void vTaskPiCubedReceive(void *);
 void vTaskWatchdog(void *);
 
 void vTaskStateMachine(void *);
+
+void vTaskInit(void *);

@@ -12,7 +12,6 @@
 
 extern slate_t slate;
 
-
 static StaticTask_t watchdog_tcb;
 static StackType_t  watchdog_stack[256];
 
@@ -20,7 +19,7 @@ static StaticTask_t state_machine_tcb;
 static StackType_t state_machine_stack[256];
 
 static StaticTask_t gps_tcb;
-static StackType_t  gps_stack[256];
+static StackType_t  gps_stack[512];
 
 static StaticTask_t magnetometer_tcb;
 static StackType_t  magnetometer_stack[256];
@@ -31,6 +30,20 @@ static StackType_t imu_stack[256];
 static StaticTask_t sun_sensor_tcb;
 static StackType_t sun_sensor_stack[256];
 
+static StaticTask_t sun_sensor_fusion_tcb;
+static StackType_t sun_sensor_fusion_stack[256];
+
+static StaticTask_t magnetometer_fusion_tcb;
+static StackType_t magnetometer_fusion_stack[256];
+
+static StaticTask_t attitude_propagate_tcb;
+static StackType_t attitude_propagate_stack[256];
+
+static StaticTask_t reset_estimate_tcb;
+static StackType_t reset_estimate_stack[256];
+
+static StaticTask_t init_tcb;
+static StackType_t init_stack[256];
 
 static void init_i2c_buses() {
     // Initialize I2c pins and buses
@@ -52,11 +65,57 @@ static void init_i2c_buses() {
     i2c_init(i2c1, SAMWISE_ADCS_I2C1_BAUD);
 }
 
-void init_main() {
+void init_tasks() {
     // ==============================================================
     // INIT STATE MACHINE
     // ==============================================================
     init_state_machine();
+
+    slate.task_handles[TASK_INIT] = xTaskCreateStatic(
+        vTaskInit,
+        "init task",
+        256,
+        nullptr,
+        2,
+        init_stack,
+        &init_tcb
+    );
+
+    slate.task_handles[TASK_MAGNETOMETER] = xTaskCreateStatic(
+        vTaskMagnetometer,   // function
+        "magnetometer sensor task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        magnetometer_stack,  // stack buffer
+        &magnetometer_tcb    // TCB buffer
+    );
+
+    slate.task_handles[TASK_GPS] = xTaskCreateStatic(
+        vTaskGPS,   // function
+        "gps task",      // name
+        512,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        gps_stack,  // stack buffer
+        &gps_tcb    // TCB buffer
+    );
+ 
+
+    slate.task_handles[TASK_SUN_SENSOR] = xTaskCreateStatic(
+        vTaskSunSensor,   // function
+        "sun sensor task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        sun_sensor_stack,  // stack buffer
+        &sun_sensor_tcb    // TCB buffer
+    );
+
+    // ==============================================================
+    // INIT TASKS FUSION 
+    // ==============================================================
+
     slate.state_machine.state_machine_handler = xTaskCreateStatic(
         vTaskStateMachine,   // function
         "state machine",      // name
@@ -67,6 +126,72 @@ void init_main() {
         &state_machine_tcb    // TCB buffer
     );
 
+    slate.task_handles[TASK_WATCHDOG] = xTaskCreateStatic(
+        vTaskWatchdog,   // function
+        "watchdog task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        watchdog_stack,  // stack buffer
+        &watchdog_tcb    // TCB buffer
+    );
+
+    slate.task_handles[TASK_IMU] = xTaskCreateStatic(
+        vTaskIMU,   // function
+        "imu sensor task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        imu_stack,  // stack buffer
+        &imu_tcb    // TCB buffer
+    );
+
+    // ==============================================================
+    // INIT SENSOR FUSION 
+    // ==============================================================
+
+    slate.task_handles[TASK_SUN_VECTOR_FUSION] = xTaskCreateStatic(
+        vTaskSunVectorFusion,   // function
+        "sun sensor fusion task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        sun_sensor_fusion_stack,  // stack buffer
+        &sun_sensor_fusion_tcb    // TCB buffer
+    );
+
+    slate.task_handles[TASK_MAGNETOMETER_FUSION] = xTaskCreateStatic(
+        vTaskMagnetometerFusion,   // function
+        "magnetometer fusion task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        magnetometer_fusion_stack,  // stack buffer
+        &magnetometer_fusion_tcb    // TCB buffer
+    );
+
+    slate.task_handles[TASK_PROPAGATE] = xTaskCreateStatic(
+        vTaskPropagate,   // function
+        "attitude propagation task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        attitude_propagate_stack,  // stack buffer
+        &attitude_propagate_tcb    // TCB buffer
+    );
+
+    slate.task_handles[TASK_RESET_ESTIMATE] = xTaskCreateStatic(
+        vTaskResetEstimate,   // function
+        "reset estimate task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        reset_estimate_stack,  // stack buffer
+        &reset_estimate_tcb    // TCB buffer
+    );
+}
+
+void init_main() {
     // ==============================================================
     // INIT I2C
     // ==============================================================
@@ -77,15 +202,6 @@ void init_main() {
     // ==============================================================
     slate.watchdog = watchdog_mk(SAMWISE_ADCS_WATCHDOG_FEED);
     watchdog_init(&slate.watchdog);
-    slate.task_handles[TASK_WATCHDOG] = xTaskCreateStatic(
-        vTaskWatchdog,   // function
-        "watchdog task",      // name
-        256,          // stack depth
-        nullptr,      // params
-        2,            // priority
-        watchdog_stack,  // stack buffer
-        &watchdog_tcb    // TCB buffer
-    );
 
     // ==============================================================
     // IMU INIT 
@@ -98,22 +214,11 @@ void init_main() {
     {
         LOG_ERROR("[sensor] Error initializing IMU - deactivating!");
     }
-    LOG_INFO("Hello?");
 
     slate.imu_data.imu_data_valid = false;
 
     LOG_INFO("[sensor] IMU Initialization Complete! IMU alive: %s",
              slate.imu_data.imu_alive ? "true" : "false");
-
-    slate.task_handles[TASK_IMU] = xTaskCreateStatic(
-        vTaskIMU,   // function
-        "imu sensor task",      // name
-        256,          // stack depth
-        nullptr,      // params
-        2,            // priority
-        imu_stack,  // stack buffer
-        &imu_tcb    // TCB buffer
-    );
 
     // ==============================================================
     // MAGNETOMETER INIT 
@@ -130,22 +235,11 @@ void init_main() {
 
     slate.magnetometer_data.magnetometer_data_valid = false;
 
-    // Initialize state machine
-    // slate.magnetometer_data.last_mag_read_start = get_absolute_time();
-
     LOG_INFO(
         "[sensor] Magnetometer Initialization Complete! Magnetometer alive: %s",
         slate.magnetometer_data.magnetometer_alive ? "true" : "false");
 
-    slate.task_handles[TASK_MAGNETOMETER] = xTaskCreateStatic(
-        vTaskMagnetometer,   // function
-        "magnetometer sensor task",      // name
-        256,          // stack depth
-        nullptr,      // params
-        2,            // priority
-        magnetometer_stack,  // stack buffer
-        &magnetometer_tcb    // TCB buffer
-    );
+    
     // ==============================================================
     // GPS INIT 
     // ==============================================================
@@ -163,15 +257,6 @@ void init_main() {
     LOG_INFO("[sensor] GPS Initialization Complete! GPS alive: %s",
              slate.gps_data.gps_alive ? "true" : "false");
 
-    slate.task_handles[TASK_GPS] = xTaskCreateStatic(
-        vTaskGPS,   // function
-        "gps task",      // name
-        256,          // stack depth
-        nullptr,      // params
-        2,            // priority
-        gps_stack,  // stack buffer
-        &gps_tcb    // TCB buffer
-    );
     // ==============================================================
     // SUN SENSOR INIT 
     // ==============================================================
@@ -214,13 +299,5 @@ void init_main() {
                  slate.sun_sensor.sun_sensor_alive[i] ? "true" : "false");
     }
 
-    slate.task_handles[TASK_SUN_SENSOR] = xTaskCreateStatic(
-        vTaskSunSensor,   // function
-        "sun sensor task",      // name
-        256,          // stack depth
-        nullptr,      // params
-        2,            // priority
-        sun_sensor_stack,  // stack buffer
-        &sun_sensor_tcb    // TCB buffer
-    );
+
 }

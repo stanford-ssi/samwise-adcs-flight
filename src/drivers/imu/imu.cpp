@@ -475,6 +475,10 @@ static int8_t set_accel_config(struct bmi2_dev *dev)
     rslt = bmi2_get_sensor_config(&config, 1, dev);
     bmi2_error_codes_print_result(rslt);
 
+    // ADD THIS:
+    rslt = bmi2_map_data_int(BMI2_DRDY_INT, BMI2_INT1, dev);
+    bmi2_error_codes_print_result(rslt);
+
     if (rslt == BMI2_OK)
     {
         /* Set Output Data Rate - match gyro at 50Hz */
@@ -619,9 +623,6 @@ bool imu_init()
     LOG_INFO("PWR_CTRL register = 0x%02x (should have bits 2=acc, 3=gyro set)",
              pwr_ctrl);
 
-    sleep_ms(
-        50); // Give sensors time to power up - accel needs longer than gyro
-
     /* THEN configure the sensors */
     result = set_gyro_config(&bmi);
     bmi2_error_codes_print_result(result);
@@ -636,6 +637,9 @@ bool imu_init()
     {
         return false;
     }
+
+    sleep_ms(
+        50); // Give sensors time to power up - accel needs longer than gyro
 
     return true;
 }

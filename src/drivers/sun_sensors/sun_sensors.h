@@ -58,3 +58,4 @@ typedef struct sun_sensor_data {
     bool sun_vector_valid;
     float3 sun_vector_body;
 } sun_sensor_data_t;
+

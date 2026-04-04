@@ -34,10 +34,10 @@ void reference_vector_task_init(slate_t *slate)
 void reference_vector_task_dispatch(slate_t *slate)
 {
     // Compute sun vector in ECI frame
-    compute_sun_vector_eci(slate);
+    compute_sun_vector_eci(slate->gps_data, slate->sun_vector);
 
     // Compute magnetic field vector in ECI frame
-    compute_B(slate);
+    compute_B(slate->gps_data, slate->b_field);
 
     LOG_DEBUG("[world] sun_vector_eci = [%.6f, %.6f, %.6f]",
               slate->sun_vector_eci.x, slate->sun_vector_eci.y,

@@ -20,6 +20,9 @@
 #include "scheduler/state_machine_types.h"
 
 #include "drivers/sun_sensors/sun_sensors.h"
+#include "drivers/gps/gps.h"
+#include "gnc/world/b_field.h"
+#include "gnc/world/sun_vector.h"
 
 using namespace linalg::aliases;
 using namespace linalg;
@@ -57,6 +60,8 @@ typedef struct samwise_adcs_slate
     float3 b_body_raw; // uncalibrated magnetic field in body frame [microtesla]
 
     // GPS
+    gps_data_processed_t gps_data; // New updated field contains all of the below
+    // TODO: Delete the below
     bool gps_alive;
     bool gps_data_valid;
     absolute_time_t gps_read_time; // time of last valid/non-stale GPS read
@@ -125,9 +130,11 @@ typedef struct samwise_adcs_slate
     float UTC_time;  // [seconds]
     float MJD;       // Modified Julian Date
 
+    sun_vector_t sun_vector;
     float3 sun_vector_eci; // (unit vector)
 
     // Magnetic field reference
+    b_field_t b_field;
     float3 b_eci_raw; // Magnetic field reference in ECI frame (values in nT)
     float3 b_ecef;    // Magnetic field reference in ECEF frame (unit vector)
     float3 b_eci;     // Magnetic field reference in ECI frame (unit vector)

@@ -5,6 +5,8 @@
 using namespace linalg;
 using namespace linalg::aliases;
 
+#include "pico/time.h"
+
 #include "macros.h"
 
 #include "apps/adcs_new/tasks/tasks.h"
@@ -18,17 +20,42 @@ using namespace linalg::aliases;
 #include "gnc/estimation/sun_sensor_to_vector.h"
 #include "gnc/utils/mjd.h"
 #include "gnc/utils/utils.h"
-#include "pico/time.h"
+#include "gnc/world/b_field.h"
+#include "gnc/world/sun_vector.h"
 
 extern slate_t slate;
 
+#define GPS_SPOOFING 1
+
 // This pretty much needs to be written anew
 void vTaskGPS(void *) {
+    stdio_flush();
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_GPS));
-        TASK_LOOP_MS(10);
+        TASK_LOOP_MS(200);
+        LOG_INFO("GPS TASK");
+#if GPS_SPOOFING
+        slate.gps_data.gps_lat = 37.424732f;
+        slate.gps_data.gps_lon = -122.180336f;
+        slate.gps_data.gps_alt = 0.060f;
+        slate.gps_data.gps_time = 4744.00f;
+        slate.gps_data.MJD = 52512.03125f;
+        slate.gps_data.gps_data_valid = true;
+        // ======================================================
+        // UPDATE REFERENCE VECTORS
+        // ======================================================
+        compute_B(slate.gps_data, slate.b_field);
+        compute_sun_vector_eci(slate.gps_data, slate.sun_vector);
 
-        LOG_DEBUG("[sensor] GPS world task dispatching...");
+        // ======================================================
+        // SWITCH TO FUSION STATE
+        // ======================================================
+        if (slate.state_machine.current_state != STATE_FUSION) {
+            StateMsg_t msg = MSG_GPS_VALID;
+            xQueueSend(slate.state_machine.state_queue_handle,
+                    &msg, 0);
+        }
+#else
         if (!slate.gps_data.gps_alive)
         {
             LOG_DEBUG("[sensor] Skipping GPS due to invalid initialization!");
@@ -81,6 +108,21 @@ void vTaskGPS(void *) {
                       day, month, year, slate.gps_data.MJD);
 
             slate.gps_data.gps_data_valid = true;
+
+            // ======================================================
+            // UPDATE REFERENCE VECTORS
+            // ======================================================
+            compute_B(slate.gps_data, slate.b_field);
+            compute_sun_vector_eci(slate.gps_data, slate.sun_vector);
+            // ======================================================
+            // SWITCH TO FUSION STATE
+            // ======================================================
+            if (slate.state_machine.current_state != STATE_FUSION) {
+                StateMsg_t msg = MSG_GPS_VALID;
+                xQueueSend(slate.state_machine.state_queue_handle,
+                        &msg, 0);
+            }
+
         }
 
         // GPS data stays valid within a time frame, but becomes "stale" outside of
@@ -90,10 +132,12 @@ void vTaskGPS(void *) {
                   GPS_DATA_EXPIRATION_MS * 1000))    {
             slate.gps_data.gps_data_valid = false;
         }
+#endif
     } // end for(;;)
 } // end vTaskGPS
 
 void vTaskIMU(void *) {
+    stdio_flush();
 
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_IMU));
@@ -132,6 +176,8 @@ void vTaskIMU(void *) {
         bool accel_result = imu_get_accel(&slate.imu_data.a_body);
 
         if (accel_result) {
+            slate.imu_data.imu_accel_valid = true;
+
             LOG_DEBUG("[IMU/GYRO] a_body = [%.6f, %.6f, %.6f] km/s^2",
                     slate.imu_data.a_body.x,
                     slate.imu_data.a_body.y,

@@ -17,6 +17,7 @@ typedef struct IMU_data {
     float3 w_body_raw; // [rad/s] in body frame, raw reading
     float3 w_body;     // [rad/s] in body frame, low-pass filtered
     float w_mag;       // [rad/s] overall magnitude in body frame
+    bool imu_accel_valid;
     float3 a_body; // [km/s^2] specific force in body frame (non-gravitational
                    // acceleration)
 } imu_data_t;
