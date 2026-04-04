@@ -6,6 +6,7 @@
 
 typedef enum {
     STATE_SAFE = 0,
+    STATE_INIT,
     STATE_ENABLED,
     STATE_FUSION,
     NUM_STATES
@@ -13,6 +14,7 @@ typedef enum {
 
 typedef enum {
     MSG_OFF = 0,
+    MSG_INIT_DONE,
     MSG_ON,
     MSG_GPS_VALID
 } StateMsg_t;

@@ -4,6 +4,7 @@
 
 typedef enum {
     TASK_STATE_MACHINE = 0,
+    TASK_INIT,
     TASK_WATCHDOG,
     TASK_MAGNETOMETER_FUSION,
     TASK_SUN_VECTOR_FUSION,
@@ -87,3 +88,5 @@ void vTaskPiCubedReceive(void *);
 void vTaskWatchdog(void *);
 
 void vTaskStateMachine(void *);
+
+void vTaskInit(void *);

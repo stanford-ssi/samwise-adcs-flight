@@ -11,6 +11,7 @@ using namespace linalg::aliases;
 
 #include "filter.h"
 
+#include "constants.h"
 #include "gnc/utils/matrix_utils.h"
 
 constexpr Mat6x6 I6 = {{
@@ -256,8 +257,9 @@ void AttitudeFilter::progagate_attitude(float dt) {
     float3 l4 = l1 + dt * k3;
     // float3 k4 = dynamics_model(l4);
 
-    float3 phi = (dt / 6.0f) * (l1 + 2 * l2 + 2 * l3 + l4);
+    float3 phi = (dt / 6.0f) * (l1 + 2.0f * l2 + 2.0f * l3 + l4);
     // float3 dw = (dt / 6.0f) * (k1 + 2 * k2 + 2 * k3 + k4);
+    // phi = dt * l1;
 
     float angle = length(phi);
     float3 axis = (angle > 1e-8f) ? phi / angle : float3{1,0,0};

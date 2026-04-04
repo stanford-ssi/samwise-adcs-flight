@@ -17,6 +17,7 @@ using namespace linalg::aliases;
 extern slate_t slate;
 
 void vTaskMagnetometerFusion(void *) {
+    stdio_flush();
     absolute_time_t t_prev = get_absolute_time();
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION));
@@ -43,15 +44,21 @@ void vTaskMagnetometerFusion(void *) {
 }
 
 void vTaskSunVectorFusion(void *) {
+    stdio_flush();
 #ifdef GRAVITY_SENSOR
     float3 reference = {0, 0, 1};
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION));
         TASK_LOOP_MS(50); // 20 Hz
-        LOG_DEBUG("[GRAVITY FUSION] ref = [%f, %f, %f]",
+        float3 a_obs = normalize(slate.imu_data.a_body);
+        LOG_INFO("[GRAVITY FUSION] reference = [%f, %f, %f]",
                 reference.x,
                 reference.y,
                 reference.z);
+        LOG_INFO("[GRAVITY FUSION] observation = [%f, %f, %f]",
+                a_obs.x,
+                a_obs.y,
+                a_obs.z);
         slate.magnetometer_fusion.set_reference(reference);
         slate.magnetometer_fusion.compute_sensitivity(
                 slate.attitude_filter.quat_);
@@ -60,7 +67,7 @@ void vTaskSunVectorFusion(void *) {
         slate.magnetometer_fusion.propagate_covariance_sensor(
                 slate.attitude_filter.covariance_mat_);
         slate.magnetometer_fusion.apply_residual(
-                normalize(slate.imu_data.a_body),
+                a_obs,
                 slate.attitude_filter.error_estimate_);
  
     }
@@ -88,10 +95,18 @@ void vTaskPropagate(void *) {
     for(;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_PROPAGATE));
         TASK_LOOP_MS(20); // 50 Hz
+
+        // float3 w_fake = {0, 0, 2*PI*1.0f};
         slate.attitude_filter.compute_dynamics_matrix(
                 slate.imu_data.w_body, 0.02f); 
         slate.attitude_filter.propagate_covariance();
         slate.attitude_filter.progagate_attitude(0.02f);
+        LOG_INFO("[propagate] q = [%f, %f, %f, %f]",
+                slate.attitude_filter.quat_.x,
+                slate.attitude_filter.quat_.y,
+                slate.attitude_filter.quat_.z,
+                slate.attitude_filter.quat_.w
+                );
     }
 }
 
@@ -99,7 +114,7 @@ void vTaskResetEstimate(void *) {
     for(;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_RESET_ESTIMATE));
         TASK_LOOP_MS(200); // 50 Hz
-        LOG_DEBUG("[progagator] error reset bias: [%f, %f, %f]",
+        LOG_INFO("[error reset] error reset bias: [%f, %f, %f]",
                 slate.attitude_filter.bias_estimate_.x,
                 slate.attitude_filter.bias_estimate_.y,
                 slate.attitude_filter.bias_estimate_.z

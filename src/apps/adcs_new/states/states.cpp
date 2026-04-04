@@ -17,6 +17,9 @@ void init_state_machine() {
             sizeof(StateMsg_t),
             slate.state_machine.state_queue_buffer,
             &slate.state_machine.state_queue);
+    
+    slate.state_machine.state_configs[STATE_INIT].enabled_bits
+        = TASK_BIT(TASK_INIT);
 
     slate.state_machine.state_configs[STATE_ENABLED].enabled_bits
         = TASK_BIT(TASK_WATCHDOG)
@@ -35,8 +38,10 @@ void init_state_machine() {
         | TASK_BIT(TASK_IMU) | TASK_BIT(TASK_GPS)
         | TASK_BIT(TASK_MAGNETOMETER)
         | TASK_BIT(TASK_PROPAGATE) | TASK_BIT(TASK_RESET_ESTIMATE)
-        | TASK_BIT(TASK_MAGNETOMETER_FUSION)
+        // | TASK_BIT(TASK_MAGNETOMETER_FUSION)
         | TASK_BIT(TASK_SUN_VECTOR_FUSION);
+
+    enter_state(STATE_INIT);
 }
 
 void enter_state(StateId_t new_state) {

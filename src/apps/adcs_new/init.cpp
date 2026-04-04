@@ -42,6 +42,9 @@ static StackType_t attitude_propagate_stack[256];
 static StaticTask_t reset_estimate_tcb;
 static StackType_t reset_estimate_stack[256];
 
+static StaticTask_t init_tcb;
+static StackType_t init_stack[256];
+
 static void init_i2c_buses() {
     // Initialize I2c pins and buses
     gpio_init(SAMWISE_ADCS_I2C0_SCL);
@@ -62,87 +65,21 @@ static void init_i2c_buses() {
     i2c_init(i2c1, SAMWISE_ADCS_I2C1_BAUD);
 }
 
-void init_main() {
+void init_tasks() {
     // ==============================================================
     // INIT STATE MACHINE
     // ==============================================================
     init_state_machine();
-    slate.state_machine.state_machine_handler = xTaskCreateStatic(
-        vTaskStateMachine,   // function
-        "state machine",      // name
-        256,          // stack depth
-        nullptr,      // params
-        2,            // priority
-        state_machine_stack,  // stack buffer
-        &state_machine_tcb    // TCB buffer
+
+    slate.task_handles[TASK_INIT] = xTaskCreateStatic(
+        vTaskInit,
+        "init task",
+        256,
+        nullptr,
+        2,
+        init_stack,
+        &init_tcb
     );
-
-    // ==============================================================
-    // INIT I2C
-    // ==============================================================
-    init_i2c_buses();
-
-    // ==============================================================
-    // WATCHDOG INIT 
-    // ==============================================================
-    slate.watchdog = watchdog_mk(SAMWISE_ADCS_WATCHDOG_FEED);
-    watchdog_init(&slate.watchdog);
-    slate.task_handles[TASK_WATCHDOG] = xTaskCreateStatic(
-        vTaskWatchdog,   // function
-        "watchdog task",      // name
-        256,          // stack depth
-        nullptr,      // params
-        2,            // priority
-        watchdog_stack,  // stack buffer
-        &watchdog_tcb    // TCB buffer
-    );
-
-    // ==============================================================
-    // IMU INIT 
-    // ==============================================================
-    LOG_INFO("[sensor] Initializing IMU...");
-    bool imu_result = imu_init();
-    slate.imu_data.imu_alive = imu_result;
-
-    if (!imu_result)
-    {
-        LOG_ERROR("[sensor] Error initializing IMU - deactivating!");
-    }
-    LOG_INFO("Hello?");
-
-    slate.imu_data.imu_data_valid = false;
-
-    LOG_INFO("[sensor] IMU Initialization Complete! IMU alive: %s",
-             slate.imu_data.imu_alive ? "true" : "false");
-
-    slate.task_handles[TASK_IMU] = xTaskCreateStatic(
-        vTaskIMU,   // function
-        "imu sensor task",      // name
-        256,          // stack depth
-        nullptr,      // params
-        2,            // priority
-        imu_stack,  // stack buffer
-        &imu_tcb    // TCB buffer
-    );
-
-    // ==============================================================
-    // MAGNETOMETER INIT 
-    // ==============================================================
-    LOG_INFO("[sensor] Initializing magnetometer...");
-    rm3100_error_t magnetometer_result = rm3100_init();
-    slate.magnetometer_data.magnetometer_alive 
-        = (magnetometer_result == RM3100_OK);
-
-    if (magnetometer_result != RM3100_OK)
-    {
-        LOG_ERROR("[sensor] Error initializing magnetometer - deactivating!");
-    }
-
-    slate.magnetometer_data.magnetometer_data_valid = false;
-
-    LOG_INFO(
-        "[sensor] Magnetometer Initialization Complete! Magnetometer alive: %s",
-        slate.magnetometer_data.magnetometer_alive ? "true" : "false");
 
     slate.task_handles[TASK_MAGNETOMETER] = xTaskCreateStatic(
         vTaskMagnetometer,   // function
@@ -153,22 +90,6 @@ void init_main() {
         magnetometer_stack,  // stack buffer
         &magnetometer_tcb    // TCB buffer
     );
-    // ==============================================================
-    // GPS INIT 
-    // ==============================================================
-    LOG_INFO("[sensor] Initializing GPS...");
-
-    bool gps_result = gps_init();
-    slate.gps_data.gps_alive = gps_result;
-
-    if (!gps_result)
-    {
-        LOG_ERROR("[sensor] Error initializing GPS - deactivating!");
-    }
-    slate.gps_data.gps_data_valid = false;
-
-    LOG_INFO("[sensor] GPS Initialization Complete! GPS alive: %s",
-             slate.gps_data.gps_alive ? "true" : "false");
 
     slate.task_handles[TASK_GPS] = xTaskCreateStatic(
         vTaskGPS,   // function
@@ -179,47 +100,7 @@ void init_main() {
         gps_stack,  // stack buffer
         &gps_tcb    // TCB buffer
     );
-    // ==============================================================
-    // SUN SENSOR INIT 
-    // ==============================================================
-    LOG_INFO("[sensor] Initializing sun sensors rp2350b adc...");
-    bool rp2350b_adc_result = rp2350b_adc_init();
-    if (!rp2350b_adc_result)
-    {
-        LOG_ERROR("[sensor] Error initializing rp2350b_adc - deactivating!");
-    }
-
-    LOG_INFO("[sensor] Initializing sun sensors ads7830...");
-    bool ads7830_result = ads7830_init();
-    if (!ads7830_result)
-    {
-        LOG_ERROR("[sensor] Error initializing ads7830 - deactivating!");
-    }
-
-    // Write alive status for each sun sensor
-    for (uint8_t i = 0; i < NUM_SUN_SENSORS; i++)
-    {
-        if (i < NUM_SUN_SENSORS / 2)
-        {
-            // First 8 sensors are from rp2350b adc
-            slate.sun_sensor.sun_sensor_alive[i] = rp2350b_adc_result;
-        }
-        else
-        {
-            // Last 8 sensors are from ads7830
-            slate.sun_sensor.sun_sensor_alive[i] = ads7830_result;
-        }
-        slate.sun_sensor.data_valid[i] = false;
-    }
-
-    slate.sun_sensor.sun_vector_valid = false;
-
-    LOG_INFO("[sensor] Sun sensors alive status:");
-    for (uint8_t i = 0; i < NUM_SUN_SENSORS; i++)
-    {
-        LOG_INFO("  Sensor %2d: %s", i,
-                 slate.sun_sensor.sun_sensor_alive[i] ? "true" : "false");
-    }
+ 
 
     slate.task_handles[TASK_SUN_SENSOR] = xTaskCreateStatic(
         vTaskSunSensor,   // function
@@ -229,6 +110,40 @@ void init_main() {
         2,            // priority
         sun_sensor_stack,  // stack buffer
         &sun_sensor_tcb    // TCB buffer
+    );
+
+    // ==============================================================
+    // INIT TASKS FUSION 
+    // ==============================================================
+
+    slate.state_machine.state_machine_handler = xTaskCreateStatic(
+        vTaskStateMachine,   // function
+        "state machine",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        state_machine_stack,  // stack buffer
+        &state_machine_tcb    // TCB buffer
+    );
+
+    slate.task_handles[TASK_WATCHDOG] = xTaskCreateStatic(
+        vTaskWatchdog,   // function
+        "watchdog task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        watchdog_stack,  // stack buffer
+        &watchdog_tcb    // TCB buffer
+    );
+
+    slate.task_handles[TASK_IMU] = xTaskCreateStatic(
+        vTaskIMU,   // function
+        "imu sensor task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        imu_stack,  // stack buffer
+        &imu_tcb    // TCB buffer
     );
 
     // ==============================================================
@@ -274,5 +189,115 @@ void init_main() {
         reset_estimate_stack,  // stack buffer
         &reset_estimate_tcb    // TCB buffer
     );
+}
+
+void init_main() {
+    // ==============================================================
+    // INIT I2C
+    // ==============================================================
+    init_i2c_buses();
+
+    // ==============================================================
+    // WATCHDOG INIT 
+    // ==============================================================
+    slate.watchdog = watchdog_mk(SAMWISE_ADCS_WATCHDOG_FEED);
+    watchdog_init(&slate.watchdog);
+
+    // ==============================================================
+    // IMU INIT 
+    // ==============================================================
+    LOG_INFO("[sensor] Initializing IMU...");
+    bool imu_result = imu_init();
+    slate.imu_data.imu_alive = imu_result;
+
+    if (!imu_result)
+    {
+        LOG_ERROR("[sensor] Error initializing IMU - deactivating!");
+    }
+
+    slate.imu_data.imu_data_valid = false;
+
+    LOG_INFO("[sensor] IMU Initialization Complete! IMU alive: %s",
+             slate.imu_data.imu_alive ? "true" : "false");
+
+    // ==============================================================
+    // MAGNETOMETER INIT 
+    // ==============================================================
+    LOG_INFO("[sensor] Initializing magnetometer...");
+    rm3100_error_t magnetometer_result = rm3100_init();
+    slate.magnetometer_data.magnetometer_alive 
+        = (magnetometer_result == RM3100_OK);
+
+    if (magnetometer_result != RM3100_OK)
+    {
+        LOG_ERROR("[sensor] Error initializing magnetometer - deactivating!");
+    }
+
+    slate.magnetometer_data.magnetometer_data_valid = false;
+
+    LOG_INFO(
+        "[sensor] Magnetometer Initialization Complete! Magnetometer alive: %s",
+        slate.magnetometer_data.magnetometer_alive ? "true" : "false");
+
+    
+    // ==============================================================
+    // GPS INIT 
+    // ==============================================================
+    LOG_INFO("[sensor] Initializing GPS...");
+
+    bool gps_result = gps_init();
+    slate.gps_data.gps_alive = gps_result;
+
+    if (!gps_result)
+    {
+        LOG_ERROR("[sensor] Error initializing GPS - deactivating!");
+    }
+    slate.gps_data.gps_data_valid = false;
+
+    LOG_INFO("[sensor] GPS Initialization Complete! GPS alive: %s",
+             slate.gps_data.gps_alive ? "true" : "false");
+
+    // ==============================================================
+    // SUN SENSOR INIT 
+    // ==============================================================
+    LOG_INFO("[sensor] Initializing sun sensors rp2350b adc...");
+    bool rp2350b_adc_result = rp2350b_adc_init();
+    if (!rp2350b_adc_result)
+    {
+        LOG_ERROR("[sensor] Error initializing rp2350b_adc - deactivating!");
+    }
+
+    LOG_INFO("[sensor] Initializing sun sensors ads7830...");
+    bool ads7830_result = ads7830_init();
+    if (!ads7830_result)
+    {
+        LOG_ERROR("[sensor] Error initializing ads7830 - deactivating!");
+    }
+
+    // Write alive status for each sun sensor
+    for (uint8_t i = 0; i < NUM_SUN_SENSORS; i++)
+    {
+        if (i < NUM_SUN_SENSORS / 2)
+        {
+            // First 8 sensors are from rp2350b adc
+            slate.sun_sensor.sun_sensor_alive[i] = rp2350b_adc_result;
+        }
+        else
+        {
+            // Last 8 sensors are from ads7830
+            slate.sun_sensor.sun_sensor_alive[i] = ads7830_result;
+        }
+        slate.sun_sensor.data_valid[i] = false;
+    }
+
+    slate.sun_sensor.sun_vector_valid = false;
+
+    LOG_INFO("[sensor] Sun sensors alive status:");
+    for (uint8_t i = 0; i < NUM_SUN_SENSORS; i++)
+    {
+        LOG_INFO("  Sensor %2d: %s", i,
+                 slate.sun_sensor.sun_sensor_alive[i] ? "true" : "false");
+    }
+
 
 }

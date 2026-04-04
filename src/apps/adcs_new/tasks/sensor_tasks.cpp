@@ -29,6 +29,7 @@ extern slate_t slate;
 
 // This pretty much needs to be written anew
 void vTaskGPS(void *) {
+    stdio_flush();
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_GPS));
         TASK_LOOP_MS(200);
@@ -137,6 +138,7 @@ void vTaskGPS(void *) {
 } // end vTaskGPS
 
 void vTaskIMU(void *) {
+    stdio_flush();
 
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_IMU));
@@ -175,7 +177,7 @@ void vTaskIMU(void *) {
         bool accel_result = imu_get_accel(&slate.imu_data.a_body);
 
         if (accel_result) {
-            LOG_DEBUG("[IMU/GYRO] a_body = [%.6f, %.6f, %.6f] km/s^2",
+            LOG_INFO("[IMU/GYRO] a_body = [%.6f, %.6f, %.6f] km/s^2",
                     slate.imu_data.a_body.x,
                     slate.imu_data.a_body.y,
                     slate.imu_data.a_body.z);
@@ -187,6 +189,7 @@ void vTaskIMU(void *) {
 } // end vTaskIMU
 
 void vTaskMagnetometer(void *) {
+    stdio_flush();
     // Track last read cycle start for 100ms period
     absolute_time_t last_mag_read_start = {0}; 
 
@@ -216,6 +219,7 @@ void vTaskMagnetometer(void *) {
 } // end vTaskMagnetometer
 
 void vTaskSunSensor(void *) {
+    stdio_flush();
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_SENSOR));
         TASK_LOOP_MS(1000);

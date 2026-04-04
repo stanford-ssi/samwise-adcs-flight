@@ -7,10 +7,22 @@
 #include "apps/adcs_new/slate.h"
 #include "apps/adcs_new/states/states.h"
 #include "apps/adcs_new/tasks/tasks.h"
+#include "apps/adcs_new/init.h"
 
 #include "drivers/watchdog_motor/watchdog.h"
 
 extern slate_t slate;
+
+void vTaskInit(void *) {
+    init_main();
+    StateMsg_t msg = MSG_INIT_DONE;
+    xQueueSend(slate.state_machine.state_queue_handle,
+            &msg, 0);
+    for(;;) {
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_INIT));
+        LOG_ERROR("Reentered init function?");
+    }
+}
 
 void vTaskWatchdog(void *) {
     for (;;) {
@@ -21,7 +33,7 @@ void vTaskWatchdog(void *) {
 }
 
 void vTaskStateMachine(void *) {
-    enter_state(STATE_SAFE);
+    enter_state(STATE_INIT);
     for(;;) {
         StateMsg_t msg; // Message
         xQueueReceive(slate.state_machine.state_queue_handle,
@@ -29,6 +41,9 @@ void vTaskStateMachine(void *) {
                 portMAX_DELAY);
 
         switch (msg) {
+            case MSG_INIT_DONE:
+                enter_state(STATE_SAFE);
+                break;
             case MSG_GPS_VALID:
                 enter_state(STATE_FUSION);
                 break;
