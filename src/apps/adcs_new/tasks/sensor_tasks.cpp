@@ -167,7 +167,7 @@ void vTaskIMU(void *) {
             // Update magnitude
             slate.imu_data.w_mag = length(slate.imu_data.w_body);
 
-            LOG_DEBUG("[IMU/GYRO] w_body = [%.5f, %.5f, %.5f]", 
+            LOG_INFO("[IMU/GYRO] w_body = [%.5f, %.5f, %.5f]", 
                     slate.imu_data.w_body[0],
                     slate.imu_data.w_body[1],
                     slate.imu_data.w_body[2]);
@@ -177,7 +177,9 @@ void vTaskIMU(void *) {
         bool accel_result = imu_get_accel(&slate.imu_data.a_body);
 
         if (accel_result) {
-            LOG_INFO("[IMU/GYRO] a_body = [%.6f, %.6f, %.6f] km/s^2",
+            slate.imu_data.imu_accel_valid = true;
+
+            LOG_DEBUG("[IMU/GYRO] a_body = [%.6f, %.6f, %.6f] km/s^2",
                     slate.imu_data.a_body.x,
                     slate.imu_data.a_body.y,
                     slate.imu_data.a_body.z);
@@ -189,7 +191,6 @@ void vTaskIMU(void *) {
 } // end vTaskIMU
 
 void vTaskMagnetometer(void *) {
-    stdio_flush();
     // Track last read cycle start for 100ms period
     absolute_time_t last_mag_read_start = {0}; 
 
@@ -219,7 +220,6 @@ void vTaskMagnetometer(void *) {
 } // end vTaskMagnetometer
 
 void vTaskSunSensor(void *) {
-    stdio_flush();
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_SENSOR));
         TASK_LOOP_MS(1000);
