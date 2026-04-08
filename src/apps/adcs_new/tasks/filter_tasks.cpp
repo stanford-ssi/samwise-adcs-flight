@@ -148,6 +148,7 @@ void vTaskResetEstimate(void *) {
                 slate.imu_data.w_body.y,
                 slate.imu_data.w_body.z
                 );
+
  
         slate.attitude_filter.reset_error();
     }

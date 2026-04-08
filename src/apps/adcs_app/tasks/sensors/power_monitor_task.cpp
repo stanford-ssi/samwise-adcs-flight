@@ -20,7 +20,7 @@
 void power_monitor_task_init(slate_t *slate)
 {
     LOG_INFO("[sensor] Initializing ADCS Power Monitor...");
-    bool adm1176_result = adm_init();
+    bool adm1176_result = adm_init(ADCS_POWER_SENSE_RESISTOR);
     slate->power_monitor_alive = adm1176_result;
 
     if (!adm1176_result)
@@ -49,7 +49,7 @@ void power_monitor_task_dispatch(slate_t *slate)
         return;
     }
 
-    bool result = adm_get_power(slate);
+    bool result = adm_get_power(&slate->power_monitor);
     LOG_DEBUG("[sensor] P = %.3fW, V = %.3fV, I = %.3fA", slate->adcs_power,
               slate->adcs_voltage, slate->adcs_current);
 }

@@ -84,6 +84,8 @@ constexpr float V_BATT_MAX = 8.2f;       // [V] maximum battery voltage
 constexpr float V_BATT_LOW_POWER = 7.0f; // [V] low power saving mode threshold
 constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 
+constexpr float ADCS_VOLTAGE_UNSAFE = 4.0f;
+
 // ========================================================================
 //          SENSOR NOISE
 // ========================================================================
