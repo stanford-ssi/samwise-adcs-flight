@@ -20,6 +20,7 @@
 #include "scheduler/state_machine_types.h"
 
 #include "drivers/sun_sensors/sun_sensors.h"
+#include "drivers/power_monitor/power_monitor.h"
 #include "drivers/gps/gps.h"
 #include "gnc/world/b_field.h"
 #include "gnc/world/sun_vector.h"
@@ -101,6 +102,7 @@ typedef struct samwise_adcs_slate
     float adcs_voltage;       // [V] ADCS board voltage
     float adcs_current;       // [A] ADCS board current
     bool power_monitor_alive; // true if ADM1176 power monitor is initialized
+    power_monitor_t power_monitor;
 
     // ========================================================================
     //          ACTUATOR REQUESTS

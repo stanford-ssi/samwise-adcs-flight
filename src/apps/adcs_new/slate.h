@@ -7,6 +7,7 @@
 
 #include "drivers/gps/gps.h"
 #include "drivers/imu/imu.h"
+#include "drivers/power_monitor/power_monitor.h"
 #include "drivers/magnetometer/magnetometer.h"
 #include "drivers/watchdog_motor/watchdog.h"
 #include "drivers/sun_sensors/sun_sensors.h"
@@ -29,16 +30,17 @@ typedef struct samwise_slate_rewrite {
     magnetometer_data_t magnetometer_data;
     gps_data_processed_t gps_data;
     sun_sensor_data_t sun_sensor;
+    power_monitor_t power_monitor;
 
     // DATA
     sun_vector_t sun_vector;
     b_field_t b_field;
 
     // MEKF
-    SensorFusion magnetometer_fusion = SensorFusion(0.01);
-    SensorFusion sun_vector_fusion = SensorFusion(0.01);
+    SensorFusion magnetometer_fusion = SensorFusion(0.01f);
+    SensorFusion sun_vector_fusion = SensorFusion(0.01f);
     AttitudeFilter attitude_filter = AttitudeFilter(I_BODY,
-            0.001f, IMU_GYRO_VARIANCE, 0.05f);
+            0.01f, IMU_GYRO_VARIANCE, 0.05f);
 
     // UTIL
     StateMachine_t state_machine;

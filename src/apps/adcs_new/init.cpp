@@ -10,6 +10,8 @@
 #include "drivers/sun_sensors/rp2350b_adc.h"
 #include "drivers/sun_sensors/ads7830.h"
 
+#include "apps/adcs_new/params.h"
+
 extern slate_t slate;
 
 static StaticTask_t watchdog_tcb;
@@ -202,6 +204,25 @@ void init_main() {
     // ==============================================================
     slate.watchdog = watchdog_mk(SAMWISE_ADCS_WATCHDOG_FEED);
     watchdog_init(&slate.watchdog);
+
+    // ==============================================================
+    // POWER MONITOR INIT 
+    // ==============================================================
+    LOG_INFO("[sensor] Initializing ADCS Power Monitor...");
+    bool adm1176_result = adm_init(ADCS_POWER_SENSE_RESISTOR);
+    slate.power_monitor.power_monitor_alive = adm1176_result;
+
+    if (!adm1176_result)
+    {
+        LOG_ERROR(
+            "[sensor] Error initializing ADCS Power Monitor - deactivating!");
+        adm_power_off();
+    }
+
+    LOG_INFO("[sensor] ADCS Power Monitor Initialization Complete! "
+             "Power Monitor alive: %s",
+             slate.power_monitor.power_monitor_alive ? "true" : "false");
+
 
     // ==============================================================
     // IMU INIT 

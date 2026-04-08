@@ -10,7 +10,6 @@
 #include "macros.h"
 #include "pico/stdlib.h"
 #include "apps/adcs_app/pins.h"
-#include "apps/adcs_app/slate.h"
 #include <stdint.h>
 
 // ADM1176 I2C configuration
@@ -34,6 +33,8 @@ constexpr uint32_t TIMEOUT_MS =
 
 // Static state
 static bool is_initialized = false;
+
+static float sense_resistance;
 
 /**
  * Configure ADM1176 modes (matches working driver exactly)
@@ -79,8 +80,9 @@ static bool adm_config(int *mode, int mode_len)
  * @param resistor_ohms Sense resistor value in ohms (use 0.0f for default)
  * @return true if initialization successful, false otherwise
  */
-bool adm_init(void)
+bool adm_init(float resistance)
 {
+    sense_resistance = resistance;
     if (!adm_power_on())
     {
         LOG_ERROR("[adm1176] Failed to power on ADM1176");
@@ -89,7 +91,7 @@ bool adm_init(void)
     }
     LOG_INFO(
         "[adm1176] ADM1176 initialized on i2c1 with sense resistor: %.3f ohms",
-        ADCS_POWER_SENSE_RESISTOR);
+        sense_resistance);
 
     is_initialized = true;
     return true;
@@ -231,7 +233,7 @@ bool adm_get_current(float *current_out)
 
     // Extract current data (matches working driver exactly)
     float raw_amps = ((_read_buf[1] << 4) | (_read_buf[2] & DATA_I_MASK));
-    *current_out = (CURRENT_SCALE * raw_amps) / ADCS_POWER_SENSE_RESISTOR;
+    *current_out = (CURRENT_SCALE * raw_amps) / sense_resistance;
 
     // LOG_DEBUG("[adm1176] current: %.3f A (raw: %.0f)", *current_out,
     // raw_amps);
@@ -282,13 +284,13 @@ bool adm_is_initialized(void)
 }
 
 /**
- * Get power consumption in watts and store in slate
- * @param slate Pointer to the slate structure
+ * Get power consumption in watts and store in data type 
+ * @param power_monitor_t pointer points to data held in shared static memory 
  * @return true if successful, false otherwise
  */
-bool adm_get_power(slate_t *slate)
+bool adm_get_power(power_monitor_t *monitor)
 {
-    if (!is_initialized || !slate)
+    if (!is_initialized || !monitor)
     {
         LOG_ERROR("[adm1176] ADM1176 not initialized or invalid parameter");
         return false;
@@ -308,9 +310,9 @@ bool adm_get_power(slate_t *slate)
         return false;
     }
 
-    slate->adcs_power = voltage * current;
-    slate->adcs_voltage = voltage;
-    slate->adcs_current = current;
+    monitor->power = voltage * current;
+    monitor->voltage = voltage;
+    monitor->current = current;
 
     return true;
 }

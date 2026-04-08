@@ -203,7 +203,7 @@ AttitudeFilter::AttitudeFilter(float3x3 inertia_tensor,
     float q12 = -0.5f * var_b * dt * dt;
     float q22 = var_b * dt;
     q_dynamics_ = {{
-        {q11, 0.0f, 0, q12, 0, 0},
+        {q11, 0, 0, q12, 0, 0},
         {0, q11, 0, 0, q12, 0},
         {0, 0, q11, 0, 0, q12},
         {q12, 0, 0, q22, 0, 0},
