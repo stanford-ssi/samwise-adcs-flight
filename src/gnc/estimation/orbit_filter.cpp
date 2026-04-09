@@ -195,8 +195,7 @@ void orbit_filter_init(slate_t *slate)
     slate->r_eci = ecef_to_eci(r_ecef, slate->MJD);
 
     // Initialize velocity from GPS speed/course (ENU -> ECEF -> ECI)
-    float3 v_enu =
-        speed_course_to_enu_velocity(slate->gps_speed, slate->gps_course);
+    float3 v_enu = {0.0f,0.0f,0.0f};
     float3 lla = {slate->gps_lat, slate->gps_lon, slate->gps_alt};
     float3 v_ecef = enu_to_ecef(v_enu, lla);
     slate->v_eci = ecef_to_eci(v_ecef, slate->MJD);
@@ -346,7 +345,7 @@ void orbit_filter_update(slate_t *slate)
 
     // Convert GPS velocity to ECI
     float3 v_enu =
-        speed_course_to_enu_velocity(slate->gps_speed, slate->gps_course);
+        {0.0f,0.0f,0.0f};
     float3 lla = {slate->gps_lat, slate->gps_lon, slate->gps_alt};
     float3 v_ecef = enu_to_ecef(v_enu, lla);
     float3 v_meas = ecef_to_eci(v_ecef, slate->MJD);
