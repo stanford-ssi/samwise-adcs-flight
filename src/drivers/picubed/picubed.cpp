@@ -41,7 +41,7 @@
  * @param num_bytes     Maximum number of bytes to read
  * @param timeout_us    Timeout between bytes in microseconds
  *
- * @return Number of bytes reac successfully (between 0 and num_bytes inclusive)
+ * @return Number of bytes read successfully (between 0 and num_bytes inclusive)
  */
 static uint32_t read_uart_with_timeout(char *buf, uint32_t num_bytes,
                                        uint32_t timeout_us)
@@ -95,7 +95,7 @@ static void send_packet(const adcs_packet_t *packet)
  * @param cmd       Command byte to handle
  * @return True on success, false otherwise.
  */
-static bool handle_command_byte(slate_t *slate, char command)
+static bool handle_command_byte(char command)
 {
     LOG_INFO("[picubed-uart] Handling command byte %c", command);
     // sleep_ms(50); // Sleep for 20 milliseconds to simulate work
@@ -104,7 +104,7 @@ static bool handle_command_byte(slate_t *slate, char command)
     {
         case ADCS_SEND_TELEM:
             // Send telemetry
-            send_packet(&slate->telemetry);
+            // send_packet(&slate->telemetry);
             return true;
         case ADCS_HEALTH_CHECK:
             // Send a sentinel byte to report as healthy
@@ -211,7 +211,7 @@ void picubed_uart_init()
  *
  * @return True on success, false otherwise
  */
-bool picubed_uart_handle_commands(slate_t *slate)
+bool picubed_uart_handle_commands()
 {
     bool all_commands_succeeded = true;
 
@@ -219,7 +219,7 @@ bool picubed_uart_handle_commands(slate_t *slate)
     {
         // Read byte and handle it
         char byte = uart_getc(SAMWISE_ADCS_PICUBED_UART);
-        all_commands_succeeded &= handle_command_byte(slate, byte);
+        all_commands_succeeded &= handle_command_byte(byte);
     }
 
     return all_commands_succeeded;

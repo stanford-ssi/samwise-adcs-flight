@@ -4,6 +4,24 @@
 
 #define START_FLAG 0xAA
 
+__attribute((packed))
+struct adcs_message_t {
+    // Angular velocity
+    float w;
+
+    // Quaternion
+    float q0, q1, q2, q3;
+
+    // Time
+    float mjd;
+    float UTC_time;
+
+    // Statekeeping
+    uint8_t state;
+    uint32_t boot_counter;
+};
+
+
 struct base_telemetry_t
 {
 };
@@ -37,8 +55,9 @@ struct telemetry_handler_t
     uint8_t *dest;
 };
 
-telemetry_handler_t telemetry_init(base_telemetry_t *dest);
+telemetry_handler_t telemetry_init(void *dest, uint32_t packet_size);
 
 /* Returns number of characters received
  */
 uint32_t telemetry_read(telemetry_handler_t *tel, software_uart_t *uart);
+
