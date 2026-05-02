@@ -4,6 +4,7 @@
  *
  * Frame transformation utilities for GNC algorithms,
  * provides conversions between different reference frames.
+ * 
  */
 
 #include "transforms.h"
@@ -24,8 +25,6 @@
  * @param lon Longitude in degrees (East positive)
  * @param alt Altitude above WGS84 ellipsoid in km
  * @return float3 Position in ECEF frame [km]
- * 
- * works 02/26
  */
 float3 lla_to_ecef(const float lat, const float lon, const float alt)
 {
@@ -54,8 +53,6 @@ float3 lla_to_ecef(const float lat, const float lon, const float alt)
  * @return LLA coordinates: {latitude [deg], longitude [deg], altitude [km]}
  *
  * Uses iterative algorithm to solve for geodetic latitude on WGS84 ellipsoid
- * 
- * works 02/26
  */
 float3 ecef_to_lla(const float3 &ecef)
 {
@@ -94,8 +91,6 @@ float3 ecef_to_lla(const float3 &ecef)
  * output)
  * @param lla Geodetic coordinates [lat_deg, lon_deg, (don't care)]
  * @return float3 Vector in ECEF coordinates (same units as input)
- * 
- * seems ok 04/26
  */
 float3 enu_to_ecef(const float3 &enu, const float3 &lla)
 {
@@ -124,8 +119,6 @@ float3 enu_to_ecef(const float3 &enu, const float3 &lla)
  * @param ecef Vector in ECEF frame [km] or [km/s]
  * @param lla Reference point: {latitude [deg], longitude [deg], altitude [km]}
  * @return Vector in ENU frame [km] or [km/s]
- * 
- * seems ok 04/26
  */
 float3 ecef_to_enu(const float3 &ecef, const float3 &lla)
 {
@@ -136,10 +129,7 @@ float3 ecef_to_enu(const float3 &ecef, const float3 &lla)
     const float sin_lat = sinf(lat);
     const float cos_lat = cosf(lat);
     const float sin_lon = sinf(lon);
-    const float cos_lon = cosf(lon);
-
-    // construct rotation matrix from ECEF to ENU
-    
+    const float cos_lon = cosf(lon);    
 
     // Rotation matrix from ECEF to ENU (transpose of enu_to_ecef)
     // ENU = R_ecef_to_enu * ECEF
@@ -159,7 +149,7 @@ float3 ecef_to_enu(const float3 &ecef, const float3 &lla)
  * @param MJD Modified Julian Date
  * @return Position/velocity vector in ECEF frame [km] or [km/s]
  * 
- * todo: current
+ * done (without precession or nutation)
  */
 float3 eci_to_ecef(const float3 &eci, const float &MJD)
 {
@@ -182,38 +172,55 @@ float3 eci_to_ecef(const float3 &eci, const float &MJD)
     const float thetaA = (2004.3109 - (0.85330 + 0.000217 * T) * T
                           - (0.42665 + 0.000217 * T) * T - 0.041775 * T * T) 
                           * T * ARCSEC_TO_RAD;
-    const float cos_zetaA = cosf(-zetaA); 
-    const float sin_zetaA = sinf(-zetaA); 
-    const float cos_zA = cosf(-zA); 
-    const float sin_zA = sinf(-zA); 
+    
+    // Make sure to check the sign of the angles!
+    const float cos_zetaA = cosf(zetaA); 
+    const float sin_zetaA = sinf(zetaA); 
+    const float cos_zA = cosf(zA); 
+    const float sin_zA = sinf(zA); 
     const float cos_thetaA = cosf(thetaA); 
     const float sin_thetaA = sinf(thetaA); 
 
-    float R3_zA[9] = { cos_zA, sin_zA, 0,
-                      -sin_zA, cos_zA, 0, 
-                       0,      0,      1}; 
-    float R2_thetaA[9] = {cos_thetaA, 0, -sin_thetaA, 
-                          0,          1,  0, 
-                          sin_thetaA, 0,  cos_thetaA}; 
-    float R3_zetaA[9] = {cos_zetaA, sin_zetaA, 0,
-                        -sin_zetaA, cos_zetaA, 0, 
-                         0,         0,         1}; 
+    // float R3_zA[9] = { cos_zA, sin_zA, 0,
+    //                   -sin_zA, cos_zA, 0, 
+    //                    0,      0,      1}; 
+    // float R2_thetaA[9] = {cos_thetaA, 0, -sin_thetaA, 
+    //                       0,          1,  0, 
+    //                       sin_thetaA, 0,  cos_thetaA}; 
+    // float R3_zetaA[9] = {cos_zetaA, sin_zetaA, 0,
+    //                     -sin_zetaA, cos_zetaA, 0, 
+    //                      0,         0,         1}; 
+
+    float precession_matrix[9] = {((cos_zA * cos_thetaA * cos_zetaA) - (sin_zA * sin_zetaA)), 
+                                    (-(cos_zA * cos_thetaA * sin_zetaA) - (sin_zA * cos_zetaA)),
+                                    (-cos_zA * sin_zA),
+                                    ((sin_zA * cos_thetaA * cos_zetaA) + (cos_zA * sin_zetaA)),
+                                    (-(sin_zA * cos_thetaA * sin_zetaA) + (cos_zA * cos_zetaA)),
+                                    (-sin_zA * sin_thetaA),
+                                    (sin_thetaA * cos_zetaA), 
+                                    (-sin_thetaA * sin_zetaA),
+                                    cos_thetaA };
 
     // GMST rotation matrix 
     float R_ECI[9] = {cos_GMST, sin_GMST, 0, 
                       -sin_GMST, cos_GMST, 0, 
                       0, 0, 1};
-    float eci_matrix[3] = {eci[0], eci[1], eci[2]};
+    float eci_coords[3] = {eci[0], eci[1], eci[2]};
     float out[3]; 
 
-    float first[9]; 
-    mat_mul(R3_zA, R2_thetaA, first, 3,3,3); 
-    float next[9]; 
-    mat_mul(first, R3_zetaA, next, 3,3,3);          //NOTE: reformat to be one matrix 
-    float last[9];                                  // instead of using mat_mul 4 times 
-    mat_mul(next, R_ECI, last, 3,3,3); 
-    mat_mul(last, eci_matrix, out, 3, 3, 1);
-    // mat_mul(R_ECI, eci_matrix, out, 3,3,1); 
+    // float first[9]; 
+    // mat_mul(R3_zA, R2_thetaA, first, 3,3,3); 
+    // float next[9]; 
+    // mat_mul(first, R3_zetaA, next, 3,3,3);          //NOTE: reformat to be one matrix 
+    // float last[9];                                  // instead of using mat_mul 4 times ?
+    // mat_mul(next, R_ECI, last, 3,3,3); 
+    // mat_mul(last, eci_coords, out, 3, 3, 1);
+    
+    // float pToECI[3];
+    // mat_mul(precession_matrix, R_ECI, pToECI, 3,3,1); 
+    // mat_mul(pToECI, eci_coords, out, 3,3,1); 
+
+    mat_mul(R_ECI, eci_coords, out, 3,3,1);
 
     float3 result = {out[0], out[1], out[2]};
     return result; 
@@ -235,7 +242,7 @@ float3 eci_to_ecef(const float3 &eci, const float &MJD)
  * @param MJD Modified Julian Date
  * @return float3 Vector in ECI coordinates (same units as input)
  * 
- * todo
+ * done (without precession or nutation)
  */
 
 float3 ecef_to_eci(const float3 &ecef, const float &MJD)
@@ -259,8 +266,6 @@ float3 ecef_to_eci(const float3 &ecef, const float &MJD)
  * @param eci Vector in ECI frame
  * @param q_eci_to_body Quaternion representing rotation from ECI to body frame
  * @return Vector in body frame
- * 
- * todo
  */
 float3 eci_to_body(const float3 &eci, const quaternion &q_eci_to_body)
 {
@@ -273,8 +278,6 @@ float3 eci_to_body(const float3 &eci, const quaternion &q_eci_to_body)
  * @param body Vector in body frame
  * @param q_eci_to_body Quaternion representing rotation from ECI to body frame
  * @return Vector in ECI frame
- * 
- * todo
  */
 float3 body_to_eci(const float3 &body, const quaternion &q_eci_to_body)
 {
@@ -287,8 +290,6 @@ float3 body_to_eci(const float3 &body, const quaternion &q_eci_to_body)
  * quaternion
  * @param body Vector in body frame
  * @return Vector in principal axes frame
- * 
- * todo
  */
 float3 body_to_principal(const float3 &body)
 {
@@ -301,8 +302,6 @@ float3 body_to_principal(const float3 &body)
  * quaternion
  * @param principal Vector in principal axes frame
  * @return Vector in body frame
- * 
- * todo
  */
 float3 principal_to_body(const float3 &principal)
 {
@@ -447,24 +446,24 @@ void test_transforms()
     //        ecef_mag);
     // ASSERT_ALMOST_EQ(enu_mag, ecef_mag, 1e-5f);
 
-    // ========================================================================
-    //      TEST ECI_TO_ECEF (written by mkd)
-    // ========================================================================
-    // LOG_INFO("Testing eci_to_ecef transformation!");
+    // // ========================================================================
+    // //      TEST ECI and ECEF INVERSE RELATIONSHIP (mkd)
+    // // ========================================================================
+    // // LOG_INFO("Testing eci_to_ecef transformation!");
 
-    float MJD_testing = 60000.0f; // Arbitrary MJD for testing
-    float3 eci_start = {6778.0f, 1000.0f, 500.0f}; // Arbitrary ECI position; units = km
-    float3 ecef_result = eci_to_ecef(eci_start, MJD_testing); 
-    float3 ecef_compare = {-5673.18f, -3839.38f, 515.15f}; 
-    float3 eci_back = ecef_to_eci(ecef_result, MJD_testing);
-    printf("ECI original:   [%.6f, %.6f, %.6f] km\n", eci_start.x, eci_start.y,
-           eci_start.z);
-    printf("ECEF converted: [%.6f, %.6f, %.6f] km\n", ecef_result.x,
-           ecef_result.y, ecef_result.z);
-    printf("ECI back: [%.6f, %.6f, %.6f] km\n", eci_back.x, 
-           eci_back.y, eci_back.z);
-    printf("ECEF should be: [%.6f, %.6f, %.6f] km\n", ecef_compare.x,
-            ecef_compare.y, ecef_compare.z);
+    // float MJD_testing = 60000.0f; // Arbitrary MJD for testing
+    // float3 eci_start = {6778.0f, 1000.0f, 500.0f}; // Arbitrary ECI position; units = km
+    // float3 ecef_result = eci_to_ecef(eci_start, MJD_testing); 
+    // float3 ecef_compare = {-5673.18f, -3839.38f, 515.15f}; 
+    // float3 eci_back = ecef_to_eci(ecef_result, MJD_testing);
+    // printf("ECI original:   [%.6f, %.6f, %.6f] km\n", eci_start.x, eci_start.y,
+    //        eci_start.z);
+    // printf("ECEF converted: [%.6f, %.6f, %.6f] km\n", ecef_result.x,
+    //        ecef_result.y, ecef_result.z);
+    // printf("ECI back: [%.6f, %.6f, %.6f] km\n", eci_back.x, 
+    //        eci_back.y, eci_back.z);
+    // printf("ECEF should be: [%.6f, %.6f, %.6f] km\n", ecef_compare.x,
+    //         ecef_compare.y, ecef_compare.z);
     
     // for (int i = 0; i < 3; i++)
     // {
@@ -513,189 +512,189 @@ void test_transforms()
     // }
 
 
-    // // ========================================================================
-    // //      TEST ECI_TO_BODY TRANSFORMATION
-    // // ========================================================================
-    // LOG_INFO("Testing eci_to_body transformation using quaternion!");
+    // ========================================================================
+    //      TEST ECI_TO_BODY TRANSFORMATION
+    // ========================================================================
+    LOG_INFO("Testing eci_to_body transformation using quaternion!");
 
-    // // Test 1: 90 degree rotation about Z-axis
-    // float3 axis_z = {0.0f, 0.0f, 1.0f};
-    // float angle_z = 90.0f * DEG_TO_RAD;
-    // quaternion q_z = quaternion_by_axis_angle(axis_z, angle_z);
+    // Test 1: 90 degree rotation about Z-axis
+    float3 axis_z = {0.0f, 0.0f, 1.0f};
+    float angle_z = 90.0f * DEG_TO_RAD;
+    quaternion q_z = quaternion_by_axis_angle(axis_z, angle_z);
 
-    // // Rotate vector [1, 0, 0] by 90 degrees about Z-axis
-    // float3 eci_x = {1.0f, 0.0f, 0.0f};
-    // float3 body_result = eci_to_body(eci_x, q_z);
+    // Rotate vector [1, 0, 0] by 90 degrees about Z-axis
+    float3 eci_x = {1.0f, 0.0f, 0.0f};
+    float3 body_result = eci_to_body(eci_x, q_z);
 
-    // // Verify using DCM method
-    // float3x3 dcm_z = quaternion_to_dcm(q_z);
-    // float3 dcm_result = mul(dcm_z, eci_x);
+    // Verify using DCM method
+    float3x3 dcm_z = quaternion_to_dcm(q_z);
+    float3 dcm_result = mul(dcm_z, eci_x);
 
-    // // Debug print
-    // printf("q_z: [%.6f, %.6f, %.6f, %.6f]\n", q_z.x, q_z.y, q_z.z, q_z.w);
-    // printf("qrot result: [%.6f, %.6f, %.6f]\n", body_result.x, body_result.y,
-    //        body_result.z);
-    // printf("DCM result:  [%.6f, %.6f, %.6f]\n", dcm_result.x, dcm_result.y,
-    //        dcm_result.z);
+    // Debug print
+    printf("q_z: [%.6f, %.6f, %.6f, %.6f]\n", q_z.x, q_z.y, q_z.z, q_z.w);
+    printf("qrot result: [%.6f, %.6f, %.6f]\n", body_result.x, body_result.y,
+           body_result.z);
+    printf("DCM result:  [%.6f, %.6f, %.6f]\n", dcm_result.x, dcm_result.y,
+           dcm_result.z);
 
-    // // Also check qmat
-    // float3x3 qmat_result = qmat(q_z);
-    // float3 qmat_mul = mul(qmat_result, eci_x);
-    // printf("qmat result: [%.6f, %.6f, %.6f]\n", qmat_mul.x, qmat_mul.y,
-    //        qmat_mul.z);
+    // Also check qmat
+    float3x3 qmat_result = qmat(q_z);
+    float3 qmat_mul = mul(qmat_result, eci_x);
+    printf("qmat result: [%.6f, %.6f, %.6f]\n", qmat_mul.x, qmat_mul.y,
+           qmat_mul.z);
 
-    // for (int i = 0; i < 3; i++)
-    // {
-    //     ASSERT_ALMOST_EQ(body_result[i], dcm_result[i], 1e-6f);
-    // }
+    for (int i = 0; i < 3; i++)
+    {
+        ASSERT_ALMOST_EQ(body_result[i], dcm_result[i], 1e-6f);
+    }
 
-    // // Test 2: 45 degree rotation about (1, 1, 0) axis
-    // float3 axis_diag = normalize(float3(1.0f, 1.0f, 0.0f));
-    // float angle_45 = 45.0f * DEG_TO_RAD;
-    // quaternion q_diag = quaternion_by_axis_angle(axis_diag, angle_45);
+    // Test 2: 45 degree rotation about (1, 1, 0) axis
+    float3 axis_diag = normalize(float3(1.0f, 1.0f, 0.0f));
+    float angle_45 = 45.0f * DEG_TO_RAD;
+    quaternion q_diag = quaternion_by_axis_angle(axis_diag, angle_45);
 
-    // float3 eci_test = {1.0f, 2.0f, 3.0f};
-    // float3 body_test = eci_to_body(eci_test, q_diag);
+    float3 eci_test = {1.0f, 2.0f, 3.0f};
+    float3 body_test = eci_to_body(eci_test, q_diag);
 
-    // // Verify using DCM method
-    // float3x3 dcm_diag = quaternion_to_dcm(q_diag);
-    // float3 dcm_test = mul(dcm_diag, eci_test);
+    // Verify using DCM method
+    float3x3 dcm_diag = quaternion_to_dcm(q_diag);
+    float3 dcm_test = mul(dcm_diag, eci_test);
 
-    // printf("Test 2: qrot=[%.6f, %.6f, %.6f], dcm=[%.6f, %.6f, %.6f]\n",
-    //        body_test.x, body_test.y, body_test.z, dcm_test.x, dcm_test.y,
-    //        dcm_test.z);
+    printf("Test 2: qrot=[%.6f, %.6f, %.6f], dcm=[%.6f, %.6f, %.6f]\n",
+           body_test.x, body_test.y, body_test.z, dcm_test.x, dcm_test.y,
+           dcm_test.z);
 
-    // for (int i = 0; i < 3; i++)
-    // {
-    //     ASSERT_ALMOST_EQ(body_test[i], dcm_test[i], 1e-6f);
-    // }
+    for (int i = 0; i < 3; i++)
+    {
+        ASSERT_ALMOST_EQ(body_test[i], dcm_test[i], 1e-6f);
+    }
 
 
-    // // ========================================================================
-    // //      TEST BODY_TO_PRINCIPAL TRANSFORMATION
-    // // ========================================================================
-    // LOG_INFO("Testing body_to_principal transformation!");
+    // ========================================================================
+    //      TEST BODY_TO_PRINCIPAL TRANSFORMATION
+    // ========================================================================
+    LOG_INFO("Testing body_to_principal transformation!");
 
-    // // Test 1: Verify against DCM method
-    // float3 body_vec = {1.0f, 2.0f, 3.0f};
-    // float3 principal_result = body_to_principal(body_vec);
-    // float3x3 dcm_body_to_principal =
-    //     transpose(PRINCIPAL_AXES_DCM); // active rotation
-    // float3 dcm_principal = mul(dcm_body_to_principal, body_vec);
+    // Test 1: Verify against DCM method
+    float3 body_vec = {1.0f, 2.0f, 3.0f};
+    float3 principal_result = body_to_principal(body_vec);
+    float3x3 dcm_body_to_principal =
+        transpose(PRINCIPAL_AXES_DCM); // active rotation
+    float3 dcm_principal = mul(dcm_body_to_principal, body_vec);
 
-    // printf("body_to_principal: qrot=[%.6f, %.6f, %.6f], dcm^T=[%.6f, %.6f, "
-    //        "%.6f]\n",
-    //        principal_result.x, principal_result.y, principal_result.z,
-    //        dcm_principal.x, dcm_principal.y, dcm_principal.z);
+    printf("body_to_principal: qrot=[%.6f, %.6f, %.6f], dcm^T=[%.6f, %.6f, "
+           "%.6f]\n",
+           principal_result.x, principal_result.y, principal_result.z,
+           dcm_principal.x, dcm_principal.y, dcm_principal.z);
 
-    // for (int i = 0; i < 3; i++)
-    // {
-    //     // ASSERT_ALMOST_EQ(principal_result[i], dcm_principal[i], 1e-6f);
-    // }
+    for (int i = 0; i < 3; i++)
+    {
+        // ASSERT_ALMOST_EQ(principal_result[i], dcm_principal[i], 1e-6f);
+    }
 
-    // // ========================================================================
-    // //      TEST PRINCIPAL_TO_BODY TRANSFORMATION
-    // // ========================================================================
-    // LOG_INFO("Testing principal_to_body transformation!");
+    // ========================================================================
+    //      TEST PRINCIPAL_TO_BODY TRANSFORMATION
+    // ========================================================================
+    LOG_INFO("Testing principal_to_body transformation!");
 
-    // // Test 1: Should be inverse of body_to_principal
-    // float3 body_original = {1.5f, -2.3f, 4.7f};
-    // float3 to_principal = body_to_principal(body_original);
-    // float3 back_to_body = principal_to_body(to_principal);
+    // Test 1: Should be inverse of body_to_principal
+    float3 body_original = {1.5f, -2.3f, 4.7f};
+    float3 to_principal = body_to_principal(body_original);
+    float3 back_to_body = principal_to_body(to_principal);
 
-    // printf("Round-trip: original=[%.6f, %.6f, %.6f], recovered=[%.6f, %.6f, "
-    //        "%.6f]\n",
-    //        body_original.x, body_original.y, body_original.z, back_to_body.x,
-    //        back_to_body.y, back_to_body.z);
+    printf("Round-trip: original=[%.6f, %.6f, %.6f], recovered=[%.6f, %.6f, "
+           "%.6f]\n",
+           body_original.x, body_original.y, body_original.z, back_to_body.x,
+           back_to_body.y, back_to_body.z);
 
-    // for (int i = 0; i < 3; i++)
-    // {
-    //     ASSERT_ALMOST_EQ(body_original[i], back_to_body[i], 1e-3f);
-    // }
+    for (int i = 0; i < 3; i++)
+    {
+        ASSERT_ALMOST_EQ(body_original[i], back_to_body[i], 1e-3f);
+    }
 
-    // // Test 2: Verify principal_to_body against DCM (passive form, no transpose
-    // // needed)
-    // float3 principal_vec = {0.5f, 1.5f, 2.5f};
-    // float3 body_result_qrot = principal_to_body(principal_vec);
+    // Test 2: Verify principal_to_body against DCM (passive form, no transpose
+    // needed)
+    float3 principal_vec = {0.5f, 1.5f, 2.5f};
+    float3 body_result_qrot = principal_to_body(principal_vec);
 
-    // // For principal_to_body, use DCM directly (passive rotation)
-    // float3 body_result_dcm = mul(PRINCIPAL_AXES_DCM, principal_vec);
+    // For principal_to_body, use DCM directly (passive rotation)
+    float3 body_result_dcm = mul(PRINCIPAL_AXES_DCM, principal_vec);
 
-    // printf(
-    //     "principal_to_body: qrot=[%.6f, %.6f, %.6f], dcm=[%.6f, %.6f, %.6f]\n",
-    //     body_result_qrot.x, body_result_qrot.y, body_result_qrot.z,
-    //     body_result_dcm.x, body_result_dcm.y, body_result_dcm.z);
+    printf(
+        "principal_to_body: qrot=[%.6f, %.6f, %.6f], dcm=[%.6f, %.6f, %.6f]\n",
+        body_result_qrot.x, body_result_qrot.y, body_result_qrot.z,
+        body_result_dcm.x, body_result_dcm.y, body_result_dcm.z);
 
-    // for (int i = 0; i < 3; i++)
-    // {
-    //     // ASSERT_ALMOST_EQ(body_result_qrot[i], body_result_dcm[i], 1e-6f);
-    // }
+    for (int i = 0; i < 3; i++)
+    {
+        // ASSERT_ALMOST_EQ(body_result_qrot[i], body_result_dcm[i], 1e-6f);
+    }
 
-    // // ========================================================================
-    // //      TEST BODY_TO_ECI TRANSFORMATION
-    // // ========================================================================
-    // LOG_INFO("Testing body_to_eci transformation using quaternion!");
+    // ========================================================================
+    //      TEST BODY_TO_ECI TRANSFORMATION
+    // ========================================================================
+    LOG_INFO("Testing body_to_eci transformation using quaternion!");
 
-    // // Test 1: Should be inverse of eci_to_body
-    // float3 eci_original = {1.0f, 2.0f, 3.0f};
-    // float3 body_converted = eci_to_body(eci_original, q_z);
-    // float3 eci_recovered = body_to_eci(body_converted, q_z);
+    // Test 1: Should be inverse of eci_to_body
+    float3 eci_original = {1.0f, 2.0f, 3.0f};
+    float3 body_converted = eci_to_body(eci_original, q_z);
+    float3 eci_recovered = body_to_eci(body_converted, q_z);
 
-    // for (int i = 0; i < 3; i++)
-    // {
-    //     ASSERT_ALMOST_EQ(eci_original[i], eci_recovered[i], 1e-6f);
-    // }
+    for (int i = 0; i < 3; i++)
+    {
+        ASSERT_ALMOST_EQ(eci_original[i], eci_recovered[i], 1e-6f);
+    }
 
-    // // Test 2: Verify using DCM method
-    // float3 body_vec2 = {1.0f, 0.0f, 0.0f};
-    // float3 eci_result = body_to_eci(body_vec2, q_diag);
+    // Test 2: Verify using DCM method
+    float3 body_vec2 = {1.0f, 0.0f, 0.0f};
+    float3 eci_result = body_to_eci(body_vec2, q_diag);
 
-    // // Use conjugate quaternion for inverse rotation
-    // quaternion q_conj = {-q_diag.x, -q_diag.y, -q_diag.z, q_diag.w};
-    // float3x3 dcm_inv = quaternion_to_dcm(q_conj);
-    // float3 dcm_eci = mul(dcm_inv, body_vec2);
+    // Use conjugate quaternion for inverse rotation
+    quaternion q_conj = {-q_diag.x, -q_diag.y, -q_diag.z, q_diag.w};
+    float3x3 dcm_inv = quaternion_to_dcm(q_conj);
+    float3 dcm_eci = mul(dcm_inv, body_vec2);
 
-    // for (int i = 0; i < 3; i++)
-    // {
-    //     ASSERT_ALMOST_EQ(eci_result[i], dcm_eci[i], 1e-6f);
-    // }
+    for (int i = 0; i < 3; i++)
+    {
+        ASSERT_ALMOST_EQ(eci_result[i], dcm_eci[i], 1e-6f);
+    }
 
-    // // ========================================================================
-    // //      TEST ROUND-TRIP TRANSFORMATION
-    // // ========================================================================
-    // LOG_INFO("Testing round-trip transformation consistency!");
+    // ========================================================================
+    //      TEST ROUND-TRIP TRANSFORMATION
+    // ========================================================================
+    LOG_INFO("Testing round-trip transformation consistency!");
 
-    // // Test with multiple quaternions and vectors
-    // float3 test_vectors[] = {{1.0f, 0.0f, 0.0f},
-    //                          {0.0f, 1.0f, 0.0f},
-    //                          {0.0f, 0.0f, 1.0f},
-    //                          {1.0f, 2.0f, 3.0f},
-    //                          {-1.0f, 2.5f, -3.7f}};
+    // Test with multiple quaternions and vectors
+    float3 test_vectors[] = {{1.0f, 0.0f, 0.0f},
+                             {0.0f, 1.0f, 0.0f},
+                             {0.0f, 0.0f, 1.0f},
+                             {1.0f, 2.0f, 3.0f},
+                             {-1.0f, 2.5f, -3.7f}};
 
-    // float3 test_axes[] = {{1.0f, 0.0f, 0.0f},
-    //                       {0.0f, 1.0f, 0.0f},
-    //                       {0.0f, 0.0f, 1.0f},
-    //                       normalize(float3(1.0f, 1.0f, 0.0f)),
-    //                       normalize(float3(1.0f, 1.0f, 1.0f))};
+    float3 test_axes[] = {{1.0f, 0.0f, 0.0f},
+                          {0.0f, 1.0f, 0.0f},
+                          {0.0f, 0.0f, 1.0f},
+                          normalize(float3(1.0f, 1.0f, 0.0f)),
+                          normalize(float3(1.0f, 1.0f, 1.0f))};
 
-    // float test_angles[] = {30.0f, 90.0f, 120.0f, 180.0f, 270.0f};
+    float test_angles[] = {30.0f, 90.0f, 120.0f, 180.0f, 270.0f};
 
-    // for (int i = 0; i < 5; i++)
-    // {
-    //     quaternion q_test =
-    //         quaternion_by_axis_angle(test_axes[i], test_angles[i] * DEG_TO_RAD);
-    //     for (int j = 0; j < 5; j++)
-    //     {
-    //         float3 original = test_vectors[j];
-    //         float3 to_body = eci_to_body(original, q_test);
-    //         float3 back_to_eci = body_to_eci(to_body, q_test);
+    for (int i = 0; i < 5; i++)
+    {
+        quaternion q_test =
+            quaternion_by_axis_angle(test_axes[i], test_angles[i] * DEG_TO_RAD);
+        for (int j = 0; j < 5; j++)
+        {
+            float3 original = test_vectors[j];
+            float3 to_body = eci_to_body(original, q_test);
+            float3 back_to_eci = body_to_eci(to_body, q_test);
 
-    //         for (int k = 0; k < 3; k++)
-    //         {
-    //             ASSERT_ALMOST_EQ(original[k], back_to_eci[k], 1e-5f);
-    //         }
-    //     }
-    // }
+            for (int k = 0; k < 3; k++)
+            {
+                ASSERT_ALMOST_EQ(original[k], back_to_eci[k], 1e-5f);
+            }
+        }
+    }
 
 
     // LOG_INFO("All transform tests passed!");
