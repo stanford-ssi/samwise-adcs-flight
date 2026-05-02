@@ -224,3 +224,36 @@ bool picubed_uart_handle_commands()
 
     return all_commands_succeeded;
 }
+
+void receive_msg(msg_t *msg, uint8_t *rx_buf) {
+    static uint8_t raw_buf[256];
+    uint16_t num_bytes = uart_comms_get_packet(SAMWISE_ADCS_PICUBED_UART,
+            raw_buf, 256);
+    cobs_decode(raw_buf, num_bytes, rx_buf);
+    protocol_message_decode(msg, num_bytes + 1, rx_buf);
+}
+
+void send_msg(msg_t *msg, uint32_t len) {
+    uint8_t msg_buf[len];
+    protocol_message_encode(msg, msg_buf);
+    uint8_t cobs_buf[len + 2];
+    uint32_t end = cobs_encode(msg_buf, len, cobs_buf);
+    cobs_buf[end] = 0;
+    uart_comms_tx(SAMWISE_ADCS_PICUBED_UART, cobs_buf, end + 1);
+}
+
+void send_ping(){
+    LOG_INFO("[TELEMETRY] Sending Ping");
+    msg_t ping;
+    protocol_message_ping(&ping);
+    send_msg(&ping, 8);
+}
+
+void send_pong(){
+    LOG_INFO("[TELEMETRY] Sending Pong");
+    msg_t pong;
+    protocol_message_pong(&pong);
+    send_msg(&pong, 8);
+}
+
+

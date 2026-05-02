@@ -11,44 +11,9 @@
 #include "apps/adcs_new/pins.h"
 #include "apps/adcs_new/slate.h"
 
-#include "drivers/communications/cobs.h"
-#include "drivers/communications/protocol.h"
-#include "drivers/communications/uart_communications.h"
+#include "drivers/picubed/picubed.h"
 
 extern slate_t slate;
-
-static void receive_msg(msg_t *msg, uint8_t *rx_buf) {
-    static uint8_t raw_buf[256];
-    uint16_t num_bytes = uart_comms_get_packet(SAMWISE_ADCS_PICUBED_UART,
-            raw_buf, 256);
-    cobs_decode(raw_buf, num_bytes, rx_buf);
-    protocol_message_decode(msg, num_bytes + 1, rx_buf);
-}
-
-static void send_msg(msg_t *msg, uint32_t len) {
-    uint8_t msg_buf[len];
-    protocol_message_encode(msg, msg_buf);
-    uint8_t cobs_buf[len + 2];
-    uint32_t end = cobs_encode(msg_buf, len, cobs_buf);
-    cobs_buf[end] = 0;
-    uart_comms_tx(SAMWISE_ADCS_PICUBED_UART, cobs_buf, end + 1);
-}
-
-static void send_ping(){
-    LOG_INFO("[TELEMETRY] Sending Ping");
-    msg_t ping;
-    protocol_message_ping(&ping);
-    send_msg(&ping, 8);
-}
-
-static void send_pong(){
-    LOG_INFO("[TELEMETRY] Sending Pong");
-    msg_t pong;
-    protocol_message_pong(&pong);
-    send_msg(&pong, 8);
-}
-
-
 
 void vTaskTelemetry(void *) {
     int tx_count = 0;
@@ -72,6 +37,13 @@ void vTaskTelemetry(void *) {
                 case MSG_PONG:
                     LOG_INFO("[TELEMETRY] Pong received");
                     // don't send ping else we get infinite loop
+                    break;
+                case MSG_COMMAND:
+                    uint8_t command_byte = (uint32_t) received.payload;
+                    LOG_INFO("[TELEMETRY] Command Received {%d}", command_byte);
+                    StateMsg_t msg = MSG_COMMAND_RECEIVED;
+                    xQueueSend(slate.state_machine.state_queue_handle,
+                            &msg, 0);
                     break;
             } // end switch 
         } else {

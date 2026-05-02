@@ -36,6 +36,10 @@ void init_state_machine() {
         // | TASK_BIT(TASK_GPS)
         | TASK_BIT(TASK_MAGNETOMETER);
 
+    slate.state_machine.state_configs[STATE_DISABLED].enabled_bits
+        = TASK_BIT(TASK_WATCHDOG)
+        | TASK_BIT(TASK_TELEMETRY);
+
     slate.state_machine.state_configs[STATE_FUSION].enabled_bits
         =  TASK_BIT(TASK_WATCHDOG) 
         | TASK_BIT(TASK_TELEMETRY)
@@ -52,6 +56,8 @@ void enter_state(StateId_t new_state) {
         case STATE_SAFE:
             break;
         case STATE_ENABLED:
+            break;
+        case STATE_DISABLED:
             break;
         case STATE_FUSION:
             for (int i = 0; i < 5; i++) {

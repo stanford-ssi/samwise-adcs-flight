@@ -8,6 +8,7 @@ typedef enum {
     STATE_SAFE = 0,
     STATE_INIT,
     STATE_ENABLED,
+    STATE_DISABLED,
     STATE_FUSION,
     NUM_STATES
 } StateId_t;
@@ -17,6 +18,7 @@ typedef enum {
     MSG_INIT_DONE,
     MSG_ON,
     MSG_VOLTAGE_LOW,
+    MSG_COMMAND_RECEIVED,
     MSG_GPS_VALID
 } StateMsg_t;
 

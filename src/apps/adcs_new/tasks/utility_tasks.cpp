@@ -57,6 +57,12 @@ void vTaskStateMachine(void *) {
                 portMAX_DELAY);
 
         switch(slate.state_machine.current_state) {
+            case STATE_DISABLED:
+                switch(msg) {
+                    case MSG_COMMAND_RECEIVED:
+                        enter_state(STATE_ENABLED);
+                        break;
+                }
             case STATE_INIT:
                 switch(msg) {
                     case MSG_INIT_DONE:
@@ -72,12 +78,18 @@ void vTaskStateMachine(void *) {
                     case MSG_GPS_VALID:
                         enter_state(STATE_FUSION);
                         break;
+                    case MSG_COMMAND_RECEIVED:
+                        enter_state(STATE_DISABLED);
+                        break;
                 }
                 break;
             case STATE_FUSION:
                 switch(msg) {
                     case MSG_VOLTAGE_LOW:
                         enter_state(STATE_SAFE);
+                        break;
+                    case MSG_COMMAND_RECEIVED:
+                        enter_state(STATE_DISABLED);
                         break;
                 }
                 break;
