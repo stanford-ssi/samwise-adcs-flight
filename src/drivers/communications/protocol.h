@@ -43,5 +43,6 @@ void protocol_message_adcs(msg_t *msg, adcs_message_t* adcs);
  /*
  * Takes a message and formats it into a buffer
  */
-void protocol_message_buf(msg_t *msg, uint8_t *buf);
+void protocol_message_encode(msg_t *msg, uint8_t *buf);
+void protocol_message_decode(msg_t *msg, uint32_t len, uint8_t *buf);
 

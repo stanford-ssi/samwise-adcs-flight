@@ -17,44 +17,68 @@
 
 extern slate_t slate;
 
+static void receive_msg(msg_t *msg, uint8_t *rx_buf) {
+    static uint8_t raw_buf[256];
+    uint16_t num_bytes = uart_comms_get_packet(SAMWISE_ADCS_PICUBED_UART,
+            raw_buf, 256);
+    cobs_decode(raw_buf, num_bytes, rx_buf);
+    protocol_message_decode(msg, num_bytes + 1, rx_buf);
+}
+
+static void send_msg(msg_t *msg, uint32_t len) {
+    uint8_t msg_buf[len];
+    protocol_message_encode(msg, msg_buf);
+    uint8_t cobs_buf[len + 2];
+    uint32_t end = cobs_encode(msg_buf, len, cobs_buf);
+    cobs_buf[end] = 0;
+    uart_comms_tx(SAMWISE_ADCS_PICUBED_UART, cobs_buf, end + 1);
+}
+
+static void send_ping(){
+    LOG_INFO("[TELEMETRY] Sending Ping");
+    msg_t ping;
+    protocol_message_ping(&ping);
+    send_msg(&ping, 8);
+}
+
+static void send_pong(){
+    LOG_INFO("[TELEMETRY] Sending Pong");
+    msg_t pong;
+    protocol_message_pong(&pong);
+    send_msg(&pong, 8);
+}
+
+
+
 void vTaskTelemetry(void *) {
     int tx_count = 0;
     int rx_count = 0;
+    static uint8_t rx_buf[256];
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_TELEMETRY));
-        TASK_LOOP_MS(200);
-        // SEND PING MESSAGE
-        LOG_INFO("[TELEMETRY] Task running");
-        msg_t ping;
-        protocol_message_ping(&ping);
-        uint8_t buf[8];
-        protocol_message_buf(&ping, buf);
-        uint8_t cobs_buf[16];
-        uint32_t end = cobs_encode(buf, 8, cobs_buf);
-        cobs_buf[end] = 0;
-        // LOG_INFO("[COBS]:");
-        // for (int i = 0; i < 10; i++) {
-        //     printf("[%d] ", cobs_buf[i]);
-        // }
-        // tx_count += 1;
-        // printf("\n);
-        tx_count += 1;
+        TASK_LOOP_MS(500);
         LOG_INFO("TX_COUNT {%d}", tx_count);
 
-        // In your task loop, before packet_ready check:
-        LOG_INFO("[TELEMETRY] RX bytes in buffer: %d", 
-            uart_comms_rx_count(SAMWISE_ADCS_PICUBED_UART));
-
-        uart_putc(uart1, 0xAA);
-
-        uart_comms_tx(SAMWISE_ADCS_PICUBED_UART,
-                cobs_buf,
-                end + 1);
-
         if(uart_comms_packet_ready(SAMWISE_ADCS_PICUBED_UART)) {
-            rx_count += 1;
             LOG_INFO("[TELEMETRY] PACKET RECEIVED {%d}", rx_count);
+            rx_count += 1;
+            msg_t received;
+            receive_msg(&received, rx_buf);
+            switch (received.type) {
+                case MSG_PING:
+                    LOG_INFO("[TELEMETRY] Ping received");
+                    send_pong();
+                    break;
+                case MSG_PONG:
+                    LOG_INFO("[TELEMETRY] Pong received");
+                    // don't send ping else we get infinite loop
+                    break;
+            } // end switch 
+        } else {
+        // SEND PING MESSAGE
+            tx_count += 1;
+            send_ping();
         }
-    }
+    } // end for
 }
 

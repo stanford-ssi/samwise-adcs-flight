@@ -72,15 +72,7 @@ static void init_i2c_buses() {
 }
 
 void init_tasks() {
-
-    // ===============================================================
-    // TELEMETRY TASK INIT
-    // ===============================================================
-    uart_comms_init(SAMWISE_ADCS_PICUBED_UART,
-            SAMWISE_ADCS_TX_TO_PICUBED,
-            SAMWISE_ADCS_RX_FROM_PICUBED,
-            115200);
-    // ==============================================================
+   // ==============================================================
     // INIT STATE MACHINE
     // ==============================================================
     init_state_machine();
@@ -342,6 +334,11 @@ void init_main() {
         LOG_INFO("  Sensor %2d: %s", i,
                  slate.sun_sensor.sun_sensor_alive[i] ? "true" : "false");
     }
-
-
+    // ===============================================================
+    // TELEMETRY TASK INIT
+    // ===============================================================
+    uart_comms_init(SAMWISE_ADCS_PICUBED_UART,
+            SAMWISE_ADCS_TX_TO_PICUBED,
+            SAMWISE_ADCS_RX_FROM_PICUBED,
+            115200);
 }
