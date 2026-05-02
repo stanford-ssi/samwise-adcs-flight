@@ -205,6 +205,7 @@ add_executable(samwise-adcs-rewrite
     ${drivers_picubed}
     ${drivers_watchdog_motor}
     ${drivers_external}
+    ${drivers_comms}
     
     # System Components
     ${new_states}

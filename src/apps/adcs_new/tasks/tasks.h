@@ -17,8 +17,7 @@ typedef enum {
     TASK_CALCULATE_TORQUE,
     TASK_REACTION_WHEEL,
     TASK_MAGNETORQUER,
-    TASK_PICUBED_SEND,
-    TASK_PICUBED_RECEIVE,
+    TASK_TELEMETRY,
     NTASKS
 } TaskId_t;
 
@@ -77,9 +76,7 @@ void vTaskMagnetorquers(void *);
 // TELEMETRY TASKS
 // ==================================================================
 
-void vTaskPiCubedSend(void *);
-
-void vTaskPiCubedReceive(void *);
+void vTaskTelemetry(void *);
 
 // ==================================================================
 // OTHER TASKS

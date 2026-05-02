@@ -4,8 +4,8 @@
 
 #define START_FLAG 0xAA
 
-__attribute((packed))
-struct adcs_message_t {
+struct __attribute((packed)) adcs_message_t {
+
     // Angular velocity
     float w;
 
