@@ -6,9 +6,13 @@
  * states.
  */
 
+
 #include "telemetry_task.h"
 #include "drivers/picubed/picubed.h"
 #include "macros.h"
+#include "apps/adcs_app/slate.h"
+
+extern slate_t slate;
 
 /**
  * @brief Populate telemetry data in the slate. Currently uses placeholder
@@ -53,7 +57,7 @@ void telemetry_task_dispatch(slate_t *slate)
 {
     LOG_DEBUG("[telem] Telemetry task dispatching...");
     populate_telemetry(slate);
-    picubed_uart_handle_commands(slate);
+    picubed_uart_handle_commands();
 }
 
 sched_task_t telemetry_task = {.name = "telem",

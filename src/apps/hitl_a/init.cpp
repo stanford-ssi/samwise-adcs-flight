@@ -8,7 +8,7 @@
 int init(slate_t *slate)
 {
 
-    slate->telemetry = telemetry_init(&slate->rx_package);
+    // slate->telemetry = telemetry_init(&slate->rx_package);
 
     slate->adcs_uart = software_uart_init(HITL_RX, HITL_TX);
 

@@ -9,6 +9,7 @@
 #include "drivers/sun_sensors/sun_sensors.h"
 #include "drivers/sun_sensors/rp2350b_adc.h"
 #include "drivers/sun_sensors/ads7830.h"
+#include "drivers/communications/uart_communications.h"
 
 #include "apps/adcs_new/params.h"
 
@@ -47,6 +48,9 @@ static StackType_t reset_estimate_stack[256];
 static StaticTask_t init_tcb;
 static StackType_t init_stack[256];
 
+static StaticTask_t telemetry_tcb;
+static StackType_t telemetry_stack[512];
+
 static void init_i2c_buses() {
     // Initialize I2c pins and buses
     gpio_init(SAMWISE_ADCS_I2C0_SCL);
@@ -68,6 +72,14 @@ static void init_i2c_buses() {
 }
 
 void init_tasks() {
+
+    // ===============================================================
+    // TELEMETRY TASK INIT
+    // ===============================================================
+    uart_comms_init(SAMWISE_ADCS_PICUBED_UART,
+            SAMWISE_ADCS_TX_TO_PICUBED,
+            SAMWISE_ADCS_RX_FROM_PICUBED,
+            115200);
     // ==============================================================
     // INIT STATE MACHINE
     // ==============================================================
@@ -82,6 +94,17 @@ void init_tasks() {
         init_stack,
         &init_tcb
     );
+
+    slate.task_handles[TASK_TELEMETRY] = xTaskCreateStatic(
+        vTaskTelemetry,
+        "picubed and motor telemetry task",
+        512,
+        nullptr,
+        2,
+        telemetry_stack,
+        &telemetry_tcb
+    );
+
 
     slate.task_handles[TASK_MAGNETOMETER] = xTaskCreateStatic(
         vTaskMagnetometer,   // function

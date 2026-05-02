@@ -80,6 +80,7 @@ file(GLOB drivers_external CONFIGURE_DEPENDS "src/drivers/external/*.[c|cpp]")
 file(GLOB drivers_motor CONFIGURE_DEPENDS "src/drivers/motor/*.cpp")
 file(GLOB drivers_software_uart CONFIGURE_DEPENDS "src/drivers/software_uart/*.cpp")
 file(GLOB drivers_telemetry CONFIGURE_DEPENDS "src/drivers/telemetry/*.cpp")
+file(GLOB drivers_comms CONFIGURE_DEPENDS "src/drivers/communications/*.cpp")
 
 # System Components
 file(GLOB scheduler CONFIGURE_DEPENDS "src/apps/adcs_app/scheduler/*.cpp")
@@ -204,6 +205,7 @@ add_executable(samwise-adcs-rewrite
     ${drivers_picubed}
     ${drivers_watchdog_motor}
     ${drivers_external}
+    ${drivers_comms}
     
     # System Components
     ${new_states}
@@ -265,6 +267,7 @@ add_executable(samwise-adcs-motor
     ${drivers_external}
     ${drivers_motor}
     ${drivers_software_uart} 
+    ${drivers_comms}
 
     # FreeRTOS
     ${FREERTOS_KERNEL_PATH}/timers.c
