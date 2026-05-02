@@ -2,14 +2,15 @@
 
 #include "macros.h"
 
-telemetry_handler_t telemetry_init(base_telemetry_t *dest)
+telemetry_handler_t telemetry_init(void *dest, uint32_t packet_size)
 {
     telemetry_handler_t out;
     out.frame_position = 0;
-    out.frame_size = sizeof(*dest);
+    out.frame_size = packet_size;
     out.dest = (uint8_t *)dest;
     return out;
 }
+
 
 uint32_t telemetry_read(telemetry_handler_t *tel, software_uart_t *uart)
 {

@@ -10,6 +10,7 @@
 
 #include "linalg.h"
 using namespace linalg::aliases;
+using namespace linalg;
 
 float3 lla_to_ecef(const float lat, const float lon, const float alt);
 float3 ecef_to_lla(const float3 &ecef);
@@ -20,9 +21,10 @@ float3 ecef_to_eci(const float3 &ecef, const float &MJD);
 float3 eci_to_ecef(const float3 &eci, const float &MJD);
 float3 eci_to_body(const float3 &eci, const quaternion &q_eci_to_body);
 float3 body_to_eci(const float3 &body, const quaternion &q_eci_to_body);
-float3 body_to_principal(const float3 &body);
-float3 principal_to_body(const float3 &principal);
+float3 body_to_principal(const quaternion q_body_to_principal, const float3 &body);
+float3 principal_to_body(const quaternion q_body_to_principal, float3 &principal);
 
 #ifdef TEST
-void test_transforms();
+void test_transforms(const float3x3 principal_axes_dcm, 
+        const quaternion q_body_to_principal);
 #endif

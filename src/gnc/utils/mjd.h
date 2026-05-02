@@ -8,6 +8,8 @@
 
 #pragma once
 
-#include "slate.h"
+#include "linalg.h"
 
-void compute_MJD(slate_t *slate);
+using namespace linalg::aliases;
+
+float compute_MJD(float3 UTC_date, float gps_time);

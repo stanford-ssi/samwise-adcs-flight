@@ -9,7 +9,7 @@
 #include "macros.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
-#include "pins.h"
+#include "apps/adcs_app/pins.h"
 #include <stdint.h>
 #include <stdlib.h>
 

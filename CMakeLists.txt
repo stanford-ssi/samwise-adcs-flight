@@ -3,33 +3,39 @@
 cmake_minimum_required(VERSION 3.13)
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/boards)
 
 # Initialise pico_sdk from installed location
 # (note this can come from environment, CMake cache etc)
 
-# == DO NEVER EDIT THE NEXT LINES for Raspberry Pi Pico VS Code Extension to work ==
 if(WIN32)
     set(USERHOME $ENV{USERPROFILE})
 else()
     set(USERHOME $ENV{HOME})
 endif()
-set(sdkVersion 2.0.0)
+set(sdkVersion 2.2.0)
 set(toolchainVersion 13_2_Rel1)
 set(picotoolVersion 2.0.0)
+
+set(PICO_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/pico-sdk)
 include(${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 # ====================================================================================
-set(PICO_BOARD adcs CACHE STRING "Board type")
 
-# Pull in Raspberry Pi Pico SDK (must be before project)
-include(${CMAKE_CURRENT_LIST_DIR}/pico-sdk/pico_sdk_init.cmake)
+set(PICO_BOARD adcs CACHE STRING "Board type")
+set(PICO_BOARD_CMAKE_DIRS  ${CMAKE_CURRENT_LIST_DIR}/boards)
+set(PICO_BOARD_HEADER_DIRS  ${CMAKE_CURRENT_LIST_DIR}/boards)
+
+include(${PICO_SDK_PATH}/pico_sdk_init.cmake)
 
 if (PICO_SDK_VERSION_STRING VERSION_LESS "1.4.0")
   message(FATAL_ERROR "Raspberry Pi Pico SDK version 1.4.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
 endif()
+
+set(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_LIST_DIR}/FreeRTOS-Kernel)
+set(FREERTOS_PORT GCC_RP2350_ARM_NTZ)   # <-- add this
+include(${CMAKE_CURRENT_LIST_DIR}/FreeRTOS_Kernel_import.cmake)
 
 project(samwise-adcs C CXX ASM)
 
@@ -39,18 +45,22 @@ pico_sdk_init()
 # Apps
 file(GLOB adcs_main CONFIGURE_DEPENDS "src/apps/adcs_app/*.cpp")
 file(GLOB motor_main CONFIGURE_DEPENDS "src/apps/motor_app/*.cpp")
+file(GLOB brick_main CONFIGURE_DEPENDS "src/apps/brick_app/*.cpp")
+file(GLOB adcs_new CONFIGURE_DEPENDS "src/apps/adcs_new/*.cpp")
 
 # Core
 file(GLOB top CONFIGURE_DEPENDS "src/*.cpp")
 
 # GNC Algorithms
 file(GLOB gnc CONFIGURE_DEPENDS "src/gnc/*.cpp")
+file(GLOB gnc_actuators CONFIGURE_DEPENDS "src/gnc/actuators/*.cpp")
 file(GLOB gnc_estimation CONFIGURE_DEPENDS "src/gnc/estimation/*.cpp")
 file(GLOB gnc_control CONFIGURE_DEPENDS "src/gnc/control/*.cpp")
 file(GLOB gnc_dynamics CONFIGURE_DEPENDS "src/gnc/dynamics/*.cpp")
 file(GLOB gnc_models CONFIGURE_DEPENDS "src/gnc/models/*.cpp")
 file(GLOB gnc_world CONFIGURE_DEPENDS "src/gnc/world/*.cpp")
 file(GLOB gnc_utils CONFIGURE_DEPENDS "src/gnc/utils/*.cpp")
+file(GLOB gnc_mekf CONFIGURE_DEPENDS "src/gnc/mekf/*.cpp")
 
 # Drivers
 file(GLOB drivers CONFIGURE_DEPENDS "src/drivers/*.cpp")
@@ -70,17 +80,22 @@ file(GLOB drivers_external CONFIGURE_DEPENDS "src/drivers/external/*.[c|cpp]")
 file(GLOB drivers_motor CONFIGURE_DEPENDS "src/drivers/motor/*.cpp")
 file(GLOB drivers_software_uart CONFIGURE_DEPENDS "src/drivers/software_uart/*.cpp")
 file(GLOB drivers_telemetry CONFIGURE_DEPENDS "src/drivers/telemetry/*.cpp")
+file(GLOB drivers_comms CONFIGURE_DEPENDS "src/drivers/communications/*.cpp")
 
 # System Components
-file(GLOB scheduler CONFIGURE_DEPENDS "src/scheduler/*.cpp")
-file(GLOB states CONFIGURE_DEPENDS "src/states/*.cpp")
+file(GLOB scheduler CONFIGURE_DEPENDS "src/apps/adcs_app/scheduler/*.cpp")
+file(GLOB states CONFIGURE_DEPENDS "src/apps/adcs_app/states/*.cpp")
 
 # Tasks
-file(GLOB tasks CONFIGURE_DEPENDS "src/tasks/*.cpp")
-file(GLOB tasks_control CONFIGURE_DEPENDS "src/tasks/control/*.cpp")
-file(GLOB tasks_navigation CONFIGURE_DEPENDS "src/tasks/navigation/*.cpp")
-file(GLOB tasks_sensors CONFIGURE_DEPENDS "src/tasks/sensors/*.cpp")
-file(GLOB tasks_system CONFIGURE_DEPENDS "src/tasks/system/*.cpp")
+file(GLOB tasks CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/*.cpp")
+file(GLOB tasks_control CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/control/*.cpp")
+file(GLOB tasks_navigation CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/navigation/*.cpp")
+file(GLOB tasks_sensors CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/sensors/*.cpp")
+file(GLOB tasks_system CONFIGURE_DEPENDS "src/apps/adcs_app/tasks/system/*.cpp")
+
+# Rewrite
+file(GLOB new_tasks CONFIGURE_DEPENDS "src/apps/adcs_new/tasks/*.cpp")
+file(GLOB new_states CONFIGURE_DEPENDS "src/apps/adcs_new/states/*.cpp")
 
 # Tools
 file(GLOB tools CONFIGURE_DEPENDS "src/tools/*.cpp")
@@ -93,6 +108,7 @@ add_executable(samwise-adcs
 
     # GNC Algorithms
     ${gnc}
+    ${gnc_actuators}
     ${gnc_estimation}
     ${gnc_control}
     ${gnc_dynamics}
@@ -159,6 +175,81 @@ target_include_directories(samwise-adcs PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
 pico_add_extra_outputs(samwise-adcs)
 
+# ////////////////////////////////////
+# ADCS REWRITE
+# ////////////////////////////////////
+
+# First target (main adcs board)
+add_executable(samwise-adcs-rewrite
+    # Core
+    ${adcs_new}
+    ${top}
+
+    # GNC Algorithms
+    ${gnc}
+    ${gnc_utils}
+    ${gnc_world}
+    ${gnc_mekf}
+    ${gnc_estimation}
+
+    # Drivers
+    ${drivers}
+    ${drivers_power_monitor}
+    ${drivers_gps}
+    ${drivers_imu}
+    ${drivers_magnetometer}
+    ${drivers_magnetorquers}
+    ${drivers_mram}
+    ${drivers_neopixel}
+    ${drivers_sun_sensors}
+    ${drivers_picubed}
+    ${drivers_watchdog_motor}
+    ${drivers_external}
+    ${drivers_comms}
+    
+    # System Components
+    ${new_states}
+    # Tasks
+    ${new_tasks}
+    
+    # Tools
+    ${tools}
+
+    # FreeRTOS
+    ${FREERTOS_KERNEL_PATH}/timers.c
+)
+
+pico_set_program_name(samwise-adcs-rewrite "samwise_adcs_rewrite")
+pico_set_program_version(samwise-adcs-rewrite "0.1")
+
+# Modify the below lines to enable/disable output over UART/USB
+pico_enable_stdio_uart(samwise-adcs-rewrite 0)
+pico_enable_stdio_usb(samwise-adcs-rewrite 1)
+
+# Add the standard library to the build
+target_link_libraries(samwise-adcs-rewrite
+  hardware_i2c
+  hardware_spi
+  hardware_uart
+  hardware_flash
+  hardware_pwm
+  hardware_adc
+  pico_stdlib 
+  pico_platform
+  hardware_pio
+  FreeRTOS-Kernel
+)
+
+# Add the standard include files to the build
+target_include_directories(samwise-adcs-rewrite PRIVATE
+  ${CMAKE_CURRENT_LIST_DIR}
+  ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts or any other standard includes, if required
+)
+
+target_include_directories(samwise-adcs-rewrite PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+
+pico_add_extra_outputs(samwise-adcs-rewrite)
+
 # ////////////////////////////////
 # Second target (ADCS Motor Board)
 # ////////////////////////////////
@@ -176,6 +267,10 @@ add_executable(samwise-adcs-motor
     ${drivers_external}
     ${drivers_motor}
     ${drivers_software_uart} 
+    ${drivers_comms}
+
+    # FreeRTOS
+    ${FREERTOS_KERNEL_PATH}/timers.c
 )
 
 pico_set_program_name(samwise-adcs-motor "samwise_adcs_motor")
@@ -196,6 +291,7 @@ target_link_libraries(samwise-adcs-motor
   pico_platform
   pico_stdlib 
   hardware_pio
+  FreeRTOS-Kernel
 )
 
 # Add the standard include files to the build
@@ -205,6 +301,53 @@ target_include_directories(samwise-adcs-motor PRIVATE
 )
 
 target_include_directories(samwise-adcs-motor PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+
+pico_add_extra_outputs(samwise-adcs-motor)
+
+# ////////////////////////////
+# Third target (Brick Board)
+# ////////////////////////////
+add_executable(samwise-adcs-brick
+    src/apps/brick_app/brick_main.cpp
+)
+
+pico_set_program_name(samwise-adcs-brick "samwise_adcs_brick")
+pico_set_program_version(samwise-adcs-brick "0.1")
+
+pico_enable_stdio_uart(samwise-adcs-brick 0)
+pico_enable_stdio_usb(samwise-adcs-brick 1)
+
+target_link_libraries(samwise-adcs-brick
+  pico_stdlib
+)
+
+target_include_directories(samwise-adcs-brick PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+
+pico_add_extra_outputs(samwise-adcs-brick)
+
+# ////////////////////////////
+# FREERTOS TARGET (BASIC BLINK)
+# ////////////////////////////
+add_executable(samwise-adcs-freertos-blink
+    src/apps/freertos_app/main.cpp
+    ${FREERTOS_KERNEL_PATH}/timers.c
+)
+
+pico_set_program_name(samwise-adcs-freertos-blink "samwise_adcs_freertos-blink")
+pico_set_program_version(samwise-adcs-freertos-blink "0.1")
+
+pico_enable_stdio_uart(samwise-adcs-freertos-blink 0)
+pico_enable_stdio_usb(samwise-adcs-freertos-blink 1)
+
+target_link_libraries(samwise-adcs-freertos-blink
+  pico_stdlib
+  FreeRTOS-Kernel
+)
+
+target_include_directories(samwise-adcs-freertos-blink PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+target_include_directories(samwise-adcs-freertos-blink PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
+
+pico_add_extra_outputs(samwise-adcs-freertos-blink)
 
 # ///////////////////////////////////
 # HITL TARGETS
@@ -280,4 +423,7 @@ pico_enable_stdio_usb(hitl-b 1)
 
 pico_add_extra_outputs(hitl-a)
 pico_add_extra_outputs(hitl-b)
+
+set(FREERTOS_CONFIG_FILE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include CACHE STRING "")
+set(FREERTOS_USE_TIMERS ON CACHE BOOL "")
 

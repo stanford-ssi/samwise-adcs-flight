@@ -18,7 +18,7 @@ void gpio_irq(uint gpio, uint32_t events)
 
 int init(slate_t *slate)
 {
-    slate->telemetry = telemetry_init(&slate->rx_package);
+    // slate->telemetry = telemetry_init(&slate->rx_package);
 
     gpio_set_irq_enabled_with_callback(HITL_RX, GPIO_IRQ_EDGE_FALL, true,
                                        &gpio_irq);

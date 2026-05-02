@@ -10,7 +10,7 @@
 #include "hardware/uart.h"
 #include "macros.h"
 #include "pico/stdlib.h"
-#include "pins.h"
+#include "apps/adcs_app/pins.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -65,7 +65,7 @@ void gps_uart_irq_handler(void)
             }
             else
             {
-                buffer_index++;
+                buffer_index = buffer_index + 1;
             }
         }
         else

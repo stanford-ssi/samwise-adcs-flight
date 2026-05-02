@@ -7,7 +7,7 @@
 
 #include "attitude_propagator.h"
 #include "constants.h"
-#include "params.h"
+#include "apps/adcs_app/params.h"
 
 // Forward declarations
 static void q_dot(float4 &q_dot, float3 &w_dot, float4 q, float3 w,
@@ -90,6 +90,15 @@ void rk4_step(float4 &q_new, float3 &w_new, float3 tau_body, float dt)
 
     // w_new = w + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
     w_new = w_new + (dt / 6.0f) * (k1_w + 2.0f * k2_w + 2.0f * k3_w + k4_w);
+}
+
+/* This function computes quaternion derivatives as 
+ *
+ * @
+ */
+void q_exp_map(float4 &dq_out)
+{
+
 }
 
 /* This function computes the quaternion and angular velocity derivatives.

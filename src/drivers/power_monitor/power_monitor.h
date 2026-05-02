@@ -4,12 +4,19 @@
  *
  * ADM1176 power monitor driver
  */
+#pragma once
 
-#include "slate.h"
 #include <stdbool.h>
 #include <stdint.h>
 
-bool adm_init(void);
+typedef struct power_monitor {
+    float power;
+    float voltage;
+    float current;
+    bool power_monitor_alive;
+} power_monitor_t;
+
+bool adm_init(float resistance);
 bool adm_power_on(void);
 bool adm_power_off(void);
 
@@ -18,7 +25,7 @@ bool adm_get_status(uint8_t *status_out);
 bool adm_is_initialized(void);
 
 // Power measurement
-bool adm_get_power(slate_t *slate);
+bool adm_get_power(power_monitor_t *monitor);
 bool adm_get_voltage(float *voltage_out);
 bool adm_get_current(float *current_out);
 

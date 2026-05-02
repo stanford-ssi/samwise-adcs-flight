@@ -10,16 +10,18 @@
 #include "imu.h"
 
 #include "macros.h"
-#include "params.h"
-#include "pins.h"
+#include "apps/adcs_app/params.h"
+#include "apps/adcs_app/pins.h"
 
 #include <stdint.h>
 #include <stdlib.h>
 
 #include "drivers/external/bmi270_legacy.h"
 #include "drivers/external/bmi2_defs.h"
+
 #include "linalg.h"
 #include "pico/stdlib.h"
+#include "pico/types.h"
 
 using namespace linalg::aliases;
 
@@ -473,6 +475,10 @@ static int8_t set_accel_config(struct bmi2_dev *dev)
     rslt = bmi2_get_sensor_config(&config, 1, dev);
     bmi2_error_codes_print_result(rslt);
 
+    // ADD THIS:
+    rslt = bmi2_map_data_int(BMI2_DRDY_INT, BMI2_INT1, dev);
+    bmi2_error_codes_print_result(rslt);
+
     if (rslt == BMI2_OK)
     {
         /* Set Output Data Rate - match gyro at 50Hz */
@@ -617,9 +623,6 @@ bool imu_init()
     LOG_INFO("PWR_CTRL register = 0x%02x (should have bits 2=acc, 3=gyro set)",
              pwr_ctrl);
 
-    sleep_ms(
-        50); // Give sensors time to power up - accel needs longer than gyro
-
     /* THEN configure the sensors */
     result = set_gyro_config(&bmi);
     bmi2_error_codes_print_result(result);
@@ -634,6 +637,9 @@ bool imu_init()
     {
         return false;
     }
+
+    sleep_ms(
+        50); // Give sensors time to power up - accel needs longer than gyro
 
     return true;
 }

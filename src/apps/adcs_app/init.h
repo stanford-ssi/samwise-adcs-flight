@@ -5,11 +5,9 @@
  *
  * This file defines the main function for initializing hardware on the board
  */
-
-#include "slate.h"
+#include "apps/adcs_app/slate.h"
 
 #pragma once
-
 /**
  * @brief Initialize the state of the slate, and all hardware on the board
  *

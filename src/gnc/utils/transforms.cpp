@@ -12,7 +12,7 @@
 #include "constants.h"
 #include "gnc/utils/matrix_utils.h"
 #include "gnc/utils/utils.h"
-#include "params.h"
+// #include "apps/adcs_app/params.h"
 #include <cmath>
 
 /**
@@ -291,10 +291,10 @@ float3 body_to_eci(const float3 &body, const quaternion &q_eci_to_body)
  * @param body Vector in body frame
  * @return Vector in principal axes frame
  */
-float3 body_to_principal(const float3 &body)
+float3 body_to_principal(const quaternion q_body_to_principal, float3 &body)
 {
     // Rotate vector using quaternion rotation
-    return qrot(Q_BODY_TO_PRINCIPAL, body);
+    return qrot(q_body_to_principal, body);
 }
 
 /**
@@ -303,14 +303,15 @@ float3 body_to_principal(const float3 &body)
  * @param principal Vector in principal axes frame
  * @return Vector in body frame
  */
-float3 principal_to_body(const float3 &principal)
+float3 principal_to_body(const quaternion q_body_to_principal, const float3 &principal)
 {
     // Rotate vector using inverse quaternion (conjugate)
-    return qrot(qconj(Q_BODY_TO_PRINCIPAL), principal);
+    return qrot(qconj(q_body_to_principal), principal);
 }
 
 #ifdef TEST
-void test_transforms()
+void test_transforms(const float3x3 principal_axes_dcm, 
+        const quaternion q_body_to_principal)
 {
     printf("\n><=><=><=><=><= Testing frame transformation utilities... "
            "><=><=><=><=><=\n");
@@ -577,9 +578,9 @@ void test_transforms()
 
     // Test 1: Verify against DCM method
     float3 body_vec = {1.0f, 2.0f, 3.0f};
-    float3 principal_result = body_to_principal(body_vec);
+    float3 principal_result = body_to_principal(q_body_to_principal, body_vec);
     float3x3 dcm_body_to_principal =
-        transpose(PRINCIPAL_AXES_DCM); // active rotation
+        transpose(principal_axes_dcm); // active rotation
     float3 dcm_principal = mul(dcm_body_to_principal, body_vec);
 
     printf("body_to_principal: qrot=[%.6f, %.6f, %.6f], dcm^T=[%.6f, %.6f, "
@@ -599,8 +600,8 @@ void test_transforms()
 
     // Test 1: Should be inverse of body_to_principal
     float3 body_original = {1.5f, -2.3f, 4.7f};
-    float3 to_principal = body_to_principal(body_original);
-    float3 back_to_body = principal_to_body(to_principal);
+    float3 to_principal = body_to_principal(q_body_to_principal, body_original);
+    float3 back_to_body = principal_to_body(q_body_to_principal, to_principal);
 
     printf("Round-trip: original=[%.6f, %.6f, %.6f], recovered=[%.6f, %.6f, "
            "%.6f]\n",
@@ -615,10 +616,10 @@ void test_transforms()
     // Test 2: Verify principal_to_body against DCM (passive form, no transpose
     // needed)
     float3 principal_vec = {0.5f, 1.5f, 2.5f};
-    float3 body_result_qrot = principal_to_body(principal_vec);
+    float3 body_result_qrot = principal_to_body(q_body_to_principal, principal_vec);
 
     // For principal_to_body, use DCM directly (passive rotation)
-    float3 body_result_dcm = mul(PRINCIPAL_AXES_DCM, principal_vec);
+    float3 body_result_dcm = mul(principal_axes_dcm, principal_vec);
 
     printf(
         "principal_to_body: qrot=[%.6f, %.6f, %.6f], dcm=[%.6f, %.6f, %.6f]\n",
