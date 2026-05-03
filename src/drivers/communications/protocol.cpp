@@ -11,27 +11,6 @@
 
 #include "drivers/communications/protocol.h"
 
-/*
-enum {
-    MSG_PING,           // No-op, but returns a pong
-    MSG_PONG,           
-    MSG_STRING,
-    MSG_COMMAND,        // Execute command
-    MSG_ADCS_PACKET     // ADCS 
-};
-
-typedef struct protocol_msg {
-    uint8_t src;
-    uint8_t dst;
-    uint8_t seq;
-    uint8_t flags;
-    uint8_t type;
-    uint8_t len;
-    uint8_t *payload;
-    uint8_t crc8;
-} msg_t;
-*/
-
 // TODO: Implement these values
 void protocol_message_ping(msg_t *msg) {
     msg->src = 1;

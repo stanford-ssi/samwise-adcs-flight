@@ -92,6 +92,13 @@ void vTaskGPS(void *) {
             slate.gps_data.UTC_date[1] = static_cast<float>(month); // Month
             slate.gps_data.UTC_date[2] = static_cast<float>(day);   // Day
 
+            // process UTC timestamp HHMMSS into UTC time in seconds
+            uint32_t hhmmss = current_gps_data.timestamp;
+            uint32_t h = hhmmss / 10000;
+            uint32_t m = (hhmmss / 100) % 100;
+            uint32_t s = hhmmss % 100;
+
+            slate.gps_data.UTC_time = static_cast<float>(h * 3600 + m * 60 + s);
             // Compute MJD from GPS time/date
             slate.gps_data.MJD = 
                 compute_MJD(slate.gps_data.UTC_date, 
