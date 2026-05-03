@@ -29,8 +29,12 @@ static void populate_telemetry(slate_t *slate)
                         .q1 = 0.2f,
                         .q2 = 0.3f,
                         .q3 = 0.4f,
+                        .mjd = slate->MJD,
+                        .UTC_time = slate->UTC_time,
+                        .voltage = slate->adcs_voltage,
+                        .current = slate->adcs_current,
                         .state = 'X',
-                        .boot_count = 42};
+                        .boot_counter = 42};
 }
 
 /**

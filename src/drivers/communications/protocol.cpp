@@ -7,6 +7,8 @@
 
 #include <string.h>
 
+#include "adcs_packet.h"
+
 #include "drivers/communications/protocol.h"
 
 /*
@@ -65,8 +67,8 @@ void protocol_message_string(msg_t *msg, uint8_t* s) {
     msg->crc8 = 0;
 }
 
-void protocol_message_adcs(msg_t *msg, adcs_message_t* adcs){
-    uint8_t len = sizeof(adcs_message_t);
+uint32_t protocol_message_adcs(msg_t *msg, adcs_packet_t* adcs){
+    uint8_t len = sizeof(adcs_packet_t);
     msg->src = 1;
     msg->dst = 0;
     msg->seq = 0;
@@ -75,6 +77,7 @@ void protocol_message_adcs(msg_t *msg, adcs_message_t* adcs){
     msg->len = len;
     msg->payload = (uint8_t *) adcs;
     msg->crc8 = 0;
+    return 7 + len;
 }
 
 /*

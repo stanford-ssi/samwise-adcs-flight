@@ -9,9 +9,17 @@
 #include "hardware/uart.h"
 #include "pico/stdlib.h"
 
+#include "linalg.h"
+
+using namespace linalg;
+
 #include "macros.h"
 #include "picubed.h"
 #include "apps/adcs_app/pins.h"
+
+#include "gnc/mekf/filter.h"
+#include "drivers/gps/gps.h"
+#include "drivers/power_monitor/power_monitor.h"
 
 // Uart parameters
 #define PICUBED_UART_BAUD (115200)
@@ -249,11 +257,37 @@ void send_ping(){
     send_msg(&ping, 8);
 }
 
-void send_pong(){
+void send_pong()
+{
     LOG_INFO("[TELEMETRY] Sending Pong");
     msg_t pong;
     protocol_message_pong(&pong);
     send_msg(&pong, 8);
+}
+
+void adcs_packet_populate(adcs_packet_t* adcs,
+    AttitudeFilter &attitude, 
+    gps_data_processed_t &gps,
+    power_monitor_t &power) 
+{
+    adcs->w = length(attitude.omega_);
+    adcs->q0 = attitude.quat_.x;
+    adcs->q1 = attitude.quat_.y;
+    adcs->q2 = attitude.quat_.z;
+    adcs->q3 = attitude.quat_.w;
+
+    adcs->mjd = gps.MJD;
+    adcs->UTC_time = gps.UTC_time;
+
+    adcs->voltage = power.voltage;
+    adcs->current = power.current;
+}
+
+void send_adcs_packet(adcs_packet_t* adcs) {
+    LOG_INFO("[TELEMETRY] Sending ADCS Packet");
+    msg_t msg;
+    uint32_t len = protocol_message_adcs(&msg, adcs);
+    send_msg(&msg, len);
 }
 
 

@@ -49,7 +49,13 @@ void vTaskTelemetry(void *) {
         } else {
         // SEND PING MESSAGE
             tx_count += 1;
-            send_ping();
+            // send_ping();
+            adcs_packet_t adcs;
+            adcs_packet_populate(&adcs,
+                    slate.attitude_filter,
+                    slate.gps_data,
+                    slate.power_monitor);
+            send_adcs_packet(&adcs);
         }
     } // end for
 }

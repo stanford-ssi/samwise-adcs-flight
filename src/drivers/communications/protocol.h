@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 
-#include "drivers/telemetry/uart_package.h"
+#include "adcs_packet.h"
 
 enum {
     MSG_PING,           // No-op, but returns a pong
@@ -38,7 +38,7 @@ void protocol_message_pong(msg_t *msg);
 
 void protocol_message_string(msg_t *msg, uint8_t* s);
 
-void protocol_message_adcs(msg_t *msg, adcs_message_t* adcs);
+uint32_t protocol_message_adcs(msg_t *msg, adcs_packet_t* adcs);
 
  /*
  * Takes a message and formats it into a buffer
