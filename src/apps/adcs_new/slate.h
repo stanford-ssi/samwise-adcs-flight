@@ -9,12 +9,14 @@
 #include "drivers/imu/imu.h"
 #include "drivers/power_monitor/power_monitor.h"
 #include "drivers/magnetometer/magnetometer.h"
+#include "drivers/magnetorquers/magnetorquers.h"
 #include "drivers/watchdog_motor/watchdog.h"
 #include "drivers/sun_sensors/sun_sensors.h"
 
 #include "gnc/mekf/filter.h"
 #include "gnc/world/sun_vector.h"
 #include "gnc/world/b_field.h"
+#include "gnc/control/bdot.h"
 
 #include "apps/adcs_new/params.h"
 #include "apps/adcs_new/states/states.h"
@@ -27,7 +29,7 @@ typedef struct samwise_slate_rewrite {
 
     // SENSORS
     imu_data_t imu_data;
-    magnetometer_data_t magnetometer_data;
+    MagnetometerData magnetometer_data;
     gps_data_processed_t gps_data;
     sun_sensor_data_t sun_sensor;
     power_monitor_t power_monitor;
@@ -41,6 +43,10 @@ typedef struct samwise_slate_rewrite {
     SensorFusion sun_vector_fusion = SensorFusion(0.01f);
     AttitudeFilter attitude_filter = AttitudeFilter(I_BODY,
             0.01f, IMU_GYRO_VARIANCE, 0.05f);
+
+    // CONTROL
+    BDotController bdot;
+    Magnetorquer magtorq;
 
     // UTIL
     StateMachine_t state_machine;

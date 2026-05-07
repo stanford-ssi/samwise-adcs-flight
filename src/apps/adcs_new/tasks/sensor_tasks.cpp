@@ -208,6 +208,9 @@ void vTaskMagnetometer(void *) {
             rm3100_get_reading(&slate.magnetometer_data.b_body, 
                     &slate.magnetometer_data.b_body_raw);
 
+        // TODO: Setup better calibration so that b_body is better than raw
+        slate.magnetometer_data.b_body = slate.magnetometer_data.b_body_raw;
+
         slate.magnetometer_data.magnetometer_data_valid = (result == RM3100_OK);
         slate.magnetometer_data.b_body_read_time = get_absolute_time();
         last_mag_read_start = get_absolute_time();

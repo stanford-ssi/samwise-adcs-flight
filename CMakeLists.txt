@@ -187,6 +187,7 @@ add_executable(samwise-adcs-rewrite
 
     # GNC Algorithms
     ${gnc}
+    ${gnc_control}
     ${gnc_utils}
     ${gnc_world}
     ${gnc_mekf}

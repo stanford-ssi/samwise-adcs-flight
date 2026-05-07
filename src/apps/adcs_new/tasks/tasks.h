@@ -14,9 +14,8 @@ typedef enum {
     TASK_IMU,
     TASK_MAGNETOMETER,
     TASK_SUN_SENSOR,
-    TASK_CALCULATE_TORQUE,
-    TASK_REACTION_WHEEL,
-    TASK_MAGNETORQUER,
+    TASK_BDOT,
+    TASK_ACTUATORS,
     TASK_TELEMETRY,
     NTASKS
 } TaskId_t;
@@ -69,11 +68,9 @@ void vTaskSunSensor(void *);
 // CONTROL TASKS
 // ==================================================================
 
-void vTaskControlCalculations(void *);
+void vTaskBDot(void *);
 
-void vTaskReactionWheels(void *);
-
-void vTaskMagnetorquers(void *);
+void vTaskActuators(void *);
 
 // ==================================================================
 // TELEMETRY TASKS

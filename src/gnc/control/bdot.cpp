@@ -44,20 +44,20 @@ float3 bdot_compute_control_bang_bang(float3 dB, float dt)
 }
 
 #ifdef TEST
-void test_bdot_control(slate_t *slate)
+void test_bdot_control(BDotController *bdot, MagnetometerData *mag_data)
 {
     LOG_INFO("Testing bdot...");
 
     // Initialize
-    slate->b_body = {1e-6f, 0.0f, 0.0f};
-    slate->b_body_prev = {1e-6f, 0.0f, 0.0f};
+    mag_data>b_body = {1e-6f, 0.0f, 0.0f};
+    bdot->b_body_prev = {1e-6f, 0.0f, 0.0f};
     sleep_ms(100);
 
     for (int i = 0; i < 10; i++)
     {
-        slate->b_body += float3{1e-7f, 1e-7f, 1e-7f};
+        mag_data->b_body += float3{1e-7f, 1e-7f, 1e-7f};
 
-        const float3 dB = slate->b_body - slate->b_body_prev;
+        const float3 dB = mag_data->b_body - bdot->b_body_prev;
         const float dt = 0.1f;
         const float3 moments = bdot_compute_control_proportional(dB, dt);
 
@@ -68,7 +68,7 @@ void test_bdot_control(slate_t *slate)
 
         sleep_ms(100);
 
-        slate->b_body_prev = slate->b_body;
+        bdot->b_body_prev = mag_data->b_body;
     }
     LOG_INFO("Bdot testing successful! :)");
 }
