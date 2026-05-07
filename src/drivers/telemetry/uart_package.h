@@ -16,7 +16,10 @@ struct __attribute((packed)) adcs_message_t {
     float mjd;
     float UTC_time;
 
-    // Statekeeping
+    // Power
+    float voltage;
+    float current;
+// Statekeeping
     uint8_t state;
     uint32_t boot_counter;
 };

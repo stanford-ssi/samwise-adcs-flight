@@ -20,15 +20,16 @@ void vTaskInit(void *) {
     xQueueSend(slate.state_machine.state_queue_handle,
             &msg, 0);
     for(;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_INIT));
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_INIT))
+        TASK_LOOP_MS(100)
         LOG_ERROR("Reentered init function?");
     }
 }
 
 void vTaskWatchdog(void *) {
     for (;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_WATCHDOG));
-        TASK_LOOP_MS(100);
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_WATCHDOG))
+        TASK_LOOP_MS(100)
         watchdog_feed(&slate.watchdog);
 
         // ALSO HANDLE POWER MONITOR
@@ -56,31 +57,6 @@ void vTaskStateMachine(void *) {
                 &msg, 
                 portMAX_DELAY);
 
-        switch(slate.state_machine.current_state) {
-            case STATE_INIT:
-                switch(msg) {
-                    case MSG_INIT_DONE:
-                        enter_state(STATE_ENABLED);
-                        break;
-                }
-                break;
-            case STATE_ENABLED:
-                switch(msg) {
-                    case MSG_VOLTAGE_LOW:
-                        enter_state(STATE_SAFE);
-                        break;
-                    case MSG_GPS_VALID:
-                        enter_state(STATE_FUSION);
-                        break;
-                }
-                break;
-            case STATE_FUSION:
-                switch(msg) {
-                    case MSG_VOLTAGE_LOW:
-                        enter_state(STATE_SAFE);
-                        break;
-                }
-                break;
-        } // end switch (state)
+        state_handle_message(msg);
     } // end for
 }

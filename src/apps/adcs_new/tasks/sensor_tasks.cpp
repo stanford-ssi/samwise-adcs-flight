@@ -31,8 +31,8 @@ extern slate_t slate;
 void vTaskGPS(void *) {
     stdio_flush();
     for (;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_GPS));
-        TASK_LOOP_MS(200);
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_GPS))
+        TASK_LOOP_MS(200)
         LOG_INFO("GPS TASK");
 #if GPS_SPOOFING
         slate.gps_data.gps_lat = 37.424732f;
@@ -92,6 +92,13 @@ void vTaskGPS(void *) {
             slate.gps_data.UTC_date[1] = static_cast<float>(month); // Month
             slate.gps_data.UTC_date[2] = static_cast<float>(day);   // Day
 
+            // process UTC timestamp HHMMSS into UTC time in seconds
+            uint32_t hhmmss = current_gps_data.timestamp;
+            uint32_t h = hhmmss / 10000;
+            uint32_t m = (hhmmss / 100) % 100;
+            uint32_t s = hhmmss % 100;
+
+            slate.gps_data.UTC_time = static_cast<float>(h * 3600 + m * 60 + s);
             // Compute MJD from GPS time/date
             slate.gps_data.MJD = 
                 compute_MJD(slate.gps_data.UTC_date, 
@@ -140,8 +147,8 @@ void vTaskIMU(void *) {
     stdio_flush();
 
     for (;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_IMU));
-        TASK_LOOP_MS(100);
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_IMU))
+        TASK_LOOP_MS(100)
 
         if (!slate.imu_data.imu_alive)
         {
@@ -194,8 +201,8 @@ void vTaskMagnetometer(void *) {
     absolute_time_t last_mag_read_start = {0}; 
 
     for (;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_MAGNETOMETER));
-        TASK_LOOP_MS(20);
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_MAGNETOMETER))
+        TASK_LOOP_MS(20)
 
         rm3100_error_t result =
             rm3100_get_reading(&slate.magnetometer_data.b_body, 
@@ -220,8 +227,8 @@ void vTaskMagnetometer(void *) {
 
 void vTaskSunSensor(void *) {
     for (;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_SENSOR));
-        TASK_LOOP_MS(1000);
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_SENSOR))
+        TASK_LOOP_MS(1000)
 
         bool rp2350b_adc_alive = slate.sun_sensor.sun_sensor_alive[0];
         if (rp2350b_adc_alive)

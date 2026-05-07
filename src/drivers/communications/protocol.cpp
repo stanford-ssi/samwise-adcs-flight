@@ -7,28 +7,9 @@
 
 #include <string.h>
 
+#include "adcs_packet.h"
+
 #include "drivers/communications/protocol.h"
-
-/*
-enum {
-    MSG_PING,           // No-op, but returns a pong
-    MSG_PONG,           
-    MSG_STRING,
-    MSG_COMMAND,        // Execute command
-    MSG_ADCS_PACKET     // ADCS 
-};
-
-typedef struct protocol_msg {
-    uint8_t src;
-    uint8_t dst;
-    uint8_t seq;
-    uint8_t flags;
-    uint8_t type;
-    uint8_t len;
-    uint8_t *payload;
-    uint8_t crc8;
-} msg_t;
-*/
 
 // TODO: Implement these values
 void protocol_message_ping(msg_t *msg) {
@@ -65,8 +46,8 @@ void protocol_message_string(msg_t *msg, uint8_t* s) {
     msg->crc8 = 0;
 }
 
-void protocol_message_adcs(msg_t *msg, adcs_message_t* adcs){
-    uint8_t len = sizeof(adcs_message_t);
+uint32_t protocol_message_adcs(msg_t *msg, adcs_packet_t* adcs){
+    uint8_t len = sizeof(adcs_packet_t);
     msg->src = 1;
     msg->dst = 0;
     msg->seq = 0;
@@ -75,12 +56,13 @@ void protocol_message_adcs(msg_t *msg, adcs_message_t* adcs){
     msg->len = len;
     msg->payload = (uint8_t *) adcs;
     msg->crc8 = 0;
+    return 7 + len;
 }
 
 /*
  * Removes payload pointer and inserts payload between
  */
-void protocol_message_buf(msg_t *msg, uint8_t *buf) {
+void protocol_message_encode(msg_t *msg, uint8_t *buf) {
     memcpy(buf, (uint8_t *)msg, 6); // Copy first 6 bytes
     buf += 6;
     if (msg->payload == 0 || msg->len == 0) {
@@ -91,5 +73,14 @@ void protocol_message_buf(msg_t *msg, uint8_t *buf) {
         buf += msg->len;
     }
     memcpy(buf, &msg->crc8, 1); // copy crc byte
+}
+
+void protocol_message_decode(msg_t *msg, uint32_t len, uint8_t *buf) {
+    uint8_t *msg_buf = (uint8_t*)msg;
+    for (int i = 0; i < 6; i++) {
+        msg_buf[i] = buf[i];
+    }
+    msg->payload = buf + 6;
+    msg->crc8 = buf[len - 1];
 }
 

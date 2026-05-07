@@ -19,11 +19,18 @@ typedef struct __attribute__((packed))
     // Angular velocity
     float w;
 
-    // Quaternion Estimate
+    // Quaternion
     float q0, q1, q2, q3;
 
-    // Misc Data
-    char state;
-    uint32_t boot_count;
+    // Time
+    float mjd;
+    float UTC_time;
 
+    // Power
+    float voltage;
+    float current;
+
+    // Statekeeping
+    uint8_t state;
+    uint32_t boot_counter;
 } adcs_packet_t;

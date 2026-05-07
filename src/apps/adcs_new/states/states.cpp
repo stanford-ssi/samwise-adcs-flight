@@ -36,6 +36,10 @@ void init_state_machine() {
         // | TASK_BIT(TASK_GPS)
         | TASK_BIT(TASK_MAGNETOMETER);
 
+    slate.state_machine.state_configs[STATE_DISABLED].enabled_bits
+        = TASK_BIT(TASK_WATCHDOG)
+        | TASK_BIT(TASK_TELEMETRY);
+
     slate.state_machine.state_configs[STATE_FUSION].enabled_bits
         =  TASK_BIT(TASK_WATCHDOG) 
         | TASK_BIT(TASK_TELEMETRY)
@@ -52,6 +56,8 @@ void enter_state(StateId_t new_state) {
         case STATE_SAFE:
             break;
         case STATE_ENABLED:
+            break;
+        case STATE_DISABLED:
             break;
         case STATE_FUSION:
             for (int i = 0; i < 5; i++) {
@@ -72,5 +78,47 @@ void enter_state(StateId_t new_state) {
 
     // Update state!
     slate.state_machine.current_state = new_state;
+}
+
+void state_handle_message(StateMsg_t msg)
+{
+    switch(slate.state_machine.current_state) {
+        case STATE_DISABLED:
+            switch(msg) {
+                case MSG_COMMAND_RECEIVED:
+                    enter_state(STATE_ENABLED);
+                    break;
+            }
+        case STATE_INIT:
+            switch(msg) {
+                case MSG_INIT_DONE:
+                    enter_state(STATE_ENABLED);
+                    break;
+            }
+            break;
+        case STATE_ENABLED:
+            switch(msg) {
+                case MSG_VOLTAGE_LOW:
+                    enter_state(STATE_SAFE);
+                    break;
+                case MSG_GPS_VALID:
+                    enter_state(STATE_FUSION);
+                    break;
+                case MSG_COMMAND_RECEIVED:
+                    enter_state(STATE_DISABLED);
+                    break;
+            }
+            break;
+        case STATE_FUSION:
+            switch(msg) {
+                case MSG_VOLTAGE_LOW:
+                    enter_state(STATE_SAFE);
+                    break;
+                case MSG_COMMAND_RECEIVED:
+                    enter_state(STATE_DISABLED);
+                    break;
+            }
+            break;
+    } // end switch (state)
 }
 

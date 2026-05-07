@@ -23,15 +23,18 @@ typedef enum {
 
 #define TASK_BIT(id) (1 << (id))
 
-#define TASK_LOOP_MS(ms) TickType_t xLastWakeTime = xTaskGetTickCount(); \
-        xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(ms))
+#define TASK_LOOP_MS(ms) {\
+    TickType_t xLastWakeTime = xTaskGetTickCount(); \
+    xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(ms));\
+}
 
-#define WAIT_UNTIL_EVENTBIT(bit) \
+#define WAIT_UNTIL_EVENTBIT(bit) {\
     xEventGroupWaitBits(slate.state_machine.events, \
         (bit),         \
         pdFALSE,                    \
         pdTRUE,                     \
-        portMAX_DELAY)
+        portMAX_DELAY);             \
+}
 
 // ==================================================================
 // TASK RELATED UTILITIES
