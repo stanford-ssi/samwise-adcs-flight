@@ -31,8 +31,8 @@ extern slate_t slate;
 void vTaskGPS(void *) {
     stdio_flush();
     for (;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_GPS));
-        TASK_LOOP_MS(200);
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_GPS))
+        TASK_LOOP_MS(200)
         LOG_INFO("GPS TASK");
 #if GPS_SPOOFING
         slate.gps_data.gps_lat = 37.424732f;
@@ -147,8 +147,8 @@ void vTaskIMU(void *) {
     stdio_flush();
 
     for (;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_IMU));
-        TASK_LOOP_MS(100);
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_IMU))
+        TASK_LOOP_MS(100)
 
         if (!slate.imu_data.imu_alive)
         {
@@ -201,8 +201,8 @@ void vTaskMagnetometer(void *) {
     absolute_time_t last_mag_read_start = {0}; 
 
     for (;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_MAGNETOMETER));
-        TASK_LOOP_MS(20);
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_MAGNETOMETER))
+        TASK_LOOP_MS(20)
 
         rm3100_error_t result =
             rm3100_get_reading(&slate.magnetometer_data.b_body, 
@@ -227,8 +227,8 @@ void vTaskMagnetometer(void *) {
 
 void vTaskSunSensor(void *) {
     for (;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_SENSOR));
-        TASK_LOOP_MS(1000);
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_SENSOR))
+        TASK_LOOP_MS(1000)
 
         bool rp2350b_adc_alive = slate.sun_sensor.sun_sensor_alive[0];
         if (rp2350b_adc_alive)

@@ -20,8 +20,8 @@ void vTaskTelemetry(void *) {
     int rx_count = 0;
     static uint8_t rx_buf[256];
     for (;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_TELEMETRY));
-        TASK_LOOP_MS(500);
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_TELEMETRY))
+        TASK_LOOP_MS(500)
         LOG_INFO("TX_COUNT {%d}", tx_count);
 
         if(uart_comms_packet_ready(SAMWISE_ADCS_PICUBED_UART)) {

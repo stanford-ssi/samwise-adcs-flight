@@ -20,8 +20,9 @@ extern slate_t slate;
 void vTaskMagnetometerFusion(void *) {
     absolute_time_t t_prev = get_absolute_time();
     for (;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_MAGNETOMETER_FUSION));
-        TASK_LOOP_MS(100); // 10 Hz
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_MAGNETOMETER_FUSION))
+        TASK_LOOP_MS(100) // 10 Hz
+                          //
         absolute_time_t t_now = get_absolute_time();
         uint32_t dt = absolute_time_diff_us(t_prev, t_now);
         t_prev = t_now;
@@ -59,8 +60,8 @@ void vTaskSunVectorFusion(void *) {
 #ifdef GRAVITY_SENSOR
     float3 reference = {0, 0, 1};
     for (;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION));
-        TASK_LOOP_MS(50); // 20 Hz
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION))
+        TASK_LOOP_MS(50) // 20 Hz
         if (!slate.imu_data.imu_accel_valid)
             continue;
         // float3 lla = {slate.gps_data.gps_lat, 
@@ -96,8 +97,8 @@ void vTaskSunVectorFusion(void *) {
 #endif
 #ifndef GRAVITY_SENSOR
     for (;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION));
-        TASK_LOOP_MS(50); // 20 Hz
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION))
+        TASK_LOOP_MS(50) // 20 Hz
         slate.sun_vector_fusion.set_reference(slate.sun_vector.sun_vector_eci);
         slate.sun_vector_fusion.compute_sensitivity(
                 slate.attitude_filter.quat_);
@@ -116,8 +117,8 @@ void vTaskSunVectorFusion(void *) {
 void vTaskPropagate(void *) {
     stdio_flush();
     for(;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_PROPAGATE));
-        TASK_LOOP_MS(20); // 50 Hz
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_PROPAGATE))
+        TASK_LOOP_MS(20) // 50 Hz
 
         // float3 w_fake = {0, 0, 2*PI*1.0f};
         slate.attitude_filter.compute_dynamics_matrix(
@@ -136,8 +137,8 @@ void vTaskPropagate(void *) {
 void vTaskResetEstimate(void *) { 
     stdio_flush();
     for(;;) {
-        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_RESET_ESTIMATE));
-        TASK_LOOP_MS(200); // 50 Hz
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_RESET_ESTIMATE))
+        TASK_LOOP_MS(200) // 50 Hz
         LOG_INFO("[error reset] bias estimate: [%f, %f, %f]",
                 slate.attitude_filter.bias_estimate_.x,
                 slate.attitude_filter.bias_estimate_.y,

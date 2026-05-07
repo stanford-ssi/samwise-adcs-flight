@@ -48,3 +48,5 @@ typedef struct {
 void init_state_machine();
 
 void enter_state(StateId_t state);
+
+void state_handle_message(StateMsg_t msg);
