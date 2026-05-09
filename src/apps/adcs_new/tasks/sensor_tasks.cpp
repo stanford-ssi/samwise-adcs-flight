@@ -13,6 +13,8 @@ using namespace linalg::aliases;
 #include "apps/adcs_new/params.h"
 #include "apps/adcs_new/slate.h"
 
+#include "drivers/telemetry/hitl.h"
+#include "drivers/communications/protocol.h"
 #include "drivers/sun_sensors/ads7830.h"
 #include "drivers/sun_sensors/rp2350b_adc.h"
 #include "drivers/sun_sensors/sun_sensors.h"
@@ -207,6 +209,14 @@ void vTaskMagnetometer(void *) {
         rm3100_error_t result =
             rm3100_get_reading(&slate.magnetometer_data.b_body, 
                     &slate.magnetometer_data.b_body_raw);
+        // Send data over usb
+        msg_t mag_raw_msg;
+        float data[3] = {slate.magnetometer_data.b_body_raw.x,
+            slate.magnetometer_data.b_body_raw.y, 
+            slate.magnetometer_data.b_body_raw.z};
+
+        protocol_message_float3(&mag_raw_msg, (float*)&data);
+        send_hitl(&mag_raw_msg, 19);
 
         // TODO: Setup better calibration so that b_body is better than raw
         slate.magnetometer_data.b_body = slate.magnetometer_data.b_body_raw;
@@ -216,14 +226,14 @@ void vTaskMagnetometer(void *) {
         last_mag_read_start = get_absolute_time();
 
         if (result != RM3100_OK) {
-            LOG_DEBUG("[MAGNETOMETER] Error reading magnetometer");
+            LOG_INFO("[MAGNETOMETER] Error reading magnetometer");
         }
         // Update attitude filter with magnetometer measurement
         if (result == RM3100_OK) {
-            LOG_DEBUG("[MAGNETOMETER] b_body = [%.3f, %.3f, %.3f]",
-                    slate.magnetometer_data.b_body.x,
-                    slate.magnetometer_data.b_body.y,
-                    slate.magnetometer_data.b_body.z);
+            LOG_INFO("[MAGNETOMETER] b_body = [%.3f, %.3f, %.3f]",
+                    slate.magnetometer_data.b_body_raw.x,
+                    slate.magnetometer_data.b_body_raw.y,
+                    slate.magnetometer_data.b_body_raw.z);
         }
     } // end for(;;)
 } // end vTaskMagnetometer
