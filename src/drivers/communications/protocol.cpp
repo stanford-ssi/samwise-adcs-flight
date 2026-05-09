@@ -34,6 +34,17 @@ void protocol_message_pong(msg_t *msg) {
     msg->crc8 = 0;
 }
 
+void protocol_message_float3(msg_t *msg, float *data) {
+    msg->src = 1;
+    msg->dst = 0;
+    msg->seq = 0;
+    msg->flags = 0;
+    msg->type = MSG_STRING;
+    msg->len = 12;
+    msg->payload = (uint8_t*) data;
+    msg->crc8 = 0;
+}
+
 void protocol_message_string(msg_t *msg, uint8_t* s) {
     uint8_t len = strlen((char *)s);
     msg->src = 1;

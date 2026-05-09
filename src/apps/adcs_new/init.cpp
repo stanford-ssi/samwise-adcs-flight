@@ -5,6 +5,7 @@
 
 #include "drivers/imu/imu.h"
 #include "drivers/magnetometer/magnetometer.h"
+#include "drivers/magnetorquers/magnetorquers.h"
 #include "drivers/watchdog_motor/watchdog.h"
 #include "drivers/sun_sensors/sun_sensors.h"
 #include "drivers/sun_sensors/rp2350b_adc.h"
@@ -50,6 +51,12 @@ static StackType_t init_stack[256];
 
 static StaticTask_t telemetry_tcb;
 static StackType_t telemetry_stack[512];
+
+static StaticTask_t bdot_tcb;
+static StackType_t bdot_stack[256];
+
+static StaticTask_t actuator_tcb;
+static StackType_t actuator_stack[256];
 
 static void init_i2c_buses() {
     // Initialize I2c pins and buses
@@ -206,6 +213,32 @@ void init_tasks() {
         reset_estimate_stack,  // stack buffer
         &reset_estimate_tcb    // TCB buffer
     );
+
+    // ==============================================================
+    // INIT CONTROL TASKS 
+    // ==============================================================
+
+    slate.task_handles[TASK_BDOT] = xTaskCreateStatic(
+        vTaskBDot,   // function
+        "bdot task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        bdot_stack,  // stack buffer
+        &bdot_tcb    // TCB buffer
+    );
+
+    slate.task_handles[TASK_ACTUATORS] = xTaskCreateStatic(
+        vTaskActuators,   // function
+        "actuators task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        actuator_stack,  // stack buffer
+        &actuator_tcb    // TCB buff
+    );
+
+
 }
 
 void init_main() {
@@ -335,8 +368,38 @@ void init_main() {
                  slate.sun_sensor.sun_sensor_alive[i] ? "true" : "false");
     }
     // ===============================================================
-    // TELEMETRY TASK INIT
+    // BDOT INIT
     // ===============================================================
+    LOG_INFO("[bdot] Init Bdot task");
+    // Reset flags
+    slate.bdot.bdot_has_prev_data_ = false;
+    slate.bdot.bdot_data_has_updated_ = false;
+
+    // ===============================================================
+    // ACTUATOR INIT
+    // ===============================================================
+
+    LOG_INFO("[actuators] Initializing actuators...");
+
+    // Initialize magnetorquer PWM
+    LOG_INFO("[actuators] Initializing magnetorquer PWM...");
+    init_magnetorquer_pwm();
+    // Initialize actuator request values to safe defaults
+    slate.magtorq.magtorq_requested = float3(0.0f, 0.0f, 0.0f);
+
+    // TODO: Initialize reaction wheels
+    // LOG_INFO("[actuators] Reaction wheel control ready");
+    // for (int i = 0; i < NUM_REACTION_WHEELS; i++)
+    // {
+    //     slate->w_reaction_wheels_requested[i] = 0.0f;
+    // }
+
+    LOG_INFO("[actuators] Actuator initialization complete!");
+ 
+    // ===============================================================
+    // TELEMETRY INIT
+    // ===============================================================
+    LOG_INFO("[telemetry] picubed elemetry initialized");
     uart_comms_init(SAMWISE_ADCS_PICUBED_UART,
             SAMWISE_ADCS_TX_TO_PICUBED,
             SAMWISE_ADCS_RX_FROM_PICUBED,

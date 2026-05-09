@@ -81,6 +81,29 @@ to use the macro:
 If you forget this, then the task will run regardless of which state you are
 in. Bad.
 
-This is really all there is. Just note that this is running in freertos so
-there are some macros declared to make it easier to run loops with precise
-timing.
+### Initializing task
+One more thing that I forgot: the task needs to be initialized as a FreeRTOS
+task. This is pretty formulaic but it won't work if it doesn't get done.
+This is again in [./init.cpp] which is a mess of a file. Essentially you need
+to manually allocate a tcb buffer and a stack. Make sure your stack is
+big enough that you couldn't possibly overflow. If you overflow the buffer
+you corrupt the kernel and restart due to the watchdog. That looks like:
+
+    static StaticTask_t watchdog_tcb;
+    static StackType_t  watchdog_stack[256];
+
+And then you just need to initialize it which is just a function call.
+For example:
+
+    slate.task_handles[TASK_WATCHDOG] = xTaskCreateStatic(
+        vTaskWatchdog,   // function
+        "watchdog task",      // name
+        256,          // stack depth
+        nullptr,      // params
+        2,            // priority
+        watchdog_stack,  // stack buffer
+        &watchdog_tcb    // TCB buffer
+    );
+
+Now you have made a task. The only thing left is to modify the states so that
+the correct states run the task.

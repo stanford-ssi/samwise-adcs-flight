@@ -14,6 +14,7 @@ enum {
     MSG_PING,           // No-op, but returns a pong
     MSG_PONG,           
     MSG_STRING,
+    MSG_FLOAT3,
     MSG_COMMAND,        // Execute command
     MSG_ADCS_PACKET     // ADCS 
 };
@@ -35,6 +36,8 @@ typedef struct protocol_msg {
 void protocol_message_ping(msg_t *msg);
 
 void protocol_message_pong(msg_t *msg);
+
+void protocol_message_float3(msg_t *msg, float *data);
 
 void protocol_message_string(msg_t *msg, uint8_t* s);
 
