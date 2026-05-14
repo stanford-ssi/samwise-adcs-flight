@@ -240,6 +240,23 @@ bool mat_contains_nan(const float *A, int M, int N)
     return false;
 }
 
+/**
+ * scalar multiplication for M x N matrix
+ * @author Maya Davis
+ * @date May 13, 2026
+ * 
+ * NOT TESTED!
+ */
+void mat_mul_scalar(const float *A, float *out, int M, int N, int scalar)
+{
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            out[IDX(i, j, N)] = A[IDX(i, j, N)] * scalar; 
+        }
+    }
+    return; 
+}
+
 // Helper functions to generate random numbers for testing
 static uint32_t seed = 1;
 static unsigned int rand_int()
