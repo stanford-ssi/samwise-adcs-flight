@@ -28,7 +28,7 @@ MagnetometerFilter::MagnetometerFilter(float noise)
                       {0,0,0,0,0,0,0,1,0},
                       {0,0,0,0,0,0,0,0,1}}};    // Mat9x9
     // H_sensitivity_ = {{{0,0,0,0,0,0,0,0,0}}};   // Mat1x9
-    // K_gain_ = {{{0,0,0,0,0,0,0,0,0}}};      // Mat1x9 
+    // K_gain_ = {{{0,0,0,0,0,0,0,0,0}}};      // Mat1x9
     x_estimate_ = {{0,0,0,0,0,0,0,0,0}};   // Vec9
     y = 0.0f;
     // update_gain(); 
@@ -59,9 +59,13 @@ void MagnetometerFilter::measurement_model(float3 &B_body)
     return; 
 }
 
-/*
+/**
  * todo
  * 1. implement h(x)
+ * 
+ * matrix multiplication with Mat3x3 matrix (Matnxn) 
+ * --> need (float *)matrix.data
+ * done
  */
 
 
