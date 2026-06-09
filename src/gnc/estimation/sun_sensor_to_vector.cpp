@@ -56,6 +56,7 @@ bool sun_sensors_to_vector(sun_sensor_data_t *sun_sensor, float3 *sun_vector_bod
     // Underdetermined case - set to zero and flag as invalid
     if (valid_count < 3)
     {
+        LOG_DEBUG("[sun sensor] Less than 3 sensors valid");
         *sun_vector_body = {0.0f, 0.0f, 0.0f};
         return false;
     }
@@ -66,6 +67,7 @@ bool sun_sensors_to_vector(sun_sensor_data_t *sun_sensor, float3 *sun_vector_bod
 
     if (!ransac_sun_vector(sun_sensor, exclude_sensors, sun_vector, inlier_count))
     {
+        LOG_DEBUG("[sun sensor] Ransac failed");
         *sun_vector_body = {0.0f, 0.0f, 0.0f};
         return false;
     }

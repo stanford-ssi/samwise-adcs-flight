@@ -13,7 +13,7 @@ using namespace linalg::aliases;
 #include "gnc/mekf/filter.h"
 #include "gnc/utils/transforms.h"
 
-#define GRAVITY_SENSOR
+#define GRAVITY_SENSOR 0
 
 extern slate_t slate;
 
@@ -57,7 +57,7 @@ void vTaskMagnetometerFusion(void *) {
 }
 
 void vTaskSunVectorFusion(void *) {
-#ifdef GRAVITY_SENSOR
+#if GRAVITY_SENSOR
     float3 reference = {0, 0, 1};
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION))
@@ -94,12 +94,32 @@ void vTaskSunVectorFusion(void *) {
                );
  
     }
-#endif
-#ifndef GRAVITY_SENSOR
+#else
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION))
         TASK_LOOP_MS(50) // 20 Hz
-        slate.sun_vector_fusion.set_reference(slate.sun_vector.sun_vector_eci);
+        float3 sun_vector_ecef = eci_to_ecef(slate.sun_vector.sun_vector_eci,
+                 slate.gps_data.MJD);
+        float3 lla = {slate.gps_data.gps_lat,
+            slate.gps_data.gps_lon,
+            slate.gps_data.gps_alt};
+        float3 sun_vector_enu = ecef_to_enu(sun_vector_ecef, lla);
+
+       LOG_INFO("[SUN VECTOR FUSION] observation = [%f, %f, %f]",
+                slate.sun_sensor.sun_vector_body.x,
+                slate.sun_sensor.sun_vector_body.y,
+                slate.sun_sensor.sun_vector_body.z
+               );
+ 
+        LOG_INFO("[SUN VECTOR FUSION] expected (enu) = [%f, %f, %f]",
+                sun_vector_enu.x,
+                sun_vector_enu.y,
+                sun_vector_enu.z
+                );
+
+        slate.sun_vector_fusion.set_reference(sun_vector_enu);
+        // slate.sun_vector_fusion.set_reference(slate.sun_vector.sun_vector_eci);
+
         slate.sun_vector_fusion.compute_sensitivity(
                 slate.attitude_filter.quat_);
         slate.sun_vector_fusion.compute_gain(

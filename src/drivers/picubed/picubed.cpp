@@ -79,7 +79,7 @@ static void send_packet(const adcs_packet_t *packet)
         "[picubed-uart] Sending telemetry packet: w=%.2f, q0=%.2f, q1=%.2f, "
         "q2=%.2f, q3=%.2f, state=%c, boot_count=%u",
         packet->w, packet->q0, packet->q1, packet->q2, packet->q3,
-        packet->state, packet->boot_count);
+        packet->state, 0);
 
     const char *data = (const char *)packet;
 

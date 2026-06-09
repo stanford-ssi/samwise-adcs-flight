@@ -49,6 +49,7 @@ void init_state_machine() {
         | TASK_BIT(TASK_MAGNETOMETER)
         | TASK_BIT(TASK_PROPAGATE) | TASK_BIT(TASK_RESET_ESTIMATE)
         | TASK_BIT(TASK_MAGNETOMETER_FUSION)
+        | TASK_BIT(TASK_SUN_SENSOR)
         | TASK_BIT(TASK_SUN_VECTOR_FUSION)
         ;
 }
@@ -98,6 +99,7 @@ void state_handle_message(StateMsg_t msg)
                     break;
             }
             break;
+        case STATE_SAFE:
         case STATE_ENABLED:
             switch(msg) {
                 case MSG_VOLTAGE_LOW:

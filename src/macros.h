@@ -17,7 +17,7 @@
  *
  * IMPORTANT: Uncomment before flight!
  */
-#define FLIGHT
+// #define FLIGHT
 // #define TEST
 
 /**
@@ -60,8 +60,7 @@
  * flight and test builds.
  */
 #define LOG_INFO(fmt, ...)                                                     \
-    {}
-    // printf("[INFO]    " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+    printf("[INFO]    " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
 
 /**
  * Log a printf-style formatted error message. Will log in both flight and test
