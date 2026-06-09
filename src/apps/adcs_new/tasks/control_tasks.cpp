@@ -1,3 +1,6 @@
+#include "FreeRTOS.h"
+#include "semphr.h"
+
 #include "pico/time.h"
 
 #include "macros.h"
@@ -70,12 +73,21 @@ void vTaskActuators(void *) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_BDOT))
         TASK_LOOP_MS(100) // 10 Hz
 
-        bool mag_result = do_magnetorquer_pwm(slate.magtorq.magtorq_duty_cycle);
-        slate.magtorq.magnetorquers_running = mag_result;
-
-        if (!mag_result)
+        if ( xSemaphoreTake(slate.mag_mutex, (TickType_t) 10) == pdTRUE)
         {
-            LOG_ERROR("[actuators] Magnetorquer PWM error");
+            bool mag_result = do_magnetorquer_pwm(slate.magtorq.magtorq_duty_cycle);
+            slate.magtorq.magnetorquers_running = mag_result;
+            if (!mag_result)
+            {
+                LOG_ERROR("[actuators] Magnetorquer PWM error");
+            }
+            vTaskDelay(pdMS_TO_TICKS(80));
+            
+            // turn off
+            stop_magnetorquer_pwm();
+            slate.magtorq.magnetorquers_running = false;
+            vTaskDelay(pdMS_TO_TICKS(20));
+            xSemaphoreGive(slate.mag_mutex);
         }
 
     } // end for(;;)

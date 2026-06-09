@@ -1,5 +1,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
+#include "semphr.h"
 
 #include "linalg.h"
 using namespace linalg;
@@ -206,34 +207,41 @@ void vTaskMagnetometer(void *) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_MAGNETOMETER))
         TASK_LOOP_MS(20)
 
-        rm3100_error_t result =
-            rm3100_get_reading(&slate.magnetometer_data.b_body, 
-                    &slate.magnetometer_data.b_body_raw);
-        // Send data over usb
-        msg_t mag_raw_msg;
-        float data[3] = {slate.magnetometer_data.b_body_raw.x,
-            slate.magnetometer_data.b_body_raw.y, 
-            slate.magnetometer_data.b_body_raw.z};
+        if ( xSemaphoreTake(slate.mag_mutex, (TickType_t) 10) == pdTRUE)
+        {
+            rm3100_error_t result =
+                rm3100_get_reading(&slate.magnetometer_data.b_body, 
+                        &slate.magnetometer_data.b_body_raw);
+            // Once we have the reading we can give up the semaphore
+            xSemaphoreGive(slate.mag_mutex);
 
-        protocol_message_float3(&mag_raw_msg, (float*)&data);
-        // send_hitl(&mag_raw_msg, 19);
 
-        // TODO: Setup better calibration so that b_body is better than raw
-        slate.magnetometer_data.b_body = slate.magnetometer_data.b_body_raw;
+            // Send data over usb
+            // msg_t mag_raw_msg;
+            // float data[3] = {slate.magnetometer_data.b_body_raw.x,
+            //     slate.magnetometer_data.b_body_raw.y, 
+            //     slate.magnetometer_data.b_body_raw.z};
+            //
+            // protocol_message_float3(&mag_raw_msg, (float*)&data);
+            // send_hitl(&mag_raw_msg, 19);
 
-        slate.magnetometer_data.magnetometer_data_valid = (result == RM3100_OK);
-        slate.magnetometer_data.b_body_read_time = get_absolute_time();
-        last_mag_read_start = get_absolute_time();
+            // TODO: Setup better calibration so that b_body is better than raw
+            slate.magnetometer_data.b_body = slate.magnetometer_data.b_body_raw;
 
-        if (result != RM3100_OK) {
-            LOG_INFO("[MAGNETOMETER] Error reading magnetometer");
-        }
-        // Update attitude filter with magnetometer measurement
-        if (result == RM3100_OK) {
-            LOG_INFO("[MAGNETOMETER] b_body = [%.3f, %.3f, %.3f]",
-                    slate.magnetometer_data.b_body_raw.x,
-                    slate.magnetometer_data.b_body_raw.y,
-                    slate.magnetometer_data.b_body_raw.z);
+            slate.magnetometer_data.magnetometer_data_valid = (result == RM3100_OK);
+            slate.magnetometer_data.b_body_read_time = get_absolute_time();
+            last_mag_read_start = get_absolute_time();
+
+            if (result != RM3100_OK) {
+                LOG_INFO("[MAGNETOMETER] Error reading magnetometer");
+            }
+            // Update attitude filter with magnetometer measurement
+            if (result == RM3100_OK) {
+                LOG_INFO("[MAGNETOMETER] b_body = [%.3f, %.3f, %.3f]",
+                        slate.magnetometer_data.b_body_raw.x,
+                        slate.magnetometer_data.b_body_raw.y,
+                        slate.magnetometer_data.b_body_raw.z);
+            }
         }
     } // end for(;;)
 } // end vTaskMagnetometer

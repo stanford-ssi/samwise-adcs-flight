@@ -1,4 +1,6 @@
 #pragma once
+#include "FreeRTOS.h"
+#include "semphr.h"
 
 #include "constants.h"
 #include "linalg.h"
@@ -45,6 +47,7 @@ typedef struct samwise_slate_rewrite {
             0.01f, IMU_GYRO_VARIANCE, 0.05f);
 
     // CONTROL
+    SemaphoreHandle_t mag_mutex;
     BDotController bdot;
     Magnetorquer magtorq;
 
