@@ -81,6 +81,7 @@ file(GLOB drivers_motor CONFIGURE_DEPENDS "src/drivers/motor/*.cpp")
 file(GLOB drivers_software_uart CONFIGURE_DEPENDS "src/drivers/software_uart/*.cpp")
 file(GLOB drivers_telemetry CONFIGURE_DEPENDS "src/drivers/telemetry/*.cpp")
 file(GLOB drivers_comms CONFIGURE_DEPENDS "src/drivers/communications/*.cpp")
+file(GLOB drivers_pio_uart CONFIGURE_DEPENDS "src/drivers/pio_uart/*.cpp")
 
 # System Components
 file(GLOB scheduler CONFIGURE_DEPENDS "src/apps/adcs_app/scheduler/*.cpp")
@@ -99,7 +100,6 @@ file(GLOB new_states CONFIGURE_DEPENDS "src/apps/adcs_new/states/*.cpp")
 
 # Tools
 file(GLOB tools CONFIGURE_DEPENDS "src/tools/*.cpp")
-
 # First target (main adcs board)
 add_executable(samwise-adcs 
     # Core
@@ -208,6 +208,7 @@ add_executable(samwise-adcs-rewrite
     ${drivers_watchdog_motor}
     ${drivers_external}
     ${drivers_comms}
+    ${drivers_pio_uart}
     
     # System Components
     ${new_states}
@@ -220,6 +221,11 @@ add_executable(samwise-adcs-rewrite
     # FreeRTOS
     ${FREERTOS_KERNEL_PATH}/timers.c
 )
+
+pico_generate_pio_header(samwise-adcs-rewrite ${CMAKE_CURRENT_LIST_DIR}/src/drivers/pio_uart/uart_tx.pio)
+pico_generate_pio_header(samwise-adcs-rewrite ${CMAKE_CURRENT_LIST_DIR}/src/drivers/pio_uart/uart_rx.pio)
+
+
 
 pico_set_program_name(samwise-adcs-rewrite "samwise_adcs_rewrite")
 pico_set_program_version(samwise-adcs-rewrite "0.1")
@@ -245,6 +251,7 @@ target_link_libraries(samwise-adcs-rewrite
 # Add the standard include files to the build
 target_include_directories(samwise-adcs-rewrite PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
+  ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts or any other standard includes, if required
 )
 

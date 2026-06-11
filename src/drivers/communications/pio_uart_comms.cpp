@@ -17,15 +17,16 @@
 
 // Static PIO instances for RX and TX
 static PIO pio_rx, pio_tx;
-static uint8_t sm_rx, sm_tx;
+static uint sm_rx, sm_tx;
 
 // Ring buffers
 static uint8_t rx_buffer[UART_RX_BUFFER_SIZE];
-static volatile uint16_t rx_head = 0, rx_tail = 0;
+static volatile uint16_t rx_head = 0;
+static volatile uint16_t rx_tail = 0;
 
 static uint8_t tx_buffer[UART_TX_BUFFER_SIZE];
-static volatile uint16_t tx_head = 0, tx_tail = 0;
-
+static volatile uint16_t tx_head = 0;
+static volatile uint16_t tx_tail = 0;
 
 
 // ── internal helpers ────────────────────────────────────────────────────────
@@ -60,8 +61,10 @@ static void uart_rx_pio_isr() {
 }
 
 void pio_uart_comms_init(uint8_t tx, uint8_t rx, uint32_t baud) {
-    rx_head = rx_tail = 0;
-    tx_head = tx_tail = 0;
+    rx_head = 0;
+    rx_tail = 0;
+    tx_head = 0;
+    tx_tail = 0;
 
     pio_uart_rx_init(&pio_rx, &sm_rx, rx, baud);
     pio_uart_tx_init(&pio_tx, &sm_tx, tx, baud);
@@ -91,7 +94,7 @@ uint16_t pio_uart_comms_tx(uint8_t *data, uint16_t length) {
     // so we push bytes directly. If blocking is a concern move this to a 
     // TX ISR or DMA instead.
     while (tx_tail != tx_head) {
-        pio_uart_putc(tx_buffer[tx_tail]);
+        pio_uart_putc(pio_tx, sm_tx, tx_buffer[tx_tail]);
         tx_tail = (tx_tail + 1) % UART_TX_BUFFER_SIZE;
     }
 
