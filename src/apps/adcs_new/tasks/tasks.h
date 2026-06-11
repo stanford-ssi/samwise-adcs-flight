@@ -17,6 +17,7 @@ typedef enum {
     TASK_BDOT,
     TASK_ACTUATORS,
     TASK_TELEMETRY,
+    TASK_MOTOR_BOARD,
     NTASKS
 } TaskId_t;
 

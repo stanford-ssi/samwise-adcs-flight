@@ -12,6 +12,7 @@
 #include "apps/adcs_new/slate.h"
 
 #include "drivers/picubed/picubed.h"
+#include "drivers/communications/pio_uart_comms.h"
 
 extern slate_t slate;
 
@@ -58,5 +59,40 @@ void vTaskTelemetry(void *) {
             // send_adcs_packet(&adcs);
         }
     } // end for
+}
+
+void vTaskMotorRx(void *) {
+    static uint8_t rx_buf[256];
+    for (;;) {
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_MOTOR_BOARD))
+        TASK_LOOP_MS(100)
+        
+        // TODO: this
+        if (pio_uart_comms_packet_ready()) {
+            LOG_INFO("[MOTOR] PACKET RECEIVED");
+            msg_t received;
+            // TODO: This
+            // receive_msg(&received, rx_buf);
+            switch (received.type) {
+                case MSG_MOTOR_STATUS:
+                    break;
+                case MSG_PING:
+                    //TODO: pong
+                case MSG_PONG:
+                    LOG_INFO("[MOTOR] Pong received");
+                    break;
+            } // end switch
+
+        } // end if
+    } // end for (;;)
+}
+
+void vTaskMotorTx(void *) {
+    for (;;) {
+        WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_MOTOR_BOARD))
+        TASK_LOOP_MS(500)
+        // TODO: This
+        // motor_send_ctrl();
+    }
 }
 
