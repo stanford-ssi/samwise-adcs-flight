@@ -13,7 +13,7 @@ using namespace linalg::aliases;
 #include "gnc/mekf/filter.h"
 #include "gnc/utils/transforms.h"
 
-#define GRAVITY_SENSOR 0
+#define GRAVITY_SENSOR 1
 
 extern slate_t slate;
 
@@ -26,7 +26,16 @@ void vTaskMagnetometerFusion(void *) {
         absolute_time_t t_now = get_absolute_time();
         uint32_t dt = absolute_time_diff_us(t_prev, t_now);
         t_prev = t_now;
-        slate.magnetometer_fusion.set_reference(normalize(slate.b_field.b_enu));
+
+        float3 lla = {slate.gps_data.gps_lat, 
+            slate.gps_data.gps_lon, 
+            slate.gps_data.gps_alt};
+        float3 ref_ecef = enu_to_ecef(slate.b_field.b_enu, lla);
+        float3 ref_eci = ecef_to_eci(ref_ecef, slate.gps_data.MJD);
+        ref_eci = normalize(ref_eci);
+
+        // slate.magnetometer_fusion.set_reference(normalize(slate.b_field.b_enu));
+        slate.magnetometer_fusion.set_reference(ref_eci);
         LOG_INFO("[MAGNETOMETER FUSION] enu b_field = [%f, %f, %f]",
                 slate.b_field.b_enu.x,
                 slate.b_field.b_enu.y,
@@ -58,20 +67,24 @@ void vTaskMagnetometerFusion(void *) {
 
 void vTaskSunVectorFusion(void *) {
 #if GRAVITY_SENSOR
-    float3 reference = {0, 0, 1};
+    float3 reference_enu = {0, 0, 1};
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION))
         TASK_LOOP_MS(50) // 20 Hz
         if (!slate.imu_data.imu_accel_valid)
             continue;
-        // float3 lla = {slate.gps_data.gps_lat, 
-        //     slate.gps_data.gps_lon, 
-        //     slate.gps_data.gps_alt};
-        // float3 ref_ecef = enu_to_ecef(reference, lla);
-        // float3 ref_eci = ecef_to_eci(ref_ecef, slate.gps_data.MJD);
-        // ref_eci = normalize(ref_eci);
+        float3 lla = {slate.gps_data.gps_lat, 
+            slate.gps_data.gps_lon, 
+            slate.gps_data.gps_alt};
+        float3 ref_ecef = enu_to_ecef(reference_enu, lla);
+        float3 ref_eci = ecef_to_eci(ref_ecef, slate.gps_data.MJD);
+        ref_eci = normalize(ref_eci);
+
         float3 a_obs = normalize(slate.imu_data.a_body);
-        slate.sun_vector_fusion.set_reference(reference);
+
+        // slate.sun_vector_fusion.set_reference(reference);
+        slate.sun_vector_fusion.set_reference(ref_eci);
+
         slate.sun_vector_fusion.compute_sensitivity(
                 slate.attitude_filter.quat_);
         slate.sun_vector_fusion.compute_gain(
@@ -98,28 +111,29 @@ void vTaskSunVectorFusion(void *) {
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_VECTOR_FUSION))
         TASK_LOOP_MS(50) // 20 Hz
-        float3 sun_vector_ecef = eci_to_ecef(slate.sun_vector.sun_vector_eci,
-                 slate.gps_data.MJD);
-        float3 lla = {slate.gps_data.gps_lat,
-            slate.gps_data.gps_lon,
-            slate.gps_data.gps_alt};
-        float3 sun_vector_enu = ecef_to_enu(sun_vector_ecef, lla);
+        // float3 sun_vector_ecef = eci_to_ecef(slate.sun_vector.sun_vector_eci,
+        //          slate.gps_data.MJD);
+        // float3 lla = {slate.gps_data.gps_lat,
+        //     slate.gps_data.gps_lon,
+        //     slate.gps_data.gps_alt};
+        // float3 sun_vector_enu = ecef_to_enu(sun_vector_ecef, lla);
+        //
+        // slate.sun_vector_fusion.set_reference(sun_vector_enu);
+        slate.sun_vector_fusion.set_reference(slate.sun_vector.sun_vector_eci);
 
-       LOG_INFO("[SUN VECTOR FUSION] observation = [%f, %f, %f]",
+
+
+        LOG_INFO("[SUN VECTOR FUSION] observation = [%f, %f, %f]",
                 slate.sun_sensor.sun_vector_body.x,
                 slate.sun_sensor.sun_vector_body.y,
                 slate.sun_sensor.sun_vector_body.z
-               );
- 
+                );
+
         LOG_INFO("[SUN VECTOR FUSION] expected (enu) = [%f, %f, %f]",
                 sun_vector_enu.x,
                 sun_vector_enu.y,
                 sun_vector_enu.z
                 );
-
-        slate.sun_vector_fusion.set_reference(sun_vector_enu);
-        // slate.sun_vector_fusion.set_reference(slate.sun_vector.sun_vector_eci);
-
         slate.sun_vector_fusion.compute_sensitivity(
                 slate.attitude_filter.quat_);
         slate.sun_vector_fusion.compute_gain(
@@ -129,7 +143,7 @@ void vTaskSunVectorFusion(void *) {
         slate.sun_vector_fusion.apply_residual(
                 slate.sun_sensor.sun_vector_body, 
                 slate.attitude_filter.error_estimate_);
- 
+
     }
 #endif
 }
@@ -138,11 +152,11 @@ void vTaskPropagate(void *) {
     stdio_flush();
     for(;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_PROPAGATE))
-        TASK_LOOP_MS(20) // 50 Hz
+            TASK_LOOP_MS(20) // 50 Hz
 
-        // float3 w_fake = {0, 0, 2*PI*1.0f};
-        slate.attitude_filter.compute_dynamics_matrix(
-                slate.imu_data.w_body, 0.02f); 
+            // float3 w_fake = {0, 0, 2*PI*1.0f};
+            slate.attitude_filter.compute_dynamics_matrix(
+                    slate.imu_data.w_body, 0.02f); 
         slate.attitude_filter.propagate_covariance();
         slate.attitude_filter.progagate_attitude(0.02f);
         LOG_INFO("[propagate] q = [%f, %f, %f, %f]",
@@ -158,19 +172,19 @@ void vTaskResetEstimate(void *) {
     stdio_flush();
     for(;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_RESET_ESTIMATE))
-        TASK_LOOP_MS(200) // 50 Hz
-        LOG_INFO("[error reset] bias estimate: [%f, %f, %f]",
-                slate.attitude_filter.bias_estimate_.x,
-                slate.attitude_filter.bias_estimate_.y,
-                slate.attitude_filter.bias_estimate_.z
-                );
+            TASK_LOOP_MS(200) // 50 Hz
+            LOG_INFO("[error reset] bias estimate: [%f, %f, %f]",
+                    slate.attitude_filter.bias_estimate_.x,
+                    slate.attitude_filter.bias_estimate_.y,
+                    slate.attitude_filter.bias_estimate_.z
+                    );
         LOG_INFO("[error reset] w_body: [%f, %f, %f]",
                 slate.imu_data.w_body.x,
                 slate.imu_data.w_body.y,
                 slate.imu_data.w_body.z
                 );
 
- 
+
         slate.attitude_filter.reset_error();
     }
 }
