@@ -1,5 +1,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
+#include "semphr.h"
 
 #include "linalg.h"
 using namespace linalg;
@@ -34,14 +35,14 @@ void vTaskGPS(void *) {
     stdio_flush();
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_GPS))
-        TASK_LOOP_MS(200)
-        LOG_INFO("GPS TASK");
+            TASK_LOOP_MS(200)
+            LOG_INFO("GPS TASK");
 #if GPS_SPOOFING
         slate.gps_data.gps_lat = 37.424732f;
         slate.gps_data.gps_lon = -122.180336f;
         slate.gps_data.gps_alt = 0.060f;
-        slate.gps_data.gps_time = 4744.00f;
-        slate.gps_data.MJD = 52512.03125f;
+        slate.gps_data.gps_time = 6;
+        slate.gps_data.MJD = 61199.767839;
         slate.gps_data.gps_data_valid = true;
         // ======================================================
         // UPDATE REFERENCE VECTORS
@@ -76,7 +77,7 @@ void vTaskGPS(void *) {
             slate.gps_data.gps_lon = gps_data.longitude;
             slate.gps_data.gps_alt = 
                 gps_data.altitude / 1000.0f; // Convert m to km
-            slate.gps_data.gps_time =
+            slate.gps_data.gps_time = 183510.01f;
                 static_cast<float>(gps_data.timestamp); // Convert HHMMSS to float
             slate.gps_data.gps_speed = gps_data.speed;          // knots
             slate.gps_data.gps_course = gps_data.course;        // degrees true
@@ -95,7 +96,7 @@ void vTaskGPS(void *) {
             slate.gps_data.UTC_date[2] = static_cast<float>(day);   // Day
 
             // process UTC timestamp HHMMSS into UTC time in seconds
-            uint32_t hhmmss = current_gps_data.timestamp;
+            uint32_t hhmmss = gps_data.timestamp;
             uint32_t h = hhmmss / 10000;
             uint32_t m = (hhmmss / 100) % 100;
             uint32_t s = hhmmss % 100;
@@ -106,15 +107,15 @@ void vTaskGPS(void *) {
                 compute_MJD(slate.gps_data.UTC_date, 
                         slate.gps_data.gps_time);
 
-            LOG_INFO("[sensor] Lat = %.6f, Lon = %.6f, Alt = %.3f, "
+            LOG_INFO("[GPS] Lat = %.6f, Lon = %.6f, Alt = %.3f, "
                       "Time = %.3f, "
-                      "Date = %02d/%02d/%04d, "
+                      "Time = %02d:%02d:%04d, "
                       "MJD = %.5f",
                       slate.gps_data.gps_lat, 
                       slate.gps_data.gps_lon, 
                       slate.gps_data.gps_alt,
                       slate.gps_data.gps_time,
-                      day, month, year, slate.gps_data.MJD);
+                      h, m, s, slate.gps_data.MJD);
 
             slate.gps_data.gps_data_valid = true;
 
@@ -206,34 +207,41 @@ void vTaskMagnetometer(void *) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_MAGNETOMETER))
         TASK_LOOP_MS(20)
 
-        rm3100_error_t result =
-            rm3100_get_reading(&slate.magnetometer_data.b_body, 
-                    &slate.magnetometer_data.b_body_raw);
-        // Send data over usb
-        msg_t mag_raw_msg;
-        float data[3] = {slate.magnetometer_data.b_body_raw.x,
-            slate.magnetometer_data.b_body_raw.y, 
-            slate.magnetometer_data.b_body_raw.z};
+        if ( xSemaphoreTake(slate.mag_mutex, (TickType_t) 10) == pdTRUE)
+        {
+            rm3100_error_t result =
+                rm3100_get_reading(&slate.magnetometer_data.b_body, 
+                        &slate.magnetometer_data.b_body_raw);
+            // Once we have the reading we can give up the semaphore
+            xSemaphoreGive(slate.mag_mutex);
 
-        protocol_message_float3(&mag_raw_msg, (float*)&data);
-        send_hitl(&mag_raw_msg, 19);
 
-        // TODO: Setup better calibration so that b_body is better than raw
-        slate.magnetometer_data.b_body = slate.magnetometer_data.b_body_raw;
+            // Send data over usb
+            // msg_t mag_raw_msg;
+            // float data[3] = {slate.magnetometer_data.b_body_raw.x,
+            //     slate.magnetometer_data.b_body_raw.y, 
+            //     slate.magnetometer_data.b_body_raw.z};
+            //
+            // protocol_message_float3(&mag_raw_msg, (float*)&data);
+            // send_hitl(&mag_raw_msg, 19);
 
-        slate.magnetometer_data.magnetometer_data_valid = (result == RM3100_OK);
-        slate.magnetometer_data.b_body_read_time = get_absolute_time();
-        last_mag_read_start = get_absolute_time();
+            // TODO: Setup better calibration so that b_body is better than raw
+            slate.magnetometer_data.b_body = slate.magnetometer_data.b_body_raw;
 
-        if (result != RM3100_OK) {
-            LOG_INFO("[MAGNETOMETER] Error reading magnetometer");
-        }
-        // Update attitude filter with magnetometer measurement
-        if (result == RM3100_OK) {
-            LOG_INFO("[MAGNETOMETER] b_body = [%.3f, %.3f, %.3f]",
-                    slate.magnetometer_data.b_body_raw.x,
-                    slate.magnetometer_data.b_body_raw.y,
-                    slate.magnetometer_data.b_body_raw.z);
+            slate.magnetometer_data.magnetometer_data_valid = (result == RM3100_OK);
+            slate.magnetometer_data.b_body_read_time = get_absolute_time();
+            last_mag_read_start = get_absolute_time();
+
+            if (result != RM3100_OK) {
+                LOG_INFO("[MAGNETOMETER] Error reading magnetometer");
+            }
+            // Update attitude filter with magnetometer measurement
+            if (result == RM3100_OK) {
+                LOG_INFO("[MAGNETOMETER] b_body = [%.3f, %.3f, %.3f]",
+                        slate.magnetometer_data.b_body_raw.x,
+                        slate.magnetometer_data.b_body_raw.y,
+                        slate.magnetometer_data.b_body_raw.z);
+            }
         }
     } // end for(;;)
 } // end vTaskMagnetometer
@@ -241,7 +249,7 @@ void vTaskMagnetometer(void *) {
 void vTaskSunSensor(void *) {
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_SUN_SENSOR))
-        TASK_LOOP_MS(1000)
+        TASK_LOOP_MS(100)
 
         bool rp2350b_adc_alive = slate.sun_sensor.sun_sensor_alive[0];
         if (rp2350b_adc_alive)
@@ -301,7 +309,7 @@ void vTaskSunSensor(void *) {
         }
         else
         {
-            LOG_DEBUG("[sensor] Skipping ads7830 due to invalid initialization!");
+            LOG_DEBUG("[sun sensor] Skipping ads7830 due to invalid initialization!");
         }
 
         // Log all sun sensor intensities in an array format (uint32_t)
@@ -332,7 +340,7 @@ void vTaskSunSensor(void *) {
 
         if (slate.sun_sensor.sun_vector_valid)
         {
-            LOG_DEBUG("[sensor] sun_vector_body = [%.3f, %.3f, %.3f]",
+            LOG_DEBUG("[sun sensor] sun_vector_body = [%.3f, %.3f, %.3f]",
                       slate.sun_sensor.sun_vector_body.x, 
                       slate.sun_sensor.sun_vector_body.y,
                       slate.sun_sensor.sun_vector_body.z);
@@ -342,6 +350,8 @@ void vTaskSunSensor(void *) {
             // {
             //     attitude_filter_update(slate, 'S');
             // }
+        } else {
+            LOG_DEBUG("[sun sensor] invalid sun sensor reading");
         }
 
 

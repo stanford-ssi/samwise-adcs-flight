@@ -330,7 +330,7 @@ void orbit_filter_propagate(gps_data_processed_t &gps,
     LOG_DEBUG("[orbit] v_eci = [%.6f, %.6f, %.6f] km/s", gps.v_eci.x,
               gps.v_eci.y, gps.v_eci.z);
     LOG_DEBUG("[orbit] P_orbit_log_frobenius = %.6f",
-              gps.P_orbit_log_frobenius);
+              orbit_filter.P_orbit_log_frobenius);
 }
 
 /**

@@ -41,6 +41,10 @@ void telemetry_task(void *) {
         software_uart_tx_package<motor_to_adcs_package_t>(&motor_slate.adcs_uart,
                                                           &motor_slate.tx_package);
 
+        // for (int m = 0; m < 4; m++) {
+        //     motor_slate.rx_package.target_rpm[m] = 3000.f;
+        // }
+
         // Update target rpm based on controls set by telemetry
         for (int m = 0; m < 4; m++) {
             motor_slate.motor_state[m].rpm_ =

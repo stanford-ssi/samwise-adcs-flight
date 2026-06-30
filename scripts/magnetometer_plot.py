@@ -18,5 +18,6 @@ ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('Z')
 ax.set_aspect('equal');
+ax.set_title('Magnetometer Readings')
 plt.tight_layout()
 plt.show()

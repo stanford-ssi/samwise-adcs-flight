@@ -94,9 +94,9 @@ float3 ecef_to_lla(const float3 &ecef)
  */
 float3 enu_to_ecef(const float3 &enu, const float3 &lla)
 {
-    const float lat = lla[0] * DEG_TO_RAD; // Latitude in radians (was lla[1])
-    const float lon = lla[1] * DEG_TO_RAD; // Longitude in radians (was lla[2])
-
+    const float lat = lla[0] * DEG_TO_RAD; // Latitude in radians 
+    const float lon = lla[1] * DEG_TO_RAD; // Longitude in radians
+    
     // Rotation matrix from ENU to ECEF
     const float sin_lat = sinf(lat);
     const float cos_lat = cosf(lat);

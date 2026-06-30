@@ -16,10 +16,12 @@ enum {
     MSG_STRING,
     MSG_FLOAT3,
     MSG_COMMAND,        // Execute command
-    MSG_ADCS_PACKET     // ADCS 
+    MSG_ADCS_PACKET,     // ADCS 
+    MSG_MOTOR_CTRL,
+    MSG_MOTOR_STATUS
 };
 
-typedef struct protocol_msg {
+struct __attribute((packed)) msg_t {
     uint8_t src;
     uint8_t dst;
     uint8_t seq;
@@ -28,7 +30,24 @@ typedef struct protocol_msg {
     uint8_t len;
     uint8_t *payload;
     uint8_t crc8;
-} msg_t;
+};
+
+struct __attribute((packed)) motor_ctrl_t {
+    uint32_t state_override;
+    bool motor_enabled[4];
+    float target_rpm[4];
+};
+
+struct __attribute((packed)) motor_status_t {
+    float battery_voltage;
+    float battery_current;
+    bool motors_alive[4];
+    bool motors_data_valid[4];
+    float measured_rpm[4];
+    bool magnetometer_alive;
+    bool magnetometer_data_valid;
+    float b_body_raw[3];
+} ;
 
 /*
  * Creates a protocol ping message
@@ -47,5 +66,6 @@ uint32_t protocol_message_adcs(msg_t *msg, adcs_packet_t* adcs);
  * Takes a message and formats it into a buffer
  */
 void protocol_message_encode(msg_t *msg, uint8_t *buf);
+
 void protocol_message_decode(msg_t *msg, uint32_t len, uint8_t *buf);
 

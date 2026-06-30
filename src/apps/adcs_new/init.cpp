@@ -16,6 +16,7 @@
 
 extern slate_t slate;
 
+// Task stacks
 static StaticTask_t watchdog_tcb;
 static StackType_t  watchdog_stack[256];
 
@@ -57,6 +58,9 @@ static StackType_t bdot_stack[256];
 
 static StaticTask_t actuator_tcb;
 static StackType_t actuator_stack[256];
+
+// Mutex allocations
+static StaticSemaphore_t mag_mutex_buf;
 
 static void init_i2c_buses() {
     // Initialize I2c pins and buses
@@ -404,4 +408,8 @@ void init_main() {
             SAMWISE_ADCS_TX_TO_PICUBED,
             SAMWISE_ADCS_RX_FROM_PICUBED,
             115200);
+    // ===============================================================
+    // MAGNETOMETER MUTEX
+    // ===============================================================
+    slate.mag_mutex = xSemaphoreCreateMutexStatic(&mag_mutex_buf);
 }
