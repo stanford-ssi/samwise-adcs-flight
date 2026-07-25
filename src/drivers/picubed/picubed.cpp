@@ -266,9 +266,11 @@ void send_pong()
 }
 
 void adcs_packet_populate(adcs_packet_t* adcs,
-    AttitudeFilter &attitude, 
+    AttitudeFilter &attitude,
     gps_data_processed_t &gps,
-    power_monitor_t &power) 
+    power_monitor_t &power,
+    MagnetometerData &mag,
+    sun_sensor_data_t &sun)
 {
     adcs->w = length(attitude.omega_);
     adcs->q0 = attitude.quat_.x;
@@ -281,6 +283,22 @@ void adcs_packet_populate(adcs_packet_t* adcs,
 
     adcs->voltage = power.voltage;
     adcs->current = power.current;
+
+    // Body-frame sun vector (calibrated unit vector)
+    adcs->sun_body_x = sun.sun_vector_body.x;
+    adcs->sun_body_y = sun.sun_vector_body.y;
+    adcs->sun_body_z = sun.sun_vector_body.z;
+
+    // Body-frame magnetic field (calibrated unit vector)
+    adcs->mag_body_x = mag.b_body.x;
+    adcs->mag_body_y = mag.b_body.y;
+    adcs->mag_body_z = mag.b_body.z;
+
+    // Satellite position (geodetic) so the ground can regenerate the ECI
+    // reference vectors by rerunning the flight world models on this input.
+    adcs->lon = gps.gps_lon;
+    adcs->lat = gps.gps_lat;
+    adcs->alt = gps.gps_alt;
 }
 
 void send_adcs_packet(adcs_packet_t* adcs) {
