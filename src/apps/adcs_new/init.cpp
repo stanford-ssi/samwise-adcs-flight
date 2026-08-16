@@ -21,40 +21,40 @@ static StaticTask_t watchdog_tcb;
 static StackType_t  watchdog_stack[256];
 
 static StaticTask_t state_machine_tcb;
-static StackType_t state_machine_stack[256];
+static StackType_t state_machine_stack[512];
 
 static StaticTask_t gps_tcb;
 static StackType_t  gps_stack[512];
 
 static StaticTask_t magnetometer_tcb;
-static StackType_t  magnetometer_stack[256];
+static StackType_t  magnetometer_stack[512];
 
 static StaticTask_t imu_tcb;
 static StackType_t imu_stack[256];
 
 static StaticTask_t sun_sensor_tcb;
-static StackType_t sun_sensor_stack[256];
+static StackType_t sun_sensor_stack[512];
 
 static StaticTask_t sun_sensor_fusion_tcb;
-static StackType_t sun_sensor_fusion_stack[256];
+static StackType_t sun_sensor_fusion_stack[512];
 
 static StaticTask_t magnetometer_fusion_tcb;
-static StackType_t magnetometer_fusion_stack[256];
+static StackType_t magnetometer_fusion_stack[512];
 
 static StaticTask_t attitude_propagate_tcb;
-static StackType_t attitude_propagate_stack[256];
+static StackType_t attitude_propagate_stack[512];
 
 static StaticTask_t reset_estimate_tcb;
-static StackType_t reset_estimate_stack[256];
+static StackType_t reset_estimate_stack[512];
 
 static StaticTask_t init_tcb;
-static StackType_t init_stack[256];
+static StackType_t init_stack[512];
 
 static StaticTask_t telemetry_tcb;
 static StackType_t telemetry_stack[512];
 
 static StaticTask_t bdot_tcb;
-static StackType_t bdot_stack[256];
+static StackType_t bdot_stack[512];
 
 static StaticTask_t actuator_tcb;
 static StackType_t actuator_stack[256];
@@ -100,7 +100,7 @@ void init_tasks() {
     slate.task_handles[TASK_INIT] = xTaskCreateStatic(
         vTaskInit,
         "init task",
-        256,
+        sizeof(init_stack) / sizeof(StackType_t),
         nullptr,
         2,
         init_stack,
@@ -110,7 +110,7 @@ void init_tasks() {
     slate.task_handles[TASK_TELEMETRY] = xTaskCreateStatic(
         vTaskTelemetry,
         "picubed and motor telemetry task",
-        512,
+        sizeof(telemetry_stack) / sizeof(StackType_t),
         nullptr,
         2,
         telemetry_stack,
@@ -121,7 +121,7 @@ void init_tasks() {
     slate.task_handles[TASK_MAGNETOMETER] = xTaskCreateStatic(
         vTaskMagnetometer,   // function
         "magnetometer sensor task",      // name
-        256,          // stack depth
+        sizeof(magnetometer_stack) / sizeof(StackType_t), // stack depth
         nullptr,      // params
         2,            // priority
         magnetometer_stack,  // stack buffer
@@ -131,7 +131,7 @@ void init_tasks() {
     slate.task_handles[TASK_GPS] = xTaskCreateStatic(
         vTaskGPS,   // function
         "gps task",      // name
-        512,          // stack depth
+        sizeof(gps_stack) / sizeof(StackType_t), // stack depth
         nullptr,      // params
         2,            // priority
         gps_stack,  // stack buffer
@@ -142,7 +142,7 @@ void init_tasks() {
     slate.task_handles[TASK_SUN_SENSOR] = xTaskCreateStatic(
         vTaskSunSensor,   // function
         "sun sensor task",      // name
-        256,          // stack depth
+        sizeof(sun_sensor_stack) / sizeof(StackType_t), // stack depth
         nullptr,      // params
         2,            // priority
         sun_sensor_stack,  // stack buffer
@@ -156,7 +156,7 @@ void init_tasks() {
     slate.state_machine.state_machine_handler = xTaskCreateStatic(
         vTaskStateMachine,   // function
         "state machine",      // name
-        256,          // stack depth
+        sizeof(state_machine_stack) / sizeof(StackType_t), // stack depth
         nullptr,      // params
         2,            // priority
         state_machine_stack,  // stack buffer
@@ -166,7 +166,7 @@ void init_tasks() {
     slate.task_handles[TASK_WATCHDOG] = xTaskCreateStatic(
         vTaskWatchdog,   // function
         "watchdog task",      // name
-        256,          // stack depth
+        sizeof(watchdog_stack) / sizeof(StackType_t), // stack depth
         nullptr,      // params
         2,            // priority
         watchdog_stack,  // stack buffer
@@ -176,7 +176,7 @@ void init_tasks() {
     slate.task_handles[TASK_IMU] = xTaskCreateStatic(
         vTaskIMU,   // function
         "imu sensor task",      // name
-        256,          // stack depth
+        sizeof(imu_stack) / sizeof(StackType_t), // stack depth
         nullptr,      // params
         2,            // priority
         imu_stack,  // stack buffer
@@ -190,7 +190,7 @@ void init_tasks() {
     slate.task_handles[TASK_SUN_VECTOR_FUSION] = xTaskCreateStatic(
         vTaskSunVectorFusion,   // function
         "sun sensor fusion task",      // name
-        256,          // stack depth
+        sizeof(sun_sensor_fusion_stack) / sizeof(StackType_t), // stack depth
         nullptr,      // params
         2,            // priority
         sun_sensor_fusion_stack,  // stack buffer
@@ -200,7 +200,7 @@ void init_tasks() {
     slate.task_handles[TASK_MAGNETOMETER_FUSION] = xTaskCreateStatic(
         vTaskMagnetometerFusion,   // function
         "magnetometer fusion task",      // name
-        256,          // stack depth
+        sizeof(magnetometer_fusion_stack) / sizeof(StackType_t), // stack depth
         nullptr,      // params
         2,            // priority
         magnetometer_fusion_stack,  // stack buffer
@@ -210,7 +210,7 @@ void init_tasks() {
     slate.task_handles[TASK_PROPAGATE] = xTaskCreateStatic(
         vTaskPropagate,   // function
         "attitude propagation task",      // name
-        256,          // stack depth
+        sizeof(attitude_propagate_stack) / sizeof(StackType_t), // stack depth
         nullptr,      // params
         2,            // priority
         attitude_propagate_stack,  // stack buffer
@@ -220,7 +220,7 @@ void init_tasks() {
     slate.task_handles[TASK_RESET_ESTIMATE] = xTaskCreateStatic(
         vTaskResetEstimate,   // function
         "reset estimate task",      // name
-        256,          // stack depth
+        sizeof(reset_estimate_stack) / sizeof(StackType_t), // stack depth
         nullptr,      // params
         2,            // priority
         reset_estimate_stack,  // stack buffer
@@ -234,7 +234,7 @@ void init_tasks() {
     slate.task_handles[TASK_BDOT] = xTaskCreateStatic(
         vTaskBDot,   // function
         "bdot task",      // name
-        256,          // stack depth
+        sizeof(bdot_stack) / sizeof(StackType_t), // stack depth
         nullptr,      // params
         2,            // priority
         bdot_stack,  // stack buffer
@@ -244,7 +244,7 @@ void init_tasks() {
     slate.task_handles[TASK_ACTUATORS] = xTaskCreateStatic(
         vTaskActuators,   // function
         "actuators task",      // name
-        256,          // stack depth
+        sizeof(actuator_stack) / sizeof(StackType_t), // stack depth
         nullptr,      // params
         2,            // priority
         actuator_stack,  // stack buffer
