@@ -259,6 +259,46 @@ target_include_directories(samwise-adcs-rewrite PRIVATE ${CMAKE_CURRENT_LIST_DIR
 
 pico_add_extra_outputs(samwise-adcs-rewrite)
 
+# ////////////////////////////////////
+# ADCS PRE-FLIGHT USB TEST IMAGE
+# ////////////////////////////////////
+#
+# This is a deliberately separate, non-flight image used by pre_flight/run.py.
+# It exposes raw sensor samples and tightly bounded magnetorquer pulses over USB
+# CDC.  Keeping it out of the flight executable prevents bench-only command
+# handling from becoming part of the on-orbit attack/safety surface.
+add_executable(samwise-adcs-preflight
+    pre_flight/firmware/main.cpp
+
+    ${drivers_imu}
+    ${drivers_magnetometer}
+    ${drivers_magnetorquers}
+    ${drivers_sun_sensors}
+    ${drivers_external}
+)
+
+pico_set_program_name(samwise-adcs-preflight "samwise_adcs_preflight")
+pico_set_program_version(samwise-adcs-preflight "1.0")
+
+pico_enable_stdio_uart(samwise-adcs-preflight 0)
+pico_enable_stdio_usb(samwise-adcs-preflight 1)
+
+target_link_libraries(samwise-adcs-preflight
+  hardware_adc
+  hardware_i2c
+  hardware_pwm
+  hardware_spi
+  pico_stdlib
+)
+
+target_include_directories(samwise-adcs-preflight PRIVATE
+  ${CMAKE_CURRENT_LIST_DIR}
+  ${CMAKE_CURRENT_BINARY_DIR}
+  ${CMAKE_CURRENT_LIST_DIR}/src
+)
+
+pico_add_extra_outputs(samwise-adcs-preflight)
+
 # ////////////////////////////////
 # Second target (ADCS Motor Board)
 # ////////////////////////////////
@@ -435,4 +475,3 @@ pico_add_extra_outputs(hitl-b)
 
 set(FREERTOS_CONFIG_FILE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include CACHE STRING "")
 set(FREERTOS_USE_TIMERS ON CACHE BOOL "")
-
