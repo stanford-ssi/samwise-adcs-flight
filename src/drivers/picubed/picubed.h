@@ -35,6 +35,7 @@ void adcs_packet_populate(adcs_packet_t* adcs,
     gps_data_processed_t &gps,
     power_monitor_t &power,
     MagnetometerData &mag,
-    sun_sensor_data_t &sun);
+    sun_sensor_data_t &sun,
+    uint8_t state);
 
 void send_adcs_packet(adcs_packet_t* adcs);

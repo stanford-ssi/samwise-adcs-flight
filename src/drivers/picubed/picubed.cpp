@@ -77,9 +77,9 @@ static void send_packet(const adcs_packet_t *packet)
     // log current telemetry packet
     LOG_DEBUG(
         "[picubed-uart] Sending telemetry packet: w=%.2f, q0=%.2f, q1=%.2f, "
-        "q2=%.2f, q3=%.2f, state=%c, boot_count=%u",
+        "q2=%.2f, q3=%.2f, state=%u, boot_count=%u",
         packet->w, packet->q0, packet->q1, packet->q2, packet->q3,
-        packet->state, 0);
+        packet->state, packet->boot_counter);
 
     const char *data = (const char *)packet;
 
@@ -270,7 +270,8 @@ void adcs_packet_populate(adcs_packet_t* adcs,
     gps_data_processed_t &gps,
     power_monitor_t &power,
     MagnetometerData &mag,
-    sun_sensor_data_t &sun)
+    sun_sensor_data_t &sun,
+    uint8_t state)
 {
     adcs->w = length(attitude.omega_);
     adcs->q0 = attitude.quat_.x;
@@ -299,6 +300,11 @@ void adcs_packet_populate(adcs_packet_t* adcs,
     adcs->lon = gps.gps_lon;
     adcs->lat = gps.gps_lat;
     adcs->alt = gps.gps_alt;
+
+    // These two were left unwritten, so the packet carried whatever was on the
+    // caller's stack.
+    adcs->state = state;
+    adcs->boot_counter = 0; // TODO: nothing in this repo counts boots yet
 }
 
 void send_adcs_packet(adcs_packet_t* adcs) {

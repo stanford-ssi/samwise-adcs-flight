@@ -57,7 +57,9 @@ void vTaskTelemetry(void *) {
                     slate.gps_data,
                     slate.power_monitor,
                     slate.magnetometer_data,
-                    slate.sun_sensor);
+                    slate.sun_sensor,
+                    static_cast<uint8_t>(
+                        slate.state_machine.current_state));
             send_adcs_packet(&adcs);
         }
     } // end for
