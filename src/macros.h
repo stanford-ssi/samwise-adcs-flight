@@ -17,7 +17,7 @@
  *
  * IMPORTANT: Uncomment before flight!
  */
-// #define FLIGHT
+#define FLIGHT
 // #define TEST
 
 /**
@@ -56,11 +56,20 @@
 #endif
 
 /**
- * Log a printf-style formatted message at the info level. Will log in both
- * flight and test builds.
+ * Log a printf-style formatted message at the info level. Compiled out in a
+ * flight build.
+ *
+ * In flight nothing drains the USB CDC endpoint, so every LOG_INFO is pure
+ * cost: the tasks below run at 10-50 Hz each and float formatting is not
+ * cheap. Ground/bench builds (FLIGHT undefined) keep the full output, and
+ * LOG_ERROR stays live in both so real faults are never silently dropped.
  */
+#ifndef FLIGHT
 #define LOG_INFO(fmt, ...)                                                     \
     printf("[INFO]    " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
+#else
+#define LOG_INFO(fmt, ...) (void)0
+#endif
 
 /**
  * Log a printf-style formatted error message. Will log in both flight and test

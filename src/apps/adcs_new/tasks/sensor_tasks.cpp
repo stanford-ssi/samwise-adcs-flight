@@ -28,7 +28,15 @@ using namespace linalg::aliases;
 
 extern slate_t slate;
 
-#define GPS_SPOOFING 1
+/*
+ * Set to 1 to bypass the GPS receiver and hard-code a fixed position/time.
+ * Bench use only - it forces gps_data_valid true, which promotes the state
+ * machine into STATE_FUSION with a frozen ECI reference. It never enters the
+ * command-only STATE_DETUMBLE mode.
+ *
+ * IMPORTANT: must be 0 for flight.
+ */
+#define GPS_SPOOFING 0
 
 // This pretty much needs to be written anew
 void vTaskGPS(void *) {
@@ -38,31 +46,41 @@ void vTaskGPS(void *) {
             TASK_LOOP_MS(200)
             LOG_INFO("GPS TASK");
 #if GPS_SPOOFING
+        // Stanford, 2026-06-08 18:25:41 UTC == MJD 61199.767839.
+        // Date/time/MJD must stay mutually consistent: compute_B() and
+        // compute_sun_vector_eci() read them independently.
         slate.gps_data.gps_lat = 37.424732f;
         slate.gps_data.gps_lon = -122.180336f;
         slate.gps_data.gps_alt = 0.060f;
-        slate.gps_data.gps_time = 6;
-        slate.gps_data.MJD = 61199.767839;
+        slate.gps_data.gps_time = 182541.0f; // HHMMSS
+        slate.gps_data.UTC_time = 182541.0f; // HHMMSS
+        slate.gps_data.UTC_date[0] = 2026.0f;
+        slate.gps_data.UTC_date[1] = 6.0f;
+        slate.gps_data.UTC_date[2] = 8.0f;
+        slate.gps_data.MJD = 61199.767839f;
+        slate.gps_data.gps_read_time = get_absolute_time();
         slate.gps_data.gps_data_valid = true;
         // ======================================================
         // UPDATE REFERENCE VECTORS
         // ======================================================
-        compute_B(slate.gps_data, slate.b_field);
+        slate.b_field.valid = compute_B(slate.gps_data, slate.b_field);
         compute_sun_vector_eci(slate.gps_data, slate.sun_vector);
 
         // ======================================================
         // SWITCH TO FUSION STATE
         // ======================================================
-        if (slate.state_machine.current_state != STATE_FUSION) {
+        if (slate.state_machine.current_state == STATE_ENABLED) {
             StateMsg_t msg = MSG_GPS_VALID;
             xQueueSend(slate.state_machine.state_queue_handle,
                     &msg, 0);
         }
 #else
+        // continue, not return: returning from a FreeRTOS task body lands in
+        // prvTaskExitError and the task spins forever.
         if (!slate.gps_data.gps_alive)
         {
-            LOG_DEBUG("[sensor] Skipping GPS due to invalid initialization!");
-            return;
+            LOG_DEBUG("[GPS] Skipping GPS due to invalid initialization!");
+            continue;
         }
 
         gps_data_t gps_data;
@@ -77,8 +95,8 @@ void vTaskGPS(void *) {
             slate.gps_data.gps_lon = gps_data.longitude;
             slate.gps_data.gps_alt = 
                 gps_data.altitude / 1000.0f; // Convert m to km
-            slate.gps_data.gps_time = 183510.01f;
-                static_cast<float>(gps_data.timestamp); // Convert HHMMSS to float
+            slate.gps_data.gps_time =
+                static_cast<float>(gps_data.timestamp); // HHMMSS as a float
             slate.gps_data.gps_speed = gps_data.speed;          // knots
             slate.gps_data.gps_course = gps_data.course;        // degrees true
 
@@ -95,26 +113,29 @@ void vTaskGPS(void *) {
             slate.gps_data.UTC_date[1] = static_cast<float>(month); // Month
             slate.gps_data.UTC_date[2] = static_cast<float>(day);   // Day
 
-            // process UTC timestamp HHMMSS into UTC time in seconds
+            // UTC_time keeps the raw HHMMSS packing, NOT seconds-of-day.
+            // Both consumers - compute_MJD() and compute_sun_vector_eci() -
+            // decode it as HHMMSS, so storing seconds here silently corrupted
+            // the MJD and the ECI sun reference.
             uint32_t hhmmss = gps_data.timestamp;
             uint32_t h = hhmmss / 10000;
             uint32_t m = (hhmmss / 100) % 100;
             uint32_t s = hhmmss % 100;
 
-            slate.gps_data.UTC_time = static_cast<float>(h * 3600 + m * 60 + s);
+            slate.gps_data.UTC_time = static_cast<float>(hhmmss);
             // Compute MJD from GPS time/date
-            slate.gps_data.MJD = 
-                compute_MJD(slate.gps_data.UTC_date, 
+            slate.gps_data.MJD =
+                compute_MJD(slate.gps_data.UTC_date,
                         slate.gps_data.gps_time);
 
             LOG_INFO("[GPS] Lat = %.6f, Lon = %.6f, Alt = %.3f, "
-                      "Time = %.3f, "
-                      "Time = %02d:%02d:%04d, "
+                      "Date = %02u/%02u/%04u, "
+                      "Time = %02u:%02u:%02u, "
                       "MJD = %.5f",
-                      slate.gps_data.gps_lat, 
-                      slate.gps_data.gps_lon, 
+                      slate.gps_data.gps_lat,
+                      slate.gps_data.gps_lon,
                       slate.gps_data.gps_alt,
-                      slate.gps_data.gps_time,
+                      month, day, year,
                       h, m, s, slate.gps_data.MJD);
 
             slate.gps_data.gps_data_valid = true;
@@ -122,12 +143,15 @@ void vTaskGPS(void *) {
             // ======================================================
             // UPDATE REFERENCE VECTORS
             // ======================================================
-            compute_B(slate.gps_data, slate.b_field);
+            // compute_B() bails out (leaving b_eci stale) on out-of-range
+            // lat/lon/alt or near a pole singularity, so the filter has to
+            // know whether this cycle's reference is usable.
+            slate.b_field.valid = compute_B(slate.gps_data, slate.b_field);
             compute_sun_vector_eci(slate.gps_data, slate.sun_vector);
             // ======================================================
             // SWITCH TO FUSION STATE
             // ======================================================
-            if (slate.state_machine.current_state != STATE_FUSION) {
+            if (slate.state_machine.current_state == STATE_ENABLED) {
                 StateMsg_t msg = MSG_GPS_VALID;
                 xQueueSend(slate.state_machine.state_queue_handle,
                         &msg, 0);
@@ -141,6 +165,9 @@ void vTaskGPS(void *) {
                  (get_absolute_time() - slate.gps_data.gps_read_time >
                   GPS_DATA_EXPIRATION_MS * 1000))    {
             slate.gps_data.gps_data_valid = false;
+            // The ECI references are derived from position and time, so they
+            // expire with the fix that produced them.
+            slate.b_field.valid = false;
         }
 #endif
     } // end for(;;)
@@ -153,10 +180,12 @@ void vTaskIMU(void *) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_IMU))
         TASK_LOOP_MS(100)
 
+        // continue, not return: returning from a FreeRTOS task body lands in
+        // prvTaskExitError and the task spins forever.
         if (!slate.imu_data.imu_alive)
         {
-            LOG_DEBUG("[sensor] Skipping IMU due to invalid initialization!");
-            return;
+            LOG_DEBUG("[IMU] Skipping IMU due to invalid initialization!");
+            continue;
         }
 
         // Read gyro data
@@ -200,49 +229,52 @@ void vTaskIMU(void *) {
 } // end vTaskIMU
 
 void vTaskMagnetometer(void *) {
-    // Track last read cycle start for 100ms period
-    absolute_time_t last_mag_read_start = {0}; 
-
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_MAGNETOMETER))
         TASK_LOOP_MS(20)
 
-        if ( xSemaphoreTake(slate.mag_mutex, (TickType_t) 10) == pdTRUE)
+        // The magnetorquers swamp the sensor, so vTaskActuators holds this
+        // mutex across a pulse plus the field settle time. The timeout has to
+        // cover that whole hold - with the old 10 tick timeout roughly half of
+        // these reads timed out silently while the rods were energised.
+        if (xSemaphoreTake(slate.mag_mutex,
+                           pdMS_TO_TICKS(MAG_MUTEX_TIMEOUT_MS)) != pdTRUE)
         {
-            rm3100_error_t result =
-                rm3100_get_reading(&slate.magnetometer_data.b_body, 
-                        &slate.magnetometer_data.b_body_raw);
-            // Once we have the reading we can give up the semaphore
-            xSemaphoreGive(slate.mag_mutex);
-
-
-            // Send data over usb
-            // msg_t mag_raw_msg;
-            // float data[3] = {slate.magnetometer_data.b_body_raw.x,
-            //     slate.magnetometer_data.b_body_raw.y, 
-            //     slate.magnetometer_data.b_body_raw.z};
-            //
-            // protocol_message_float3(&mag_raw_msg, (float*)&data);
-            // send_hitl(&mag_raw_msg, 19);
-
-            // TODO: Setup better calibration so that b_body is better than raw
-            slate.magnetometer_data.b_body = slate.magnetometer_data.b_body_raw;
-
-            slate.magnetometer_data.magnetometer_data_valid = (result == RM3100_OK);
-            slate.magnetometer_data.b_body_read_time = get_absolute_time();
-            last_mag_read_start = get_absolute_time();
-
-            if (result != RM3100_OK) {
-                LOG_INFO("[MAGNETOMETER] Error reading magnetometer");
-            }
-            // Update attitude filter with magnetometer measurement
-            if (result == RM3100_OK) {
-                LOG_INFO("[MAGNETOMETER] b_body = [%.3f, %.3f, %.3f]",
-                        slate.magnetometer_data.b_body_raw.x,
-                        slate.magnetometer_data.b_body_raw.y,
-                        slate.magnetometer_data.b_body_raw.z);
-            }
+            LOG_ERROR("[MAGNETOMETER] Timed out waiting for mutex");
+            // Do not leave the previous sample looking fresh.
+            slate.magnetometer_data.magnetometer_data_valid = false;
+            continue;
         }
+
+        rm3100_error_t result =
+            rm3100_get_reading(&slate.magnetometer_data.b_body,
+                    &slate.magnetometer_data.b_body_raw);
+        // Once we have the reading we can give up the semaphore
+        xSemaphoreGive(slate.mag_mutex);
+
+        // NOTE: do not copy b_body_raw over b_body. b_body_raw is the
+        // uncalibrated SENSOR-frame reading in microTesla; b_body is the
+        // calibrated BODY-frame unit vector that the MEKF and B-dot need.
+        // Overwriting it threw away the hard/soft iron correction, the
+        // sensor->body axis mapping, and the normalization.
+
+        slate.magnetometer_data.magnetometer_data_valid = (result == RM3100_OK);
+        slate.magnetometer_data.b_body_read_time = get_absolute_time();
+
+        if (result != RM3100_OK) {
+            LOG_INFO("[MAGNETOMETER] Error reading magnetometer");
+            continue;
+        }
+
+        // Hand the sample to B-dot. Nothing set this flag before, so vTaskBDot
+        // bailed out on its very first cycle and never computed a control
+        // moment.
+        slate.bdot.bdot_data_has_updated_ = true;
+
+        LOG_INFO("[MAGNETOMETER] b_body = [%.3f, %.3f, %.3f]",
+                slate.magnetometer_data.b_body.x,
+                slate.magnetometer_data.b_body.y,
+                slate.magnetometer_data.b_body.z);
     } // end for(;;)
 } // end vTaskMagnetometer
 
@@ -357,5 +389,3 @@ void vTaskSunSensor(void *) {
 
     } // end for(;;)
 } // end vTaskSunSensor
-
-

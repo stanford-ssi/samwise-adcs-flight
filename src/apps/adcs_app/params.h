@@ -57,15 +57,33 @@ constexpr float W_EXIT_DETUMBLE_THRESHOLD = (1.0 * DEG_TO_RAD);   // in rad/s
 // TODO: Update with FLIGHT model (see scripts/calibrations/magnetometer)
 // Hard iron offset correction (sensor units)
 constexpr float3 MAG_HARD_IRON_OFFSET =
-    float3{-2.540693, 16.138800, -24.242187};
+    float3{0.0f, 0.0f, 0.0f};
 
 // Soft iron matrix correction (in sensor units)
-constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{0.026047f, 0.000375f, -0.001275f},
-                                           {0.000375f, 0.027098f, -0.000445f},
-                                           {-0.001275f, -0.000445f, 0.026726f}};
+constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.0f, 0.0f, 0.0f},
+                                           {0.0f, 1.0f, 0.0f},
+                                           {0.0f, 0.0f, 1.0f}};
 
-// IMU Calibration - zero rotation reading in radians per second
+// Passive rotation from magnetometer axes to body axes:
+//   b_body = mul(MAG_SENSOR_TO_BODY, b_sensor)
+// The magnetometer is rotated 180 degrees about the IMU Y axis.
+// Keep in sync with apps/adcs_new/params.h.
+constexpr float3x3 MAG_SENSOR_TO_BODY = {{-1.0f, 0.0f, 0.0f},
+                                         {0.0f, 1.0f, 0.0f},
+                                         {0.0f, 0.0f, -1.0f}};
+
+// IMU Calibration - zero rotation reading in radians per second, SENSOR frame
+// (subtracted before IMU_SENSOR_TO_BODY is applied).
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
+
+// Passive rotation from BMI270 axes to body axes, applied to gyro and accel:
+//   w_body = mul(IMU_SENSOR_TO_BODY, w_sensor)
+// The IMU is rotated +90 degrees about the Z axis.
+// Columns are the sensor axes in body coords: X -> +Y, Y -> -X, Z -> +Z.
+// Keep in sync with apps/adcs_new/params.h.
+constexpr float3x3 IMU_SENSOR_TO_BODY = {{0.0f, 1.0f, 0.0f},
+                                         {-1.0f, 0.0f, 0.0f},
+                                         {0.0f, 0.0f, 1.0f}};
 
 // ========================================================================
 //          MEASUREMENT THRESHOLDS

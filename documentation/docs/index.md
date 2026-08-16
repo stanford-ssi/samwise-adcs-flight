@@ -55,8 +55,9 @@ Task scheduling and state management.
 ```bash
 source configure.sh     # Initial setup
 mkdir build && cd build
-cmake .. && make -j8
-picotool load samwise-adcs.uf2 -f
+cmake ..
+cmake --build . --target samwise-adcs-flight -j8
+picotool load samwise-adcs-flight.uf2 -f
 ```
 
 **Requirements:** Mac/Linux only. Windows users create Linux VM.

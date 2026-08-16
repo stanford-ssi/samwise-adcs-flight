@@ -77,9 +77,9 @@ static void send_packet(const adcs_packet_t *packet)
     // log current telemetry packet
     LOG_DEBUG(
         "[picubed-uart] Sending telemetry packet: w=%.2f, q0=%.2f, q1=%.2f, "
-        "q2=%.2f, q3=%.2f, state=%c, boot_count=%u",
+        "q2=%.2f, q3=%.2f, state=%u, boot_count=%u",
         packet->w, packet->q0, packet->q1, packet->q2, packet->q3,
-        packet->state, 0);
+        packet->state, packet->boot_counter);
 
     const char *data = (const char *)packet;
 
@@ -233,12 +233,16 @@ bool picubed_uart_handle_commands()
     return all_commands_succeeded;
 }
 
-void receive_msg(msg_t *msg, uint8_t *rx_buf) {
+bool receive_msg(msg_t *msg, uint8_t *rx_buf) {
     static uint8_t raw_buf[256];
     uint16_t num_bytes = uart_comms_get_packet(SAMWISE_ADCS_PICUBED_UART,
             raw_buf, 256);
-    cobs_decode(raw_buf, num_bytes, rx_buf);
-    protocol_message_decode(msg, num_bytes + 1, rx_buf);
+    if (num_bytes == 0) {
+        return false;
+    }
+
+    const uint32_t decoded_len = cobs_decode(raw_buf, num_bytes, rx_buf);
+    return protocol_message_decode(msg, decoded_len, rx_buf);
 }
 
 void send_msg(msg_t *msg, uint32_t len) {
@@ -266,9 +270,12 @@ void send_pong()
 }
 
 void adcs_packet_populate(adcs_packet_t* adcs,
-    AttitudeFilter &attitude, 
+    AttitudeFilter &attitude,
     gps_data_processed_t &gps,
-    power_monitor_t &power) 
+    power_monitor_t &power,
+    MagnetometerData &mag,
+    sun_sensor_data_t &sun,
+    uint8_t state)
 {
     adcs->w = length(attitude.omega_);
     adcs->q0 = attitude.quat_.x;
@@ -281,6 +288,27 @@ void adcs_packet_populate(adcs_packet_t* adcs,
 
     adcs->voltage = power.voltage;
     adcs->current = power.current;
+
+    // Body-frame sun vector (calibrated unit vector)
+    adcs->sun_body_x = sun.sun_vector_body.x;
+    adcs->sun_body_y = sun.sun_vector_body.y;
+    adcs->sun_body_z = sun.sun_vector_body.z;
+
+    // Body-frame magnetic field (calibrated unit vector)
+    adcs->mag_body_x = mag.b_body.x;
+    adcs->mag_body_y = mag.b_body.y;
+    adcs->mag_body_z = mag.b_body.z;
+
+    // Satellite position (geodetic) so the ground can regenerate the ECI
+    // reference vectors by rerunning the flight world models on this input.
+    adcs->lon = gps.gps_lon;
+    adcs->lat = gps.gps_lat;
+    adcs->alt = gps.gps_alt;
+
+    // These two were left unwritten, so the packet carried whatever was on the
+    // caller's stack.
+    adcs->state = state;
+    adcs->boot_counter = 0; // TODO: nothing in this repo counts boots yet
 }
 
 void send_adcs_packet(adcs_packet_t* adcs) {
@@ -289,5 +317,4 @@ void send_adcs_packet(adcs_packet_t* adcs) {
     uint32_t len = protocol_message_adcs(&msg, adcs);
     send_msg(&msg, len);
 }
-
 

@@ -10,6 +10,8 @@ typedef enum {
     STATE_ENABLED,
     STATE_DISABLED,
     STATE_FUSION,
+    // Appended to preserve the existing 0-4 telemetry values.
+    STATE_DETUMBLE,
     NUM_STATES
 } StateId_t;
 
@@ -18,8 +20,11 @@ typedef enum {
     MSG_INIT_DONE,
     MSG_ON,
     MSG_VOLTAGE_LOW,
-    MSG_COMMAND_RECEIVED,
-    MSG_GPS_VALID
+    MSG_VOLTAGE_OK, // Bus recovered; the only way out of STATE_SAFE
+    MSG_GPS_VALID,
+    MSG_COMMAND_DISABLE,
+    MSG_COMMAND_ENABLE_NORMAL,
+    MSG_COMMAND_ENTER_DETUMBLE
 } StateMsg_t;
 
 typedef struct {

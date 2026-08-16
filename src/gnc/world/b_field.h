@@ -13,9 +13,14 @@
 #include "drivers/gps/gps.h"
 
 struct b_field_t {
+    // True when the vectors below came from a successful compute_B() call.
+    // compute_B() returns early without touching them on bad geodetic input,
+    // so callers must not treat a stale reference as current.
+    bool valid;
+
     float3 b_eci;
     float3 b_ecef;
-    
+
     float3 b_rpt;
     float3 b_enu;
 };

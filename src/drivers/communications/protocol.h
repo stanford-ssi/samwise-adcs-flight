@@ -21,6 +21,18 @@ enum {
     MSG_MOTOR_STATUS
 };
 
+/*
+ * One-byte payload values for MSG_COMMAND.
+ *
+ * Keep these values in sync with the PiCubed command encoder. Commands select
+ * an explicit mode; they are not toggles, so retries are idempotent.
+ */
+typedef enum : uint8_t {
+    ADCS_COMMAND_DISABLE = 0,
+    ADCS_COMMAND_ENABLE_NORMAL = 1,
+    ADCS_COMMAND_ENTER_DETUMBLE = 2,
+} AdcsCommand_t;
+
 struct __attribute((packed)) msg_t {
     uint8_t src;
     uint8_t dst;
@@ -67,5 +79,4 @@ uint32_t protocol_message_adcs(msg_t *msg, adcs_packet_t* adcs);
  */
 void protocol_message_encode(msg_t *msg, uint8_t *buf);
 
-void protocol_message_decode(msg_t *msg, uint32_t len, uint8_t *buf);
-
+bool protocol_message_decode(msg_t *msg, uint32_t len, uint8_t *buf);

@@ -100,8 +100,8 @@ file(GLOB new_states CONFIGURE_DEPENDS "src/apps/adcs_new/states/*.cpp")
 
 # Tools
 file(GLOB tools CONFIGURE_DEPENDS "src/tools/*.cpp")
-# First target (main adcs board)
-add_executable(samwise-adcs 
+# Legacy ADCS application, retained for reference and regression builds.
+add_executable(samwise-adcs-legacy
     # Core
     ${adcs_main}
     ${top}
@@ -145,15 +145,15 @@ add_executable(samwise-adcs
     ${tools}
 )
 
-pico_set_program_name(samwise-adcs "samwise_adcs")
-pico_set_program_version(samwise-adcs "0.1")
+pico_set_program_name(samwise-adcs-legacy "samwise_adcs_legacy")
+pico_set_program_version(samwise-adcs-legacy "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(samwise-adcs 0)
-pico_enable_stdio_usb(samwise-adcs 1)
+pico_enable_stdio_uart(samwise-adcs-legacy 0)
+pico_enable_stdio_usb(samwise-adcs-legacy 1)
 
 # Add the standard library to the build
-target_link_libraries(samwise-adcs
+target_link_libraries(samwise-adcs-legacy
   hardware_i2c
   hardware_spi
   hardware_uart
@@ -166,21 +166,22 @@ target_link_libraries(samwise-adcs
 )
 
 # Add the standard include files to the build
-target_include_directories(samwise-adcs PRIVATE
+target_include_directories(samwise-adcs-legacy PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts or any other standard includes, if required
 )
 
-target_include_directories(samwise-adcs PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+target_include_directories(samwise-adcs-legacy PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
-pico_add_extra_outputs(samwise-adcs)
+pico_add_extra_outputs(samwise-adcs-legacy)
 
 # ////////////////////////////////////
-# ADCS REWRITE
+# ADCS FLIGHT APPLICATION (CURRENT)
 # ////////////////////////////////////
 
-# First target (main adcs board)
-add_executable(samwise-adcs-rewrite
+# Current flight target. This intentionally uses the newer FreeRTOS/state
+# machine implementation from src/apps/adcs_new.
+add_executable(samwise-adcs-flight
     # Core
     ${adcs_new}
     ${top}
@@ -222,20 +223,20 @@ add_executable(samwise-adcs-rewrite
     ${FREERTOS_KERNEL_PATH}/timers.c
 )
 
-pico_generate_pio_header(samwise-adcs-rewrite ${CMAKE_CURRENT_LIST_DIR}/src/drivers/pio_uart/uart_tx.pio)
-pico_generate_pio_header(samwise-adcs-rewrite ${CMAKE_CURRENT_LIST_DIR}/src/drivers/pio_uart/uart_rx.pio)
+pico_generate_pio_header(samwise-adcs-flight ${CMAKE_CURRENT_LIST_DIR}/src/drivers/pio_uart/uart_tx.pio)
+pico_generate_pio_header(samwise-adcs-flight ${CMAKE_CURRENT_LIST_DIR}/src/drivers/pio_uart/uart_rx.pio)
 
 
 
-pico_set_program_name(samwise-adcs-rewrite "samwise_adcs_rewrite")
-pico_set_program_version(samwise-adcs-rewrite "0.1")
+pico_set_program_name(samwise-adcs-flight "samwise_adcs_flight")
+pico_set_program_version(samwise-adcs-flight "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(samwise-adcs-rewrite 0)
-pico_enable_stdio_usb(samwise-adcs-rewrite 1)
+pico_enable_stdio_uart(samwise-adcs-flight 0)
+pico_enable_stdio_usb(samwise-adcs-flight 1)
 
 # Add the standard library to the build
-target_link_libraries(samwise-adcs-rewrite
+target_link_libraries(samwise-adcs-flight
   hardware_i2c
   hardware_spi
   hardware_uart
@@ -249,15 +250,55 @@ target_link_libraries(samwise-adcs-rewrite
 )
 
 # Add the standard include files to the build
-target_include_directories(samwise-adcs-rewrite PRIVATE
+target_include_directories(samwise-adcs-flight PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts or any other standard includes, if required
 )
 
-target_include_directories(samwise-adcs-rewrite PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+target_include_directories(samwise-adcs-flight PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
-pico_add_extra_outputs(samwise-adcs-rewrite)
+pico_add_extra_outputs(samwise-adcs-flight)
+
+# ////////////////////////////////////
+# ADCS PRE-FLIGHT USB TEST IMAGE
+# ////////////////////////////////////
+#
+# This is a deliberately separate, non-flight image used by pre_flight/run.py.
+# It exposes raw sensor samples and tightly bounded magnetorquer pulses over USB
+# CDC.  Keeping it out of the flight executable prevents bench-only command
+# handling from becoming part of the on-orbit attack/safety surface.
+add_executable(samwise-adcs-preflight
+    pre_flight/firmware/main.cpp
+
+    ${drivers_imu}
+    ${drivers_magnetometer}
+    ${drivers_magnetorquers}
+    ${drivers_sun_sensors}
+    ${drivers_external}
+)
+
+pico_set_program_name(samwise-adcs-preflight "samwise_adcs_preflight")
+pico_set_program_version(samwise-adcs-preflight "1.0")
+
+pico_enable_stdio_uart(samwise-adcs-preflight 0)
+pico_enable_stdio_usb(samwise-adcs-preflight 1)
+
+target_link_libraries(samwise-adcs-preflight
+  hardware_adc
+  hardware_i2c
+  hardware_pwm
+  hardware_spi
+  pico_stdlib
+)
+
+target_include_directories(samwise-adcs-preflight PRIVATE
+  ${CMAKE_CURRENT_LIST_DIR}
+  ${CMAKE_CURRENT_BINARY_DIR}
+  ${CMAKE_CURRENT_LIST_DIR}/src
+)
+
+pico_add_extra_outputs(samwise-adcs-preflight)
 
 # ////////////////////////////////
 # Second target (ADCS Motor Board)
@@ -435,4 +476,3 @@ pico_add_extra_outputs(hitl-b)
 
 set(FREERTOS_CONFIG_FILE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include CACHE STRING "")
 set(FREERTOS_USE_TIMERS ON CACHE BOOL "")
-

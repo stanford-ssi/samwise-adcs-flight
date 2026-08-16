@@ -41,6 +41,9 @@ typedef struct samwise_slate_rewrite {
     b_field_t b_field;
 
     // MEKF
+    // Guards attitude_filter's covariance and error state, which the propagate
+    // and both fusion tasks all mutate from equal-priority tasks.
+    SemaphoreHandle_t filter_mutex;
     SensorFusion magnetometer_fusion = SensorFusion(0.01f);
     SensorFusion sun_vector_fusion = SensorFusion(0.01f);
     AttitudeFilter attitude_filter = AttitudeFilter(I_BODY,
@@ -50,6 +53,13 @@ typedef struct samwise_slate_rewrite {
     SemaphoreHandle_t mag_mutex;
     BDotController bdot;
     Magnetorquer magtorq;
+
+    // POWER SAFETY
+    // Written by vTaskWatchdog, read by vTaskActuators. magtorq_armed is the
+    // authority to energise the rods at all; power_read_time lets the actuator
+    // refuse to act on stale telemetry.
+    absolute_time_t power_read_time;
+    bool magtorq_armed;
 
     // UTIL
     StateMachine_t state_machine;

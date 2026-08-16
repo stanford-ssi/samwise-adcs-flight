@@ -17,7 +17,7 @@ echo "Configuring project..."
 cmake ..
 
 echo "Building project..."
-make -j8
+cmake --build . --target samwise-adcs-flight -j8
 
 # Run tests
 echo "Running tests..."
@@ -28,13 +28,13 @@ cd ..
 
 # Check if Pico is mounted as USB drive first (BOOTSEL mode)
 if [ -d "/Volumes/RP2350" ]; then
-    echo "Found RP2350 volume, copying firmware..."
-    cp build/samwise-adcs.uf2 /Volumes/RP2350/
+    echo "Found RP2350 volume, copying current flight firmware..."
+    cp build/samwise-adcs-flight.uf2 /Volumes/RP2350/
     echo "✓ Firmware copied! Device will reboot automatically."
 # Otherwise try picotool (check if any RP device is mentioned in output)
 elif picotool info 2>&1 | grep -q "RP2350 device"; then
     echo "Found Pico device, flashing with picotool..."
-    picotool load build/samwise-adcs.uf2 -f
+    picotool load build/samwise-adcs-flight.uf2 -f
     echo "✓ Firmware flashed!"
 else
     echo "Error: No Pico detected"

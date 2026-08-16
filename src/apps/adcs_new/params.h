@@ -57,15 +57,33 @@ constexpr float W_EXIT_DETUMBLE_THRESHOLD = (1.0 * DEG_TO_RAD);   // in rad/s
 // TODO: Update with FLIGHT model (see scripts/calibrations/magnetometer)
 // Hard iron offset correction (sensor units)
 constexpr float3 MAG_HARD_IRON_OFFSET =
-    float3{-2.540693, 16.138800, -24.242187};
+    float3{0.0f, 0.0f, 0.0f};
 
 // Soft iron matrix correction (in sensor units)
-constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{0.026047f, 0.000375f, -0.001275f},
-                                           {0.000375f, 0.027098f, -0.000445f},
-                                           {-0.001275f, -0.000445f, 0.026726f}};
+constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.0f, 0.0f, 0.0f},
+                                           {0.0f, 1.0f, 0.0f},
+                                           {0.0f, 0.0f, 1.0f}};
 
-// IMU Calibration - zero rotation reading in radians per second
+// Passive rotation from magnetometer axes to body axes:
+//   b_body = mul(MAG_SENSOR_TO_BODY, b_sensor)
+// The magnetometer is rotated 180 degrees about the IMU Y axis.
+// TODO: verify against Earth's field before flight.
+constexpr float3x3 MAG_SENSOR_TO_BODY = {{-1.0f, 0.0f, 0.0f},
+                                         {0.0f, 1.0f, 0.0f},
+                                         {0.0f, 0.0f, -1.0f}};
+
+// IMU Calibration - zero rotation reading in radians per second, SENSOR frame
+// (subtracted before IMU_SENSOR_TO_BODY is applied).
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
+
+// Passive rotation from BMI270 axes to body axes, applied to gyro and accel:
+//   w_body = mul(IMU_SENSOR_TO_BODY, w_sensor)
+// The IMU is rotated +90 degrees about the Z axis.
+// Columns are the sensor axes in body coords: X -> +Y, Y -> -X, Z -> +Z.
+// TODO: verify per CHECKLIST.md lines 29-30.
+constexpr float3x3 IMU_SENSOR_TO_BODY = {{0.0f, 1.0f, 0.0f},
+                                         {-1.0f, 0.0f, 0.0f},
+                                         {0.0f, 0.0f, 1.0f}};
 
 // ========================================================================
 //          MEASUREMENT THRESHOLDS
@@ -84,7 +102,23 @@ constexpr float V_BATT_MAX = 8.2f;       // [V] maximum battery voltage
 constexpr float V_BATT_LOW_POWER = 7.0f; // [V] low power saving mode threshold
 constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 
-constexpr float ADCS_VOLTAGE_UNSAFE = 4.0f;
+constexpr float ADCS_VOLTAGE_UNSAFE = 5.0f;
+
+// Voltage at which we leave STATE_SAFE again. Must stay clear of
+// ADCS_VOLTAGE_UNSAFE so the spacecraft cannot oscillate in and out of safing:
+// with the two equal, the dead band has zero width and any noise around the
+// threshold re-runs enter_state() at the 10 Hz watchdog rate.
+//
+// 0.5 V of margin, chosen to sit well below V_MAGTORQ_DISARM so recovering from
+// safing never immediately re-arms the rods. Tune against the real pack.
+constexpr float ADCS_VOLTAGE_SAFE_EXIT = 5.5f;
+
+static_assert(ADCS_VOLTAGE_SAFE_EXIT > ADCS_VOLTAGE_UNSAFE,
+              "safe-mode thresholds must differ or safing will chatter");
+
+// Power telemetry older than this is not trusted for arming decisions.
+// vTaskWatchdog refreshes it at 10 Hz.
+constexpr uint32_t POWER_DATA_EXPIRATION_MS = 500;
 
 // ========================================================================
 //          SENSOR NOISE
@@ -106,6 +140,20 @@ constexpr float SUN_VECTOR_VARIANCE =
 constexpr float MAGNETOMETER_VARIANCE =
     (0.02f * DEG_TO_RAD) *
     (0.02f * DEG_TO_RAD); // Magnetometer noise ~ 2 degrees
+
+// ========================================================================
+//          ATTITUDE FILTER
+// ========================================================================
+// The propagate, magnetometer-fusion and sun-fusion tasks share the filter
+// covariance and error state, so they serialize on slate.filter_mutex. The
+// critical sections are a handful of 6x6 matrix products, so a wait this long
+// means something is badly wrong rather than merely contended.
+constexpr uint32_t FILTER_MUTEX_TIMEOUT_MS = 50;
+
+// Largest propagation step we will accept. TASK_LOOP_MS is a relative delay, so
+// the nominal step is 20 ms plus execution time; anything near this bound means
+// the task was starved and the covariance growth would be meaningless.
+constexpr float PROPAGATE_MAX_DT_S = 0.5f;
 
 // ========================================================================
 //          SUN SENSORS
@@ -145,8 +193,52 @@ constexpr float3 MU_MAGTORQ = float3{0.046f, 0.046f, 0.018f}; // [Am^2] max
 constexpr float MAGTORQ_MAX_POWER =
     10.0f; // maximum power consumption we allow [W]
 
+// Bus voltage required to arm magnetorquer actuation, with hysteresis so the
+// rods cannot chatter as their own load sags the bus. Both sit above
+// V_BATT_LOW_POWER: torquing is the first thing we give up on a weak pack.
+constexpr float V_MAGTORQ_ARM = 7.2f;    // [V] arm above this
+constexpr float V_MAGTORQ_DISARM = 6.8f; // [V] disarm below this
+
+// Magnetorquer / magnetometer interleave. The rods swamp the magnetometer, so
+// each cycle drives them for MAGTORQ_ON_TIME_MS, holds off for the field to
+// decay, then releases the magnetometer for MAGTORQ_OFF_TIME_MS.
+//
+// NOTE: this derates the average dipole to
+// MAGTORQ_ON_TIME_MS / (MAGTORQ_ON_TIME_MS + MAGNETOMETER_FIELD_SETTLE_TIME_MS
+// + MAGTORQ_OFF_TIME_MS) of the commanded value - currently 40%. B-dot's gain
+// does not know about that.
+constexpr uint32_t MAGTORQ_ON_TIME_MS = 80;
+constexpr uint32_t MAGTORQ_OFF_TIME_MS = 100;
+
+// The magnetometer has to wait out a whole actuation pulse, so its timeout must
+// exceed the actuator's worst-case hold or roughly half its reads get dropped.
+constexpr uint32_t MAG_MUTEX_TIMEOUT_MS =
+    MAGTORQ_ON_TIME_MS + MAGNETOMETER_FIELD_SETTLE_TIME_MS + 50;
+
 // ========================================================================
 //          CONTROL GAINS
 // ========================================================================
 // Desaturation gains for each reaction wheel
 constexpr float DESATURATION_KP = 0.01; // [1/s]
+
+// ========================================================================
+//          FRAME SANITY CHECKS
+// ========================================================================
+// Note m[c][r]: linalg indexes column first.
+constexpr float mat3_determinant(const float3x3 &m)
+{
+    return m[0][0] * (m[1][1] * m[2][2] - m[2][1] * m[1][2]) -
+           m[1][0] * (m[0][1] * m[2][2] - m[2][1] * m[0][2]) +
+           m[2][0] * (m[0][1] * m[1][2] - m[1][1] * m[0][2]);
+}
+
+// Two right-handed frames can only be related by a proper rotation. det = -1 is
+// a reflection, which no mounting can produce - it means a sign was flipped in
+// isolation.
+static_assert(mat3_determinant(MAG_SENSOR_TO_BODY) > 0.99f &&
+                  mat3_determinant(MAG_SENSOR_TO_BODY) < 1.01f,
+              "MAG_SENSOR_TO_BODY must be a proper rotation (det = +1)");
+
+static_assert(mat3_determinant(IMU_SENSOR_TO_BODY) > 0.99f &&
+                  mat3_determinant(IMU_SENSOR_TO_BODY) < 1.01f,
+              "IMU_SENSOR_TO_BODY must be a proper rotation (det = +1)");

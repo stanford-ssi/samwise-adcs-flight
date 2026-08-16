@@ -49,10 +49,11 @@ source configure.sh
 
 # Build
 mkdir build && cd build
-cmake .. && make -j8
+cmake ..
+cmake --build . --target samwise-adcs-flight -j8
 
 # Flash to Raspberry Pi Pico
-picotool load samwise-adcs.uf2 -f
+picotool load samwise-adcs-flight.uf2 -f
 # Or drag .uf2 file to RP2350B drive
 ```
 
