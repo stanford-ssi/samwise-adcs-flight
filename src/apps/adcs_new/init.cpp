@@ -61,6 +61,7 @@ static StackType_t actuator_stack[256];
 
 // Mutex allocations
 static StaticSemaphore_t mag_mutex_buf;
+static StaticSemaphore_t filter_mutex_buf;
 
 static void init_i2c_buses() {
     // Initialize I2c pins and buses
@@ -83,6 +84,14 @@ static void init_i2c_buses() {
 }
 
 void init_tasks() {
+    // ==============================================================
+    // MUTEXES
+    // ==============================================================
+    // Created before any task exists so no task can ever observe a null
+    // handle. init_tasks() runs before vTaskStartScheduler().
+    slate.mag_mutex = xSemaphoreCreateMutexStatic(&mag_mutex_buf);
+    slate.filter_mutex = xSemaphoreCreateMutexStatic(&filter_mutex_buf);
+
    // ==============================================================
     // INIT STATE MACHINE
     // ==============================================================
@@ -408,8 +417,4 @@ void init_main() {
             SAMWISE_ADCS_TX_TO_PICUBED,
             SAMWISE_ADCS_RX_FROM_PICUBED,
             115200);
-    // ===============================================================
-    // MAGNETOMETER MUTEX
-    // ===============================================================
-    slate.mag_mutex = xSemaphoreCreateMutexStatic(&mag_mutex_buf);
 }

@@ -41,6 +41,9 @@ typedef struct samwise_slate_rewrite {
     b_field_t b_field;
 
     // MEKF
+    // Guards attitude_filter's covariance and error state, which the propagate
+    // and both fusion tasks all mutate from equal-priority tasks.
+    SemaphoreHandle_t filter_mutex;
     SensorFusion magnetometer_fusion = SensorFusion(0.01f);
     SensorFusion sun_vector_fusion = SensorFusion(0.01f);
     AttitudeFilter attitude_filter = AttitudeFilter(I_BODY,

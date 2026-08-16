@@ -123,6 +123,20 @@ constexpr float MAGNETOMETER_VARIANCE =
     (0.02f * DEG_TO_RAD); // Magnetometer noise ~ 2 degrees
 
 // ========================================================================
+//          ATTITUDE FILTER
+// ========================================================================
+// The propagate, magnetometer-fusion and sun-fusion tasks share the filter
+// covariance and error state, so they serialize on slate.filter_mutex. The
+// critical sections are a handful of 6x6 matrix products, so a wait this long
+// means something is badly wrong rather than merely contended.
+constexpr uint32_t FILTER_MUTEX_TIMEOUT_MS = 50;
+
+// Largest propagation step we will accept. TASK_LOOP_MS is a relative delay, so
+// the nominal step is 20 ms plus execution time; anything near this bound means
+// the task was starved and the covariance growth would be meaningless.
+constexpr float PROPAGATE_MAX_DT_S = 0.5f;
+
+// ========================================================================
 //          SUN SENSORS
 // ========================================================================
 
