@@ -57,20 +57,17 @@ constexpr float W_EXIT_DETUMBLE_THRESHOLD = (1.0 * DEG_TO_RAD);   // in rad/s
 // TODO: Update with FLIGHT model (see scripts/calibrations/magnetometer)
 // Hard iron offset correction (sensor units)
 constexpr float3 MAG_HARD_IRON_OFFSET =
-    float3{-2.540693, 16.138800, -24.242187};
+    float3{0.0f, 0.0f, 0.0f};
 
 // Soft iron matrix correction (in sensor units)
-constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{0.026047f, 0.000375f, -0.001275f},
-                                           {0.000375f, 0.027098f, -0.000445f},
-                                           {-0.001275f, -0.000445f, 0.026726f}};
+constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.0f, 0.0f, 0.0f},
+                                           {0.0f, 1.0f, 0.0f},
+                                           {0.0f, 0.0f, 1.0f}};
 
-// Per-axis sign flip taking the RM3100 sensor frame to the spacecraft body
-// frame. Applied AFTER the hard/soft iron correction above, since that
-// calibration was fit against raw sensor-frame data.
-//
-// TODO: verify on the FLIGHT model before launch. See the matching comment in
-// apps/adcs_new/params.h - keep the two in sync.
-constexpr float3 MAG_SENSOR_TO_BODY_SIGNS = float3{-1.0f, 1.0f, -1.0f};
+// Magnetometer is rotated 180 degrees about the BODY Z axis. 
+// 
+// Therefore, we flip the signs of the X and Y axes.
+constexpr float3 MAG_SENSOR_TO_BODY_SIGNS = float3{-1.0f, -1.0f, 1.0f};
 
 // IMU Calibration - zero rotation reading in radians per second
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};

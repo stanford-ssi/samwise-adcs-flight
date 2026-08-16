@@ -57,27 +57,17 @@ constexpr float W_EXIT_DETUMBLE_THRESHOLD = (1.0 * DEG_TO_RAD);   // in rad/s
 // TODO: Update with FLIGHT model (see scripts/calibrations/magnetometer)
 // Hard iron offset correction (sensor units)
 constexpr float3 MAG_HARD_IRON_OFFSET =
-    float3{-2.540693, 16.138800, -24.242187};
+    float3{0.0f, 0.0f, 0.0f};
 
 // Soft iron matrix correction (in sensor units)
-constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{0.026047f, 0.000375f, -0.001275f},
-                                           {0.000375f, 0.027098f, -0.000445f},
-                                           {-0.001275f, -0.000445f, 0.026726f}};
+constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.0f, 0.0f, 0.0f},
+                                           {0.0f, 1.0f, 0.0f},
+                                           {0.0f, 0.0f, 1.0f}};
 
-// Per-axis sign flip taking the RM3100 sensor frame to the spacecraft body
-// frame. This is the ONLY place the mapping is expressed - the driver used to
-// carry three mutually contradictory versions (a header comment saying negate
-// Y and Z, prose saying negate X and Y, and code that negated X and Z on the
-// unit vector while leaving the raw reading untouched).
-//
-// The value below preserves what the code actually executed. It is applied
-// AFTER the hard/soft iron correction, because the calibration above was fit
-// against raw sensor-frame data logged by scripts/calibration.
-//
-// TODO: verify on the FLIGHT model before launch. Rotate the board about each
-// body axis in turn and confirm b_body tracks the expected field direction; a
-// wrong sign here inverts B-dot damping into anti-damping on that axis.
-constexpr float3 MAG_SENSOR_TO_BODY_SIGNS = float3{-1.0f, 1.0f, -1.0f};
+// Magnetometer is rotated 180 degrees about the BODY Z axis. 
+// 
+// Therefore, we flip the signs of the X and Y axes.
+constexpr float3 MAG_SENSOR_TO_BODY_SIGNS = float3{-1.0f, -1.0f, 1.0f};
 
 // IMU Calibration - zero rotation reading in radians per second
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
@@ -99,11 +89,11 @@ constexpr float V_BATT_MAX = 8.2f;       // [V] maximum battery voltage
 constexpr float V_BATT_LOW_POWER = 7.0f; // [V] low power saving mode threshold
 constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 
-constexpr float ADCS_VOLTAGE_UNSAFE = 4.0f;
+constexpr float ADCS_VOLTAGE_UNSAFE = 5.0f;
 
 // Voltage at which we leave STATE_SAFE again. Kept clear of
 // ADCS_VOLTAGE_UNSAFE so the spacecraft cannot oscillate in and out of safing.
-constexpr float ADCS_VOLTAGE_SAFE_EXIT = 4.5f;
+constexpr float ADCS_VOLTAGE_SAFE_EXIT = 5.0f;
 
 // Power telemetry older than this is not trusted for arming decisions.
 // vTaskWatchdog refreshes it at 10 Hz.
