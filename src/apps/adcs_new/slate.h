@@ -54,6 +54,13 @@ typedef struct samwise_slate_rewrite {
     BDotController bdot;
     Magnetorquer magtorq;
 
+    // POWER SAFETY
+    // Written by vTaskWatchdog, read by vTaskActuators. magtorq_armed is the
+    // authority to energise the rods at all; power_read_time lets the actuator
+    // refuse to act on stale telemetry.
+    absolute_time_t power_read_time;
+    bool magtorq_armed;
+
     // UTIL
     StateMachine_t state_machine;
     TaskHandle_t task_handles[NTASKS];

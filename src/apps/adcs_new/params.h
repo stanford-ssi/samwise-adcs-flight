@@ -101,6 +101,14 @@ constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 
 constexpr float ADCS_VOLTAGE_UNSAFE = 4.0f;
 
+// Voltage at which we leave STATE_SAFE again. Kept clear of
+// ADCS_VOLTAGE_UNSAFE so the spacecraft cannot oscillate in and out of safing.
+constexpr float ADCS_VOLTAGE_SAFE_EXIT = 4.5f;
+
+// Power telemetry older than this is not trusted for arming decisions.
+// vTaskWatchdog refreshes it at 10 Hz.
+constexpr uint32_t POWER_DATA_EXPIRATION_MS = 500;
+
 // ========================================================================
 //          SENSOR NOISE
 // ========================================================================
@@ -173,6 +181,28 @@ constexpr float3 MU_MAGTORQ = float3{0.046f, 0.046f, 0.018f}; // [Am^2] max
                                                               // for each axis
 constexpr float MAGTORQ_MAX_POWER =
     10.0f; // maximum power consumption we allow [W]
+
+// Bus voltage required to arm magnetorquer actuation, with hysteresis so the
+// rods cannot chatter as their own load sags the bus. Both sit above
+// V_BATT_LOW_POWER: torquing is the first thing we give up on a weak pack.
+constexpr float V_MAGTORQ_ARM = 7.2f;    // [V] arm above this
+constexpr float V_MAGTORQ_DISARM = 6.8f; // [V] disarm below this
+
+// Magnetorquer / magnetometer interleave. The rods swamp the magnetometer, so
+// each cycle drives them for MAGTORQ_ON_TIME_MS, holds off for the field to
+// decay, then releases the magnetometer for MAGTORQ_OFF_TIME_MS.
+//
+// NOTE: this derates the average dipole to
+// MAGTORQ_ON_TIME_MS / (MAGTORQ_ON_TIME_MS + MAGNETOMETER_FIELD_SETTLE_TIME_MS
+// + MAGTORQ_OFF_TIME_MS) of the commanded value - currently 40%. B-dot's gain
+// does not know about that.
+constexpr uint32_t MAGTORQ_ON_TIME_MS = 80;
+constexpr uint32_t MAGTORQ_OFF_TIME_MS = 100;
+
+// The magnetometer has to wait out a whole actuation pulse, so its timeout must
+// exceed the actuator's worst-case hold or roughly half its reads get dropped.
+constexpr uint32_t MAG_MUTEX_TIMEOUT_MS =
+    MAGTORQ_ON_TIME_MS + MAGNETOMETER_FIELD_SETTLE_TIME_MS + 50;
 
 // ========================================================================
 //          CONTROL GAINS

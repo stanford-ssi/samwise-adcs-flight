@@ -74,10 +74,12 @@ void vTaskGPS(void *) {
                     &msg, 0);
         }
 #else
+        // continue, not return: returning from a FreeRTOS task body lands in
+        // prvTaskExitError and the task spins forever.
         if (!slate.gps_data.gps_alive)
         {
-            LOG_DEBUG("[sensor] Skipping GPS due to invalid initialization!");
-            return;
+            LOG_DEBUG("[GPS] Skipping GPS due to invalid initialization!");
+            continue;
         }
 
         gps_data_t gps_data;
@@ -177,10 +179,12 @@ void vTaskIMU(void *) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_IMU))
         TASK_LOOP_MS(100)
 
+        // continue, not return: returning from a FreeRTOS task body lands in
+        // prvTaskExitError and the task spins forever.
         if (!slate.imu_data.imu_alive)
         {
-            LOG_DEBUG("[sensor] Skipping IMU due to invalid initialization!");
-            return;
+            LOG_DEBUG("[IMU] Skipping IMU due to invalid initialization!");
+            continue;
         }
 
         // Read gyro data
@@ -224,42 +228,52 @@ void vTaskIMU(void *) {
 } // end vTaskIMU
 
 void vTaskMagnetometer(void *) {
-    // Track last read cycle start for 100ms period
-    absolute_time_t last_mag_read_start = {0}; 
-
     for (;;) {
         WAIT_UNTIL_EVENTBIT(TASK_BIT(TASK_MAGNETOMETER))
         TASK_LOOP_MS(20)
 
-        if ( xSemaphoreTake(slate.mag_mutex, (TickType_t) 10) == pdTRUE)
+        // The magnetorquers swamp the sensor, so vTaskActuators holds this
+        // mutex across a pulse plus the field settle time. The timeout has to
+        // cover that whole hold - with the old 10 tick timeout roughly half of
+        // these reads timed out silently while the rods were energised.
+        if (xSemaphoreTake(slate.mag_mutex,
+                           pdMS_TO_TICKS(MAG_MUTEX_TIMEOUT_MS)) != pdTRUE)
         {
-            rm3100_error_t result =
-                rm3100_get_reading(&slate.magnetometer_data.b_body, 
-                        &slate.magnetometer_data.b_body_raw);
-            // Once we have the reading we can give up the semaphore
-            xSemaphoreGive(slate.mag_mutex);
-
-
-            // NOTE: do not copy b_body_raw over b_body. b_body_raw is the
-            // uncalibrated SENSOR-frame reading in microTesla; b_body is the
-            // calibrated BODY-frame unit vector that the MEKF and B-dot need.
-            // Overwriting it threw away the hard/soft iron correction, the
-            // sensor->body axis mapping, and the normalization.
-
-            slate.magnetometer_data.magnetometer_data_valid = (result == RM3100_OK);
-            slate.magnetometer_data.b_body_read_time = get_absolute_time();
-            last_mag_read_start = get_absolute_time();
-
-            if (result != RM3100_OK) {
-                LOG_INFO("[MAGNETOMETER] Error reading magnetometer");
-            }
-            if (result == RM3100_OK) {
-                LOG_INFO("[MAGNETOMETER] b_body = [%.3f, %.3f, %.3f]",
-                        slate.magnetometer_data.b_body.x,
-                        slate.magnetometer_data.b_body.y,
-                        slate.magnetometer_data.b_body.z);
-            }
+            LOG_ERROR("[MAGNETOMETER] Timed out waiting for mutex");
+            // Do not leave the previous sample looking fresh.
+            slate.magnetometer_data.magnetometer_data_valid = false;
+            continue;
         }
+
+        rm3100_error_t result =
+            rm3100_get_reading(&slate.magnetometer_data.b_body,
+                    &slate.magnetometer_data.b_body_raw);
+        // Once we have the reading we can give up the semaphore
+        xSemaphoreGive(slate.mag_mutex);
+
+        // NOTE: do not copy b_body_raw over b_body. b_body_raw is the
+        // uncalibrated SENSOR-frame reading in microTesla; b_body is the
+        // calibrated BODY-frame unit vector that the MEKF and B-dot need.
+        // Overwriting it threw away the hard/soft iron correction, the
+        // sensor->body axis mapping, and the normalization.
+
+        slate.magnetometer_data.magnetometer_data_valid = (result == RM3100_OK);
+        slate.magnetometer_data.b_body_read_time = get_absolute_time();
+
+        if (result != RM3100_OK) {
+            LOG_INFO("[MAGNETOMETER] Error reading magnetometer");
+            continue;
+        }
+
+        // Hand the sample to B-dot. Nothing set this flag before, so vTaskBDot
+        // bailed out on its very first cycle and never computed a control
+        // moment.
+        slate.bdot.bdot_data_has_updated_ = true;
+
+        LOG_INFO("[MAGNETOMETER] b_body = [%.3f, %.3f, %.3f]",
+                slate.magnetometer_data.b_body.x,
+                slate.magnetometer_data.b_body.y,
+                slate.magnetometer_data.b_body.z);
     } // end for(;;)
 } // end vTaskMagnetometer
 

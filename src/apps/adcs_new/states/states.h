@@ -18,6 +18,7 @@ typedef enum {
     MSG_INIT_DONE,
     MSG_ON,
     MSG_VOLTAGE_LOW,
+    MSG_VOLTAGE_OK, // Bus recovered; the only way out of STATE_SAFE
     MSG_COMMAND_RECEIVED,
     MSG_GPS_VALID
 } StateMsg_t;
