@@ -72,8 +72,18 @@ constexpr float3x3 MAG_SENSOR_TO_BODY = {{-1.0f, 0.0f, 0.0f},
                                          {0.0f, 1.0f, 0.0f},
                                          {0.0f, 0.0f, -1.0f}};
 
-// IMU Calibration - zero rotation reading in radians per second
+// IMU Calibration - zero rotation reading in radians per second, SENSOR frame
+// (subtracted before IMU_SENSOR_TO_BODY is applied).
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
+
+// Passive rotation from BMI270 axes to body axes, applied to gyro and accel:
+//   w_body = mul(IMU_SENSOR_TO_BODY, w_sensor)
+// The IMU is rotated +90 degrees about the Z axis.
+// Columns are the sensor axes in body coords: X -> +Y, Y -> -X, Z -> +Z.
+// TODO: verify per CHECKLIST.md lines 29-30.
+constexpr float3x3 IMU_SENSOR_TO_BODY = {{0.0f, 1.0f, 0.0f},
+                                         {-1.0f, 0.0f, 0.0f},
+                                         {0.0f, 0.0f, 1.0f}};
 
 // ========================================================================
 //          MEASUREMENT THRESHOLDS
@@ -228,3 +238,7 @@ constexpr float mat3_determinant(const float3x3 &m)
 static_assert(mat3_determinant(MAG_SENSOR_TO_BODY) > 0.99f &&
                   mat3_determinant(MAG_SENSOR_TO_BODY) < 1.01f,
               "MAG_SENSOR_TO_BODY must be a proper rotation (det = +1)");
+
+static_assert(mat3_determinant(IMU_SENSOR_TO_BODY) > 0.99f &&
+                  mat3_determinant(IMU_SENSOR_TO_BODY) < 1.01f,
+              "IMU_SENSOR_TO_BODY must be a proper rotation (det = +1)");

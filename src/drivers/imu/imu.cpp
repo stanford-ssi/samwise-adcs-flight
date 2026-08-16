@@ -670,11 +670,13 @@ bool imu_get_rotation(float3 *w_out)
         const float z = lsb_to_rps(sensor_data.gyr.z, 125.0f, bmi.resolution);
 
         /*
-         * Apply calibration offset and IMPORTANT convert axes
-         * from [x, y, z] IMU frame to [-x, -y, -z] body frame
+         * Subtract the sensor-frame zero offset, then rotate into the body
+         * frame. The previous hardcoded {-x, -y, -z} had determinant -1, which
+         * is a reflection rather than a rotation and so cannot describe any
+         * physical mounting - see IMU_SENSOR_TO_BODY in params.h.
          */
-        float3 w_raw = {-x, -y, -z};
-        *w_out = w_raw - IMU_ZERO_READING_RPS;
+        const float3 w_sensor = float3{x, y, z} - IMU_ZERO_READING_RPS;
+        *w_out = mul(IMU_SENSOR_TO_BODY, w_sensor);
 
         return true;
     }
@@ -718,7 +720,12 @@ bool imu_get_accel(float3 *a_out)
         float ay_g = lsb_to_dps(sensor_data.acc.y, range_g, bmi.resolution);
         float az_g = lsb_to_dps(sensor_data.acc.z, range_g, bmi.resolution);
 
-        *a_out = float3(ax_g, ay_g, az_g) * g_to_ms2 * ms2_to_kms2;
+        // Same sensor, so the same rotation applies. Previously the gyro
+        // claimed a frame conversion and the accelerometer applied none, which
+        // meant at most one of them could be right.
+        const float3 a_sensor =
+            float3(ax_g, ay_g, az_g) * g_to_ms2 * ms2_to_kms2;
+        *a_out = mul(IMU_SENSOR_TO_BODY, a_sensor);
 
         return true;
     }
