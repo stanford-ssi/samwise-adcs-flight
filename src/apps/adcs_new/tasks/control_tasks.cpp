@@ -90,6 +90,11 @@ static void allocate_magnetorquers()
  */
 static bool magtorq_power_is_safe()
 {
+    if (slate.state_machine.current_state != STATE_DETUMBLE)
+    {
+        LOG_DEBUG("[actuators] Inhibited: not in commanded detumble mode");
+        return false;
+    }
     if (!slate.power_monitor.power_monitor_alive)
     {
         LOG_DEBUG("[actuators] Inhibited: power monitor not alive");
@@ -197,6 +202,16 @@ void vTaskActuators(void *) {
                            pdMS_TO_TICKS(MAG_MUTEX_TIMEOUT_MS)) != pdTRUE)
         {
             LOG_ERROR("[actuators] Timed out waiting for magnetometer mutex");
+            continue;
+        }
+
+        // The state can change while this task waits for the magnetometer. Do
+        // not begin a new pulse after DETUMBLE has been exited.
+        if (!magtorq_power_is_safe())
+        {
+            stop_magnetorquer_pwm();
+            slate.magtorq.magnetorquers_running = false;
+            xSemaphoreGive(slate.mag_mutex);
             continue;
         }
 

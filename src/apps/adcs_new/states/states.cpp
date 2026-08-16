@@ -70,15 +70,32 @@ void init_state_machine() {
         = housekeeping_tasks
         | sensor_tasks;
 
-    // Full mode: sensors, MEKF, and power-gated detumble.
+    // Full estimation mode. B-dot and the rods are deliberately absent: only
+    // an explicit detumble command may enable control_tasks.
     slate.state_machine.state_configs[STATE_FUSION].enabled_bits
         = housekeeping_tasks
         | sensor_tasks
-        | estimator_tasks
+        | estimator_tasks;
+
+    // Detumbling is never entered autonomously. It is a ground-commanded mode
+    // with only the sensors and control tasks required by B-dot; it does not
+    // wait for GPS or run the attitude estimator.
+    slate.state_machine.state_configs[STATE_DETUMBLE].enabled_bits
+        = housekeeping_tasks
+        | sensor_tasks
         | control_tasks;
 }
 
 void enter_state(StateId_t new_state) {
+    if (new_state != STATE_DETUMBLE) {
+        // Clear software commands whenever detumbling is not the selected mode.
+        // The actuator task independently checks the state and turns PWM off.
+        slate.bdot.bdot_has_prev_data_ = false;
+        slate.bdot.bdot_data_has_updated_ = false;
+        slate.magtorq.magtorq_requested = float3(0.0f, 0.0f, 0.0f);
+        slate.magtorq.magtorq_duty_cycle = float3(0.0f, 0.0f, 0.0f);
+    }
+
     switch (new_state) {
         case STATE_SAFE:
             break;
@@ -93,6 +110,15 @@ void enter_state(StateId_t new_state) {
             }
             LOG_INFO("////////////////////////");
             break;
+        case STATE_DETUMBLE:
+            LOG_INFO("SWITCHING TO COMMANDED DETUMBLE MODE");
+            // Never reuse a derivative or actuator request from an earlier
+            // detumble session.
+            slate.bdot.bdot_has_prev_data_ = false;
+            slate.bdot.bdot_data_has_updated_ = false;
+            slate.magtorq.magtorq_requested = float3(0.0f, 0.0f, 0.0f);
+            slate.magtorq.magtorq_duty_cycle = float3(0.0f, 0.0f, 0.0f);
+            break;
         default:
             break;
     };
@@ -102,11 +128,11 @@ void enter_state(StateId_t new_state) {
 
     // Disable tasks not within state
     xEventGroupClearBits(slate.state_machine.events, all & ~wanted);
+    // Publish the state before releasing newly enabled tasks. In particular,
+    // the actuator task must observe DETUMBLE before it is allowed to run.
+    slate.state_machine.current_state = new_state;
     // Enable tasks within the state
     xEventGroupSetBits(slate.state_machine.events, wanted);
-
-    // Update state!
-    slate.state_machine.current_state = new_state;
 }
 
 void state_handle_message(StateMsg_t msg)
@@ -114,8 +140,14 @@ void state_handle_message(StateMsg_t msg)
     switch(slate.state_machine.current_state) {
         case STATE_DISABLED:
             switch(msg) {
-                case MSG_COMMAND_RECEIVED:
+                case MSG_VOLTAGE_LOW:
+                    enter_state(STATE_SAFE);
+                    break;
+                case MSG_COMMAND_ENABLE_NORMAL:
                     enter_state(STATE_ENABLED);
+                    break;
+                case MSG_COMMAND_ENTER_DETUMBLE:
+                    enter_state(STATE_DETUMBLE);
                     break;
                 default:
                     break;
@@ -132,16 +164,10 @@ void state_handle_message(StateMsg_t msg)
             break;
         case STATE_SAFE:
             // Safing is entered on low bus voltage, so the ONLY way out is the
-            // voltage recovering. In particular MSG_GPS_VALID must not promote
-            // us to STATE_FUSION here: vTaskGPS emits it every 200 ms while we
-            // are not in FUSION, so sharing STATE_ENABLED's handler meant we
-            // left safe mode within one GPS cycle of entering it.
+            // voltage recovering. Commands and GPS cannot override safing.
             switch(msg) {
                 case MSG_VOLTAGE_OK:
                     enter_state(STATE_ENABLED);
-                    break;
-                case MSG_COMMAND_RECEIVED:
-                    enter_state(STATE_DISABLED);
                     break;
                 default:
                     break;
@@ -155,8 +181,11 @@ void state_handle_message(StateMsg_t msg)
                 case MSG_GPS_VALID:
                     enter_state(STATE_FUSION);
                     break;
-                case MSG_COMMAND_RECEIVED:
+                case MSG_COMMAND_DISABLE:
                     enter_state(STATE_DISABLED);
+                    break;
+                case MSG_COMMAND_ENTER_DETUMBLE:
+                    enter_state(STATE_DETUMBLE);
                     break;
                 default:
                     break;
@@ -167,8 +196,26 @@ void state_handle_message(StateMsg_t msg)
                 case MSG_VOLTAGE_LOW:
                     enter_state(STATE_SAFE);
                     break;
-                case MSG_COMMAND_RECEIVED:
+                case MSG_COMMAND_DISABLE:
                     enter_state(STATE_DISABLED);
+                    break;
+                case MSG_COMMAND_ENTER_DETUMBLE:
+                    enter_state(STATE_DETUMBLE);
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case STATE_DETUMBLE:
+            switch(msg) {
+                case MSG_VOLTAGE_LOW:
+                    enter_state(STATE_SAFE);
+                    break;
+                case MSG_COMMAND_DISABLE:
+                    enter_state(STATE_DISABLED);
+                    break;
+                case MSG_COMMAND_ENABLE_NORMAL:
+                    enter_state(STATE_ENABLED);
                     break;
                 default:
                     break;
@@ -178,4 +225,3 @@ void state_handle_message(StateMsg_t msg)
             break;
     } // end switch (state)
 }
-

@@ -29,7 +29,10 @@ void vTaskTelemetry(void *) {
             LOG_INFO("[TELEMETRY] PACKET RECEIVED {%d}", rx_count);
             rx_count += 1;
             msg_t received;
-            receive_msg(&received, rx_buf);
+            if (!receive_msg(&received, rx_buf)) {
+                LOG_ERROR("[TELEMETRY] Rejecting malformed packet");
+                continue;
+            }
             switch (received.type) {
                 case MSG_PING:
                     LOG_INFO("[TELEMETRY] Ping received");
@@ -40,11 +43,38 @@ void vTaskTelemetry(void *) {
                     // don't send ping else we get infinite loop
                     break;
                 case MSG_COMMAND:
-                    uint8_t command_byte = (uint32_t) received.payload;
+                    if (received.len != 1) {
+                        LOG_ERROR("[TELEMETRY] Rejecting command with length %u",
+                                  received.len);
+                        break;
+                    }
+
+                    const uint8_t command_byte = received.payload[0];
                     LOG_INFO("[TELEMETRY] Command Received {%d}", command_byte);
-                    StateMsg_t msg = MSG_COMMAND_RECEIVED;
-                    xQueueSend(slate.state_machine.state_queue_handle,
-                            &msg, 0);
+                    StateMsg_t state_msg;
+                    bool command_valid = true;
+                    switch (command_byte) {
+                        case ADCS_COMMAND_DISABLE:
+                            state_msg = MSG_COMMAND_DISABLE;
+                            break;
+                        case ADCS_COMMAND_ENABLE_NORMAL:
+                            state_msg = MSG_COMMAND_ENABLE_NORMAL;
+                            break;
+                        case ADCS_COMMAND_ENTER_DETUMBLE:
+                            state_msg = MSG_COMMAND_ENTER_DETUMBLE;
+                            break;
+                        default:
+                            command_valid = false;
+                            LOG_ERROR("[TELEMETRY] Unknown ADCS command %u",
+                                      command_byte);
+                            break;
+                    }
+
+                    if (command_valid &&
+                        xQueueSend(slate.state_machine.state_queue_handle,
+                                   &state_msg, 0) != pdTRUE) {
+                        LOG_ERROR("[TELEMETRY] State queue full; command dropped");
+                    }
                     break;
             } // end switch 
         } else {
@@ -99,4 +129,3 @@ void vTaskMotorTx(void *) {
         // motor_send_ctrl();
     }
 }
-

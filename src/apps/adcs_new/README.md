@@ -38,6 +38,41 @@ state transition to do so. State transitions will always need to turn on or
 off the correct event group bits to disable some tasks. They will also often
 require some extra code to init or deinit hardware for example.
 
+### Flight states and PiCubed commands
+
+The flight state byte is stable for the existing states and appends the
+command-only detumble mode:
+
+- `0`: `STATE_SAFE`
+- `1`: `STATE_INIT`
+- `2`: `STATE_ENABLED`
+- `3`: `STATE_DISABLED`
+- `4`: `STATE_FUSION`
+- `5`: `STATE_DETUMBLE`
+
+`STATE_DETUMBLE` is the only state that enables B-dot and magnetorquer actuator
+tasks. It is never entered because of boot, GPS validity, elapsed time, or an
+estimated body rate.
+
+PiCubed selects modes with a framed `MSG_COMMAND` (message type `4`) containing
+exactly one payload byte:
+
+- `0`: disable ADCS
+- `1`: enable normal sensing/estimation; also exits detumble
+- `2`: enter detumble
+
+Before COBS encoding, the complete command frame is:
+
+```text
+[src][dst][seq][flags][type=4][len=1][command][crc=0]
+```
+
+COBS-encode those eight bytes and append the zero frame delimiter.
+
+Commands are explicit rather than toggles, so repeating a command has the same
+result. While in `STATE_SAFE`, commands are ignored until the voltage-recovery
+message returns the system to `STATE_ENABLED`.
+
 ## Blackboard design pattern
 The ADCS system has a number of different tasks that all need to
 communicate within each other. The way that we chose to do this is
@@ -47,4 +82,3 @@ slightly incorrect data will not lead to nondeterminism. As far as I'm
 aware sensor data should be fine, and state transitions are already safe
 because of the message queue. For additional safety, flags can be added
 to the slate to indicate whether data is stale or not.
-

@@ -86,12 +86,22 @@ void protocol_message_encode(msg_t *msg, uint8_t *buf) {
     memcpy(buf, &msg->crc8, 1); // copy crc byte
 }
 
-void protocol_message_decode(msg_t *msg, uint32_t len, uint8_t *buf) {
+bool protocol_message_decode(msg_t *msg, uint32_t len, uint8_t *buf) {
+    // Six header bytes plus the trailing CRC byte are always present.
+    if (msg == nullptr || buf == nullptr || len < 7) {
+        return false;
+    }
+
+    const uint8_t payload_len = buf[5];
+    if (len != (uint32_t)(7 + payload_len)) {
+        return false;
+    }
+
     uint8_t *msg_buf = (uint8_t*)msg;
     for (int i = 0; i < 6; i++) {
         msg_buf[i] = buf[i];
     }
     msg->payload = buf + 6;
     msg->crc8 = buf[len - 1];
+    return true;
 }
-

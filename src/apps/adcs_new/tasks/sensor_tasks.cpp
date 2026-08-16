@@ -31,7 +31,8 @@ extern slate_t slate;
 /*
  * Set to 1 to bypass the GPS receiver and hard-code a fixed position/time.
  * Bench use only - it forces gps_data_valid true, which promotes the state
- * machine into STATE_FUSION with a frozen ECI reference.
+ * machine into STATE_FUSION with a frozen ECI reference. It never enters the
+ * command-only STATE_DETUMBLE mode.
  *
  * IMPORTANT: must be 0 for flight.
  */
@@ -68,7 +69,7 @@ void vTaskGPS(void *) {
         // ======================================================
         // SWITCH TO FUSION STATE
         // ======================================================
-        if (slate.state_machine.current_state != STATE_FUSION) {
+        if (slate.state_machine.current_state == STATE_ENABLED) {
             StateMsg_t msg = MSG_GPS_VALID;
             xQueueSend(slate.state_machine.state_queue_handle,
                     &msg, 0);
@@ -150,7 +151,7 @@ void vTaskGPS(void *) {
             // ======================================================
             // SWITCH TO FUSION STATE
             // ======================================================
-            if (slate.state_machine.current_state != STATE_FUSION) {
+            if (slate.state_machine.current_state == STATE_ENABLED) {
                 StateMsg_t msg = MSG_GPS_VALID;
                 xQueueSend(slate.state_machine.state_queue_handle,
                         &msg, 0);
@@ -388,5 +389,3 @@ void vTaskSunSensor(void *) {
 
     } // end for(;;)
 } // end vTaskSunSensor
-
-

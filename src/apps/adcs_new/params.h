@@ -91,9 +91,17 @@ constexpr float ADCS_POWER_SENSE_RESISTOR = 0.0207f; // [ohms]
 
 constexpr float ADCS_VOLTAGE_UNSAFE = 5.0f;
 
-// Voltage at which we leave STATE_SAFE again. Kept clear of
-// ADCS_VOLTAGE_UNSAFE so the spacecraft cannot oscillate in and out of safing.
-constexpr float ADCS_VOLTAGE_SAFE_EXIT = 5.0f;
+// Voltage at which we leave STATE_SAFE again. Must stay clear of
+// ADCS_VOLTAGE_UNSAFE so the spacecraft cannot oscillate in and out of safing:
+// with the two equal, the dead band has zero width and any noise around the
+// threshold re-runs enter_state() at the 10 Hz watchdog rate.
+//
+// 0.5 V of margin, chosen to sit well below V_MAGTORQ_DISARM so recovering from
+// safing never immediately re-arms the rods. Tune against the real pack.
+constexpr float ADCS_VOLTAGE_SAFE_EXIT = 5.5f;
+
+static_assert(ADCS_VOLTAGE_SAFE_EXIT > ADCS_VOLTAGE_UNSAFE,
+              "safe-mode thresholds must differ or safing will chatter");
 
 // Power telemetry older than this is not trusted for arming decisions.
 // vTaskWatchdog refreshes it at 10 Hz.

@@ -233,12 +233,16 @@ bool picubed_uart_handle_commands()
     return all_commands_succeeded;
 }
 
-void receive_msg(msg_t *msg, uint8_t *rx_buf) {
+bool receive_msg(msg_t *msg, uint8_t *rx_buf) {
     static uint8_t raw_buf[256];
     uint16_t num_bytes = uart_comms_get_packet(SAMWISE_ADCS_PICUBED_UART,
             raw_buf, 256);
-    cobs_decode(raw_buf, num_bytes, rx_buf);
-    protocol_message_decode(msg, num_bytes + 1, rx_buf);
+    if (num_bytes == 0) {
+        return false;
+    }
+
+    const uint32_t decoded_len = cobs_decode(raw_buf, num_bytes, rx_buf);
+    return protocol_message_decode(msg, decoded_len, rx_buf);
 }
 
 void send_msg(msg_t *msg, uint32_t len) {
@@ -313,5 +317,4 @@ void send_adcs_packet(adcs_packet_t* adcs) {
     uint32_t len = protocol_message_adcs(&msg, adcs);
     send_msg(&msg, len);
 }
-
 
