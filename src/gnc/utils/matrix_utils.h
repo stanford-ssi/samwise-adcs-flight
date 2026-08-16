@@ -20,6 +20,8 @@ bool mat_contains_nan(const float *A, int M, int N);
 
 void mat_pseudoinverse(const float *A, float *out, int M, int N);
 
+void mat_mul_scalar(const float *A, float *out, int M, int N, int scalar);
+
 #ifdef TEST
 void test_matrix_utils();
 #endif

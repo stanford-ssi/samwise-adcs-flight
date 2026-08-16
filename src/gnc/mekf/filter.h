@@ -6,35 +6,11 @@
 
 #pragma once
 
+#include "gnc/utils/matrix_types.h"
+
 #include "linalg.h"
 using namespace linalg;
 using namespace linalg::aliases;
-
-struct Vec6 {
-    float data[6];
-};
-
-struct Vec3 {
-    float data[3];
-};
-
-struct Mat3x3 {
-    float data[3][3];   
-};
-
-
-struct Mat6x3 {
-    float data[6][3];
-};
-
-struct Mat3x6 {
-    float data[3][6];
-};
-
-struct Mat6x6 { 
-    float data[6][6];
-};
-
 
 class SensorFusion {
     float var_; // variance
