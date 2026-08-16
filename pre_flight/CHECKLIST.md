@@ -39,8 +39,8 @@ Test image SHA/artifact: ____________________  Flight image SHA/artifact: ______
 ## Restore flight configuration
 
 - [ ] Calibration/polarity reports archived with vehicle configuration.
-- [ ] `samwise-adcs-rewrite.uf2` rebuilt from the recorded commit.
-- [ ] `samwise-adcs-rewrite.uf2` flashed; pre-flight image removed.
+- [ ] `samwise-adcs-flight.uf2` rebuilt from the recorded commit.
+- [ ] `samwise-adcs-flight.uf2` flashed; pre-flight image removed.
 - [ ] Vehicle power-cycled.
 - [ ] PiCubed receives and decodes the expected 77-byte telemetry packet.
 - [ ] Final artifact hash recorded: ________________________________________________

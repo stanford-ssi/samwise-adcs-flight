@@ -4,10 +4,12 @@ on:
   push:
     paths:
       - "src/**"
+      - "pre_flight/**"
       - "CMakeLists.txt"
   pull_request:
     paths:
       - "src/**"
+      - "pre_flight/**"
       - "CMakeLists.txt"
 
 jobs:
@@ -38,7 +40,6 @@ jobs:
     - name: Archive Build Products
       uses: actions/upload-artifact@v4
       with:
-        name: samwise-adcs-products
+        name: samwise-adcs-flight-products
         path: |
-          build/samwise-adcs.*
-
+          build/samwise-adcs-flight.*

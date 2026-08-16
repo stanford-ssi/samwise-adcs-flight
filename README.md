@@ -104,7 +104,12 @@ The system follows a safety-first approach with states prioritized by criticalit
 - **`watchdog_task`**: System health monitoring and safety checks
 
 ## Build Products
-For the latest build products, check `actions -> C build -> samwise-adcs-products.zip`.
+For the latest flight build products, check
+`actions -> C build -> samwise-adcs-flight-products.zip`.
+
+The current flight application builds as `samwise-adcs-flight`. The previous
+application is retained as `samwise-adcs-legacy` for regression and reference;
+do not flash the legacy artifact for flight.
 
 ## Getting Started
 
@@ -132,14 +137,14 @@ Run `cmake` (Note: this is usually only necessary if you have added, moved, or d
 cmake ..
 ```
 
-Make the project:
+Build the current flight image:
 ```
-make -j8
+cmake --build . --target samwise-adcs-flight -j8
 ```
 
 Upload the project to your device
 ```
-picotool load samwise-adcs.uf2 -f
+picotool load samwise-adcs-flight.uf2 -f
 ```
 
 Follow instructions [here](https://www.raspberrypi.com/documentation/microcontrollers/c_sdk.html#blink-an-led) for how to drag the `.uf2` file onto your device.

@@ -7,7 +7,7 @@ This folder provides a separate USB test image and guided host tools for:
 - IMU gyro bias calibration and optional accelerometer six-face characterization;
 - magnetorquer, sun-sensor, IMU, and magnetometer polarity checks.
 
-The test image is **not flight firmware**. It starts with all magnetorquer outputs off and does not run flight control, state estimation, telemetry, or B-dot. Re-flash `samwise-adcs-rewrite.uf2` after completing the checklist.
+The test image is **not flight firmware**. It starts with all magnetorquer outputs off and does not run flight control, state estimation, telemetry, or B-dot. Re-flash `samwise-adcs-flight.uf2` after completing the checklist.
 
 Print or copy [`CHECKLIST.md`](CHECKLIST.md) into the vehicle configuration record before starting.
 
@@ -29,7 +29,7 @@ cmake -S . -B build
 cmake --build build --target samwise-adcs-preflight -j
 ```
 
-Flash `build/samwise-adcs-preflight.uf2`, not either flight UF2. With `picotool`:
+Flash `build/samwise-adcs-preflight.uf2`, not the flight or legacy UF2. With `picotool`:
 
 ```sh
 picotool load build/samwise-adcs-preflight.uf2 -f
@@ -171,7 +171,7 @@ If the compass is too slow for a 500 ms pulse, use an external digital magnetome
 
 1. Save every JSON/PNG report with the flight configuration record.
 2. Apply accepted calibration constants to both parameter files.
-3. Rebuild and flash **`samwise-adcs-rewrite.uf2`**.
+3. Rebuild and flash **`samwise-adcs-flight.uf2`**.
 4. Power-cycle, confirm the expected artifact/version, and verify normal PiCubed telemetry.
 5. Confirm the test image is no longer installed; `pre_flight/run.py check` should no longer receive a PONG from flight firmware.
 

@@ -12,12 +12,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 cd build
 cmake ..          # Only needed if files added/moved/deleted
-make -j8          # Build the project
+cmake --build . --target samwise-adcs-flight -j8
 ```
 
 ### Deployment
 ```bash
-picotool load samwise-adcs.uf2 -f
+picotool load samwise-adcs-flight.uf2 -f
 ```
 
 ### Code Formatting
