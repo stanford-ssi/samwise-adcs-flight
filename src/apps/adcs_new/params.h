@@ -64,6 +64,21 @@ constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{0.026047f, 0.000375f, -0.001275f},
                                            {0.000375f, 0.027098f, -0.000445f},
                                            {-0.001275f, -0.000445f, 0.026726f}};
 
+// Per-axis sign flip taking the RM3100 sensor frame to the spacecraft body
+// frame. This is the ONLY place the mapping is expressed - the driver used to
+// carry three mutually contradictory versions (a header comment saying negate
+// Y and Z, prose saying negate X and Y, and code that negated X and Z on the
+// unit vector while leaving the raw reading untouched).
+//
+// The value below preserves what the code actually executed. It is applied
+// AFTER the hard/soft iron correction, because the calibration above was fit
+// against raw sensor-frame data logged by scripts/calibration.
+//
+// TODO: verify on the FLIGHT model before launch. Rotate the board about each
+// body axis in turn and confirm b_body tracks the expected field direction; a
+// wrong sign here inverts B-dot damping into anti-damping on that axis.
+constexpr float3 MAG_SENSOR_TO_BODY_SIGNS = float3{-1.0f, 1.0f, -1.0f};
+
 // IMU Calibration - zero rotation reading in radians per second
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
 

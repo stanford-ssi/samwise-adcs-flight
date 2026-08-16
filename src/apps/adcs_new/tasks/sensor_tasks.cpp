@@ -240,17 +240,11 @@ void vTaskMagnetometer(void *) {
             xSemaphoreGive(slate.mag_mutex);
 
 
-            // Send data over usb
-            // msg_t mag_raw_msg;
-            // float data[3] = {slate.magnetometer_data.b_body_raw.x,
-            //     slate.magnetometer_data.b_body_raw.y, 
-            //     slate.magnetometer_data.b_body_raw.z};
-            //
-            // protocol_message_float3(&mag_raw_msg, (float*)&data);
-            // send_hitl(&mag_raw_msg, 19);
-
-            // TODO: Setup better calibration so that b_body is better than raw
-            slate.magnetometer_data.b_body = slate.magnetometer_data.b_body_raw;
+            // NOTE: do not copy b_body_raw over b_body. b_body_raw is the
+            // uncalibrated SENSOR-frame reading in microTesla; b_body is the
+            // calibrated BODY-frame unit vector that the MEKF and B-dot need.
+            // Overwriting it threw away the hard/soft iron correction, the
+            // sensor->body axis mapping, and the normalization.
 
             slate.magnetometer_data.magnetometer_data_valid = (result == RM3100_OK);
             slate.magnetometer_data.b_body_read_time = get_absolute_time();
@@ -259,12 +253,11 @@ void vTaskMagnetometer(void *) {
             if (result != RM3100_OK) {
                 LOG_INFO("[MAGNETOMETER] Error reading magnetometer");
             }
-            // Update attitude filter with magnetometer measurement
             if (result == RM3100_OK) {
                 LOG_INFO("[MAGNETOMETER] b_body = [%.3f, %.3f, %.3f]",
-                        slate.magnetometer_data.b_body_raw.x,
-                        slate.magnetometer_data.b_body_raw.y,
-                        slate.magnetometer_data.b_body_raw.z);
+                        slate.magnetometer_data.b_body.x,
+                        slate.magnetometer_data.b_body.y,
+                        slate.magnetometer_data.b_body.z);
             }
         }
     } // end for(;;)
