@@ -294,9 +294,14 @@ rm3100_error_t rm3100_get_reading(float3 *mag_field_body, float3 *mag_field_raw)
     float3 calibrated_field;
     rm3100_apply_calibration(*mag_field_raw, &calibrated_field);
 
-    // 3. Rotate sensor frame -> body frame. Single source of truth for the
-    // mapping; see MAG_SENSOR_TO_BODY_SIGNS in params.h.
-    const float3 field_body = calibrated_field * MAG_SENSOR_TO_BODY_SIGNS;
+    // 3. Rotate sensor frame -> body frame. Passive rotation, so this is a
+    // change of basis rather than a physical rotation of the vector. Single
+    // source of truth for the mapping; see MAG_SENSOR_TO_BODY in params.h.
+    //
+    // A full matrix rather than per-axis signs because the mounting may permute
+    // axes, not merely flip them, and a permutation cannot be expressed as a
+    // sign vector.
+    const float3 field_body = mul(MAG_SENSOR_TO_BODY, calibrated_field);
 
     // 4. Normalize. The MEKF compares this against a normalized reference
     // vector, so it must be a unit vector, not a field magnitude.

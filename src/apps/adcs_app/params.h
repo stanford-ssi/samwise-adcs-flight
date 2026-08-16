@@ -64,10 +64,13 @@ constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.0f, 0.0f, 0.0f},
                                            {0.0f, 1.0f, 0.0f},
                                            {0.0f, 0.0f, 1.0f}};
 
-// Magnetometer is rotated 180 degrees about the BODY Z axis. 
-// 
-// Therefore, we flip the signs of the X and Y axes.
-constexpr float3 MAG_SENSOR_TO_BODY_SIGNS = float3{-1.0f, -1.0f, 1.0f};
+// Passive rotation from magnetometer axes to body axes:
+//   b_body = mul(MAG_SENSOR_TO_BODY, b_sensor)
+// The magnetometer is rotated 180 degrees about the IMU Y axis.
+// Keep in sync with apps/adcs_new/params.h.
+constexpr float3x3 MAG_SENSOR_TO_BODY = {{-1.0f, 0.0f, 0.0f},
+                                         {0.0f, 1.0f, 0.0f},
+                                         {0.0f, 0.0f, -1.0f}};
 
 // IMU Calibration - zero rotation reading in radians per second
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};

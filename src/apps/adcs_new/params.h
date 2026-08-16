@@ -64,10 +64,13 @@ constexpr float3x3 MAG_SOFT_IRON_MATRIX = {{1.0f, 0.0f, 0.0f},
                                            {0.0f, 1.0f, 0.0f},
                                            {0.0f, 0.0f, 1.0f}};
 
-// Magnetometer is rotated 180 degrees about the BODY Z axis. 
-// 
-// Therefore, we flip the signs of the X and Y axes.
-constexpr float3 MAG_SENSOR_TO_BODY_SIGNS = float3{-1.0f, -1.0f, 1.0f};
+// Passive rotation from magnetometer axes to body axes:
+//   b_body = mul(MAG_SENSOR_TO_BODY, b_sensor)
+// The magnetometer is rotated 180 degrees about the IMU Y axis.
+// TODO: verify against Earth's field before flight.
+constexpr float3x3 MAG_SENSOR_TO_BODY = {{-1.0f, 0.0f, 0.0f},
+                                         {0.0f, 1.0f, 0.0f},
+                                         {0.0f, 0.0f, -1.0f}};
 
 // IMU Calibration - zero rotation reading in radians per second
 constexpr float3 IMU_ZERO_READING_RPS = {0.0f, 0.0f, 0.0f};
@@ -207,3 +210,21 @@ constexpr uint32_t MAG_MUTEX_TIMEOUT_MS =
 // ========================================================================
 // Desaturation gains for each reaction wheel
 constexpr float DESATURATION_KP = 0.01; // [1/s]
+
+// ========================================================================
+//          FRAME SANITY CHECKS
+// ========================================================================
+// Note m[c][r]: linalg indexes column first.
+constexpr float mat3_determinant(const float3x3 &m)
+{
+    return m[0][0] * (m[1][1] * m[2][2] - m[2][1] * m[1][2]) -
+           m[1][0] * (m[0][1] * m[2][2] - m[2][1] * m[0][2]) +
+           m[2][0] * (m[0][1] * m[1][2] - m[1][1] * m[0][2]);
+}
+
+// Two right-handed frames can only be related by a proper rotation. det = -1 is
+// a reflection, which no mounting can produce - it means a sign was flipped in
+// isolation.
+static_assert(mat3_determinant(MAG_SENSOR_TO_BODY) > 0.99f &&
+                  mat3_determinant(MAG_SENSOR_TO_BODY) < 1.01f,
+              "MAG_SENSOR_TO_BODY must be a proper rotation (det = +1)");
