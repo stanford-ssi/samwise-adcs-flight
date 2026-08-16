@@ -28,7 +28,14 @@ using namespace linalg::aliases;
 
 extern slate_t slate;
 
-#define GPS_SPOOFING 1
+/*
+ * Set to 1 to bypass the GPS receiver and hard-code a fixed position/time.
+ * Bench use only - it forces gps_data_valid true, which promotes the state
+ * machine into STATE_FUSION with a frozen ECI reference.
+ *
+ * IMPORTANT: must be 0 for flight.
+ */
+#define GPS_SPOOFING 0
 
 // This pretty much needs to be written anew
 void vTaskGPS(void *) {
@@ -38,16 +45,24 @@ void vTaskGPS(void *) {
             TASK_LOOP_MS(200)
             LOG_INFO("GPS TASK");
 #if GPS_SPOOFING
+        // Stanford, 2026-06-08 18:25:41 UTC == MJD 61199.767839.
+        // Date/time/MJD must stay mutually consistent: compute_B() and
+        // compute_sun_vector_eci() read them independently.
         slate.gps_data.gps_lat = 37.424732f;
         slate.gps_data.gps_lon = -122.180336f;
         slate.gps_data.gps_alt = 0.060f;
-        slate.gps_data.gps_time = 6;
-        slate.gps_data.MJD = 61199.767839;
+        slate.gps_data.gps_time = 182541.0f; // HHMMSS
+        slate.gps_data.UTC_time = 182541.0f; // HHMMSS
+        slate.gps_data.UTC_date[0] = 2026.0f;
+        slate.gps_data.UTC_date[1] = 6.0f;
+        slate.gps_data.UTC_date[2] = 8.0f;
+        slate.gps_data.MJD = 61199.767839f;
+        slate.gps_data.gps_read_time = get_absolute_time();
         slate.gps_data.gps_data_valid = true;
         // ======================================================
         // UPDATE REFERENCE VECTORS
         // ======================================================
-        compute_B(slate.gps_data, slate.b_field);
+        slate.b_field.valid = compute_B(slate.gps_data, slate.b_field);
         compute_sun_vector_eci(slate.gps_data, slate.sun_vector);
 
         // ======================================================
@@ -77,8 +92,8 @@ void vTaskGPS(void *) {
             slate.gps_data.gps_lon = gps_data.longitude;
             slate.gps_data.gps_alt = 
                 gps_data.altitude / 1000.0f; // Convert m to km
-            slate.gps_data.gps_time = 183510.01f;
-                static_cast<float>(gps_data.timestamp); // Convert HHMMSS to float
+            slate.gps_data.gps_time =
+                static_cast<float>(gps_data.timestamp); // HHMMSS as a float
             slate.gps_data.gps_speed = gps_data.speed;          // knots
             slate.gps_data.gps_course = gps_data.course;        // degrees true
 
@@ -95,26 +110,29 @@ void vTaskGPS(void *) {
             slate.gps_data.UTC_date[1] = static_cast<float>(month); // Month
             slate.gps_data.UTC_date[2] = static_cast<float>(day);   // Day
 
-            // process UTC timestamp HHMMSS into UTC time in seconds
+            // UTC_time keeps the raw HHMMSS packing, NOT seconds-of-day.
+            // Both consumers - compute_MJD() and compute_sun_vector_eci() -
+            // decode it as HHMMSS, so storing seconds here silently corrupted
+            // the MJD and the ECI sun reference.
             uint32_t hhmmss = gps_data.timestamp;
             uint32_t h = hhmmss / 10000;
             uint32_t m = (hhmmss / 100) % 100;
             uint32_t s = hhmmss % 100;
 
-            slate.gps_data.UTC_time = static_cast<float>(h * 3600 + m * 60 + s);
+            slate.gps_data.UTC_time = static_cast<float>(hhmmss);
             // Compute MJD from GPS time/date
-            slate.gps_data.MJD = 
-                compute_MJD(slate.gps_data.UTC_date, 
+            slate.gps_data.MJD =
+                compute_MJD(slate.gps_data.UTC_date,
                         slate.gps_data.gps_time);
 
             LOG_INFO("[GPS] Lat = %.6f, Lon = %.6f, Alt = %.3f, "
-                      "Time = %.3f, "
-                      "Time = %02d:%02d:%04d, "
+                      "Date = %02u/%02u/%04u, "
+                      "Time = %02u:%02u:%02u, "
                       "MJD = %.5f",
-                      slate.gps_data.gps_lat, 
-                      slate.gps_data.gps_lon, 
+                      slate.gps_data.gps_lat,
+                      slate.gps_data.gps_lon,
                       slate.gps_data.gps_alt,
-                      slate.gps_data.gps_time,
+                      month, day, year,
                       h, m, s, slate.gps_data.MJD);
 
             slate.gps_data.gps_data_valid = true;
@@ -122,7 +140,10 @@ void vTaskGPS(void *) {
             // ======================================================
             // UPDATE REFERENCE VECTORS
             // ======================================================
-            compute_B(slate.gps_data, slate.b_field);
+            // compute_B() bails out (leaving b_eci stale) on out-of-range
+            // lat/lon/alt or near a pole singularity, so the filter has to
+            // know whether this cycle's reference is usable.
+            slate.b_field.valid = compute_B(slate.gps_data, slate.b_field);
             compute_sun_vector_eci(slate.gps_data, slate.sun_vector);
             // ======================================================
             // SWITCH TO FUSION STATE
@@ -141,6 +162,9 @@ void vTaskGPS(void *) {
                  (get_absolute_time() - slate.gps_data.gps_read_time >
                   GPS_DATA_EXPIRATION_MS * 1000))    {
             slate.gps_data.gps_data_valid = false;
+            // The ECI references are derived from position and time, so they
+            // expire with the fix that produced them.
+            slate.b_field.valid = false;
         }
 #endif
     } // end for(;;)
